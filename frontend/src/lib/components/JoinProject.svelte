@@ -46,6 +46,8 @@
       <div class="label">Join Code</div>
       <input
         type="text"
+        minlength="4"
+        maxlength="4"
         bind:value={toSend.query.join_code}
         placeholder="~4 character case-insensitive join code"
         class="w-full input input-bordered"

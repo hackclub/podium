@@ -16,6 +16,13 @@
   });
   let events: Event[] = $state([]);
   let fetchedEvents = false;
+  let formErrors = $state({
+    name: "",
+    description: "",
+    image_url: "",
+    event: "",
+  });
+  let submitting = $state(false);
 
   async function fetchEvents() {
     try {
@@ -29,8 +36,58 @@
     }
   }
 
-  async function createProject() {
+  function validate() {
+    let isValid = true;
+
+    formErrors = {
+      name: "",
+      description: "",
+      image_url: "",
+      event: "",
+    };
+
+    if (!project.name.trim()) {
+      formErrors.name = "Project name is required";
+      isValid = false;
+    }
+
+    if (!project.description.trim()) {
+      formErrors.description = "Project description is required";
+      isValid = false;
+    }
+
+    // img url check
+    if (project.image_url.trim()) {
+      const validExt = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"];
+      const isValidExt = validExt.some((ext) =>
+        project.image_url.toLowerCase().endsWith(ext),
+      );
+
+      if (!isValidExt) {
+        formErrors.image_url =
+          "Image URL must end with a valid image extension (.jpg, .jpeg, .png, .gif, .webp, .svg)";
+        isValid = false;
+      }
+    }
+
+    if (!project.event[0]) {
+      formErrors.event = "Please select an event";
+      isValid = false;
+    }
+
+    return isValid;
+  }
+
+  async function createProject(e: Event) {
+    e.preventDefault();
+
+    if (!validate()) {
+      toast.error("Please fix the errors in the form");
+      return;
+    }
+
     try {
+      submitting = true;
       await ProjectsService.createProjectProjectsPost({
         body: project,
         throwOnError: true,
@@ -48,12 +105,14 @@
       };
     } catch (err) {
       handleError(err);
+    } finally {
+      submitting = false;
     }
   }
 </script>
 
 <div class="p-4 max-w-md mx-auto">
-  <form onsubmit={createProject} class="space-y-4">
+  <form on:submit={createProject} class="space-y-4">
     <label class="form-control">
       <div class="label">
         <span class="label-text">Project Name</span>
@@ -63,7 +122,11 @@
         bind:value={project.name}
         placeholder="A really cool project!"
         class="input input-bordered grow"
+        class:input-error={formErrors.name}
       />
+      {#if formErrors.name}
+        <div class="text-error text-sm mt-1">{formErrors.name}</div>
+      {/if}
     </label>
     <!-- Project description field -->
     <label class="form-control">
@@ -74,7 +137,11 @@
         bind:value={project.description}
         placeholder="Some cool description"
         class="textarea textarea-bordered grow"
+        class:textarea-error={formErrors.description}
       ></textarea>
+      {#if formErrors.description}
+        <div class="text-error text-sm mt-1">{formErrors.description}</div>
+      {/if}
     </label>
     <label class="form-control">
       <div class="label">
@@ -88,7 +155,11 @@
         bind:value={project.image_url}
         placeholder="Image URL"
         class="input input-bordered grow"
+        class:input-error={formErrors.image_url}
       />
+      {#if formErrors.image_url}
+        <div class="text-error text-sm mt-1">{formErrors.image_url}</div>
+      {/if}
     </label>
     <label class="form-control">
       <div class="label">
@@ -140,6 +211,7 @@
       <select
         bind:value={project.event[0]}
         class="select select-bordered"
+        class:select-error={formErrors.event}
         onfocus={() => {
           if (!fetchedEvents) fetchEvents();
         }}
@@ -149,9 +221,16 @@
           <option value={event.id}>{event.name}</option>
         {/each}
       </select>
+      {#if formErrors.event}
+        <div class="text-error text-sm mt-1">{formErrors.event}</div>
+      {/if}
     </label>
-    <button type="submit" class="btn btn-block btn-primary mt-4">
-      Create Project
+    <button
+      type="submit"
+      class="btn btn-block btn-primary mt-4"
+      disabled={submitting}
+    >
+      {submitting ? "Creating..." : "Create Project"}
     </button>
   </form>
 </div>
