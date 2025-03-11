@@ -8,7 +8,7 @@ venv/
 .venv/
 
 # Ignore local settings
-# settings.toml
+settings.toml
 .secrets.toml
 .env
 
