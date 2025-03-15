@@ -20,8 +20,8 @@ class UserBase(BaseModel):
     city: Optional[str] = ""
     state: Optional[str] = ""
     # str but only allow digits
-    zip_code: Optional[Annotated[str, StringConstraints(pattern=r"(^$|^\d+$)")]] = ""
-    # zip_code: Annotated[str, StringConstraints(pattern=r"^[\d|\s\w]*$")]
+    # zip_code: Optional[Annotated[str, StringConstraints(pattern=r"(^$|^\d+$)")]] = ""
+    zip_code: Optional[Annotated[str, StringConstraints(pattern=r"^[\d|\s\w]*$")]] = ""
     # https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
     country: Optional[Annotated[str, StringConstraints(pattern=r"(^$|^[A-Z]{2}$)")]] = ""
     # YYYY-MM-DD or unix time is probably the best
