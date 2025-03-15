@@ -16,7 +16,8 @@
   });
   let events: Event[] = $state([]);
   let fetchedEvents = false;
-
+  let showGuidelines = $state(false);
+  let guidelinesModal: HTMLDialogElement | null = $state(null);
   async function fetchEvents() {
     try {
       toast("Fetching events; please wait");
@@ -49,6 +50,17 @@
     } catch (err) {
       handleError(err);
     }
+  }
+
+  function toggleGuidelines() {
+    showGuidelines = !showGuidelines;
+    if (guidelinesModal) {
+    if (showGuidelines) {
+      guidelinesModal.showModal();
+    } else {
+      guidelinesModal.close();
+    }
+  }
   }
 </script>
 
@@ -101,6 +113,11 @@
         placeholder="Demo URL"
         class="input input-bordered grow"
       />
+      <div class="label">
+        <span class="label-text">
+        <button type="button" class="btn-link" onclick={toggleGuidelines}>What's allowed as a demo?</button>
+        </span>
+      </div>
     </label>
     <label class="form-control">
       <div class="label">
@@ -155,3 +172,34 @@
     </button>
   </form>
 </div>
+
+
+
+<dialog bind:this={guidelinesModal} class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box">
+      <h2 class="font-bold text-lg">Demo guidelines</h2>
+      <p class="py-4">
+        You should probably check that...
+        Your repo doesn't 404
+        Your demo link doesn't 404
+        Your demo link isn't a video unless it really really has to be a video. Reasons to be a video:
+      </p>
+      <ul>
+        <li>You build a website ❌ nope! you gotta host it</li>
+        <li>You built a server and can't host it ❌ nope! you gotta host it</li>
+        <li>You build something that relies on AI ❌ nope! you still gotta host it (see a pattern?)</li>
+        <li>You built a discord bot ⚠️ maybe if it's a really good video, but you still have to host it and include a discord bot install link</li>
+        <li>You built a physical robot ✅ this is a good reason for a video, but your repo should also include some pics and all the parts & code should be open-source</li>
+      </ul>
+        <div class="modal-action">
+        <button
+          class="btn"
+          onclick={() => {
+            toggleGuidelines();
+          }}>Close</button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button>close</button>
+    </form>   
+  </dialog>
