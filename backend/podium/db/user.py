@@ -33,7 +33,7 @@ class UserBase(BaseModel):
         if self.dob:
             data["dob"] = self.dob.strftime("%Y-%m-%d")
         else:
-            ...
+            data["dob"] = None
         return data
 
 
