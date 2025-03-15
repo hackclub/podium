@@ -9,6 +9,10 @@
 
   let { project, isSelected, toggle, selectable = false }: Props = $props();
 
+  function proxy(url: string): string {
+    return `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=400&q=85`;
+  }
+
   // $inspect(project);
 </script>
 
@@ -31,7 +35,7 @@
       : ''}"
   >
     <figure>
-      <img src={project.image_url} alt="Project" />
+      <img src={proxy(project.image_url)} alt="Project" loading="lazy" />
     </figure>
     <div class="card-body">
       <h2 class="card-title">
@@ -39,10 +43,10 @@
       </h2>
       <p>{project.description}</p>
       <div class="card-actions justify-end">
-        <a href={project.repo} target="_blank">
+        <a href={project.repo} target="_blank" referrerpolicy="no-referrer">
           <div class="badge badge-secondary badge-lg underline">Repo</div>
         </a>
-        <a href={project.demo} target="_blank">
+        <a href={project.demo} target="_blank" referrerpolicy="no-referrer">
           <div class="badge badge-primary badge-lg underline">Demo</div>
         </a>
       </div>
