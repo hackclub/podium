@@ -10,22 +10,22 @@ from pyairtable.formulas import match
 class UserBase(BaseModel):
     first_name: str
     # Optional since some users don't have a last name in the DB
-    last_name: Optional[str] = ""
+    last_name: str = "N/A"
     email: EmailStr
     # International phone number format, allowing empty string
-    phone: Optional[Annotated[str, StringConstraints(pattern=r"(^$|^\+?[1-9]\d{1,14}$)")]] = ""
+    phone: Annotated[str, StringConstraints(pattern=r"(^$|^\+?[1-9]\d{1,14}$)")]
     street_1: Optional[str] = ""
     street_2: Optional[str] = ""
     city: Optional[str] = ""
     state: Optional[str] = ""
     # str but only allow digits
-    zip_code: Optional[Annotated[str, StringConstraints()]] = ""
+    zip_code: Annotated[str, StringConstraints(pattern=r"(^$|^\d+$)")]
     # zip_code: Annotated[str, StringConstraints(pattern=r"^[\d|\s\w]*$")]
     # https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
-    country: Optional[Annotated[str, StringConstraints(pattern=r"^[A-Z]{2}$")]] = ""
+    country: Annotated[str, StringConstraints(pattern=r"(^$|^[A-Z]{2}$)")]
     # YYYY-MM-DD or unix time is probably the best
     # Airtable returns 2025-01-25 :)
-    dob: Optional[datetime.date] = None
+    dob: Optional[datetime.date | str] = None
 
     def model_dump(self, *args, **kwargs):
         data = super().model_dump(*args, **kwargs)
