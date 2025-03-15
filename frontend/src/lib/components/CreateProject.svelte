@@ -117,7 +117,7 @@
     <label class="form-control">
       <div class="label">
         <span class="label-text"
-          >Rough estimate of how many hours your team spent on this project</span
+          >Rough estimate of how many hours you (individually) spent on this project</span
         >
       </div>
       <input
