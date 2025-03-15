@@ -8,7 +8,7 @@ from pyairtable.formulas import match
 
 
 class UserBase(BaseModel):
-    first_name: str
+    first_name: str = Field(..., min_length=1, max_length=50)
     # Optional since some users don't have a last name in the DB
     last_name: str = "N/A"
     email: EmailStr
