@@ -37,7 +37,7 @@
       <h2 class="card-title">
         {project.name}
       </h2>
-      <p>{project.description}</p>
+      <p class="break-words">{project.description}</p>
       <div class="card-actions justify-end">
         <a href={project.repo} target="_blank">
           <div class="badge badge-secondary badge-lg underline">Repo</div>
