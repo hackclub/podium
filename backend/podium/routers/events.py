@@ -288,7 +288,7 @@ def vote(vote: Vote, current_user: Annotated[CurrentUser, Depends(get_current_us
             # Appending to a list so it can be used later without needing to fetch the project again
             projects.append(project)
             # Check if the user is the owner and raise an error if they are
-            if user_id in project["fields"].get("owner", []):
+            if user_id in project["fields"].get("owner", []) or user_id in project["fields"].get("collaborators", []):
                 raise HTTPException(
                     status_code=400, detail="User cannot vote for their own project"
                 )
