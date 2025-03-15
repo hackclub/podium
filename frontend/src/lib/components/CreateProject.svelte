@@ -78,7 +78,7 @@
     </label>
     <label class="form-control">
       <div class="label">
-        <span class="label-text">Image URL</span>
+        <span class="label-text">Image URL for your project's thumbnail</span>
         <span class="label-text-alt">
           (such as a raw GitHub link or a #cdn link)</span
         >
