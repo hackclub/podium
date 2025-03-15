@@ -30,7 +30,7 @@ class UserBase(BaseModel):
     def model_dump(self, *args, **kwargs):
         data = super().model_dump(*args, **kwargs)
         # Convert dob to YYYY-MM-DD
-        if self.dob:
+        if isinstance(self.dob, datetime.date):
             data["dob"] = self.dob.strftime("%Y-%m-%d")
         else:
             data["dob"] = None
