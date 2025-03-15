@@ -58,7 +58,7 @@ async def send_magic_link(email: str, redirect: str = ""):
         data=token_data, expires_delta=timedelta(minutes=15), token_type="magic_link"
     )
 
-    magic_link = f"{settings.production_url}/login?token={token}"
+    magic_link = f"{settings.production_url}login?token={token}"
     if redirect:
         magic_link += f"&redirect={redirect}"
 
@@ -78,7 +78,7 @@ async def send_magic_link(email: str, redirect: str = ""):
         raise HTTPException(status_code=500, detail="Failed to send auth email")
 
     print(
-        f"Token for {email}: {token} | magic_link: {settings.production_url}/login?token={token}"
+        f"Token for {email}: {token} | magic_link: {settings.production_url}login?token={token}"
     )
 
 
