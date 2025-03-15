@@ -78,7 +78,7 @@ async def send_magic_link(email: str, redirect: str = ""):
         raise HTTPException(status_code=500, detail="Failed to send auth email")
 
     print(
-        f"Token for {email}: {token} | magic_link: {settings.production_url}/login?token={token}"
+        f"Token for {email}: {token} | magic_link: {settings.production_url}/login?token={token} | local magic_link: http://localhost:5173/login?token={token}"
     )
 
 
