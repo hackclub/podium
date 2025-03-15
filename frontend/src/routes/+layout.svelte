@@ -38,6 +38,12 @@
   </div>
 </nav>
 
+<div class="p-4 bg-info text-center rounded-xl max-w-2xl mx-auto m-4">
+  <p class="text-info-content">
+    Welcome to Scrapyard! Need help? DM @Angad Behl on Slack or call +1 (415) 570-4995
+  </p>
+</div>
+
 {#if navigating.to && navigating.type != "form"}
   <div class="flex items-center justify-center min-h-screen flex-col">
     <span class="loading loading-ball loading-lg mb-2"></span>
@@ -74,7 +80,7 @@
         encounter issues, feel free to
         <a href="https://github.com/hackclub/podium/issues" class="hover-link">report</a> them.
         Need help? Ask on the <a href="https://hackclub.com/slack" class="hover-link">Slack</a> or
-        email <a href="mailto:team@hackclub.com" class="hover-link">team@hackclub.com</a>.
+        email <a href="mailto:angad@hackclub.com" class="hover-link">angad@hackclub.com</a>.
       </p>
       <p class="text-right">
         <a href="https://github.com/slashtechno" class="hover-link">-Angad Behl</a>
