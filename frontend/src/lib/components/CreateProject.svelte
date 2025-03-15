@@ -92,7 +92,7 @@
     </label>
     <label class="form-control">
       <div class="label">
-        <span class="label-text">Demo URL</span>
+        <span class="label-text">URL to a deployed version of your project</span>
         <span class="label-text-alt"> (a link to an interactive demo)</span>
       </div>
       <input
