@@ -25,7 +25,7 @@ class UserBase(BaseModel):
     # https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
     # country: Optional[Annotated[str, StringConstraints(pattern=r"(^$|^[A-Z]{2}$)")]] = ""
     # I think some other HQ stuff uses the full country name
-    country: Optional[Annotated[str, StringConstraints(pattern=r"(^$|^[A-Z]+$)")]] = ""
+    country: Optional[Annotated[str, StringConstraints(pattern=r"(^$|^\w+)$")]] = ""
     # YYYY-MM-DD or unix time is probably the best
     # Airtable returns 2025-01-25 :)
     dob: Optional[datetime.date] = None
