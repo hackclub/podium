@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [sentrySvelteKit({
     sourceMapsUploadOptions: {
       org: "angad-b",
-      project: "podium-backend"
+      project: "podium"
     }
   }), sveltekit()],
 });
