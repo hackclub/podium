@@ -13,7 +13,8 @@ class UserBase(BaseModel):
     last_name: str = "N/A"
     email: EmailStr
     # International phone number format, allowing empty string
-    phone: Annotated[str, StringConstraints(pattern=r"(^$|^\+?[1-9]\d{1,14}$)")]
+    # this should have a default since I think Airtable may return None 
+    phone: Annotated[str, StringConstraints(pattern=r"(^$|^\+?[1-9]\d{1,14}$)")] = ""
     street_1: Optional[str] = ""
     street_2: Optional[str] = ""
     city: Optional[str] = ""
