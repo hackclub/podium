@@ -14,23 +14,26 @@ class UserBase(BaseModel):
     email: EmailStr
     # International phone number format, allowing empty string
     phone: Optional[Annotated[str, StringConstraints(pattern=r"(^$|^\+?[1-9]\d{1,14}$)")]] = ""
-    street_1: str
+    street_1: Optional[str] = ""
     street_2: Optional[str] = ""
-    city: str
-    state: str
+    city: Optional[str] = ""
+    state: Optional[str] = ""
     # str but only allow digits
-    zip_code: Annotated[str, StringConstraints()]
+    zip_code: Optional[Annotated[str, StringConstraints()]] = ""
     # zip_code: Annotated[str, StringConstraints(pattern=r"^[\d|\s\w]*$")]
     # https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
-    country: Annotated[str, StringConstraints(pattern=r"^[A-Z]{2}$")]
+    country: Optional[Annotated[str, StringConstraints(pattern=r"^[A-Z]{2}$")]] = ""
     # YYYY-MM-DD or unix time is probably the best
     # Airtable returns 2025-01-25 :)
-    dob: datetime.date
+    dob: Optional[datetime.date] = None
 
     def model_dump(self, *args, **kwargs):
         data = super().model_dump(*args, **kwargs)
         # Convert dob to YYYY-MM-DD
-        data["dob"] = self.dob.strftime("%Y-%m-%d")
+        if self.dob:
+            data["dob"] = self.dob.strftime("%Y-%m-%d")
+        else:
+            ...
         return data
 
 
