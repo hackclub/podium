@@ -28,7 +28,7 @@
     zip_code: "",
     country: "",
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/date
-    dob: "",
+    dob: null,
   });
   let redirectUrl: string;
 

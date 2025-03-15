@@ -25,7 +25,7 @@ class UserBase(BaseModel):
     country: Annotated[str, StringConstraints(pattern=r"(^$|^[A-Z]{2}$)")]
     # YYYY-MM-DD or unix time is probably the best
     # Airtable returns 2025-01-25 :)
-    dob: Optional[datetime.date | str] = None
+    dob: Optional[datetime.date] = None
 
     def model_dump(self, *args, **kwargs):
         data = super().model_dump(*args, **kwargs)

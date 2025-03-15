@@ -144,16 +144,16 @@ export type User_Input = {
 
 export type User_Output = {
     first_name: string;
-    last_name: string;
+    last_name?: string;
     email: string;
-    phone?: (string | null);
-    street_1: string;
+    phone: string;
+    street_1?: (string | null);
     street_2?: (string | null);
-    city: string;
-    state: string;
+    city?: (string | null);
+    state?: (string | null);
     zip_code: string;
     country: string;
-    dob: string;
+    dob?: (string | null);
     id: string;
     votes?: Array<(string)>;
     projects?: Array<(string)>;
@@ -176,16 +176,16 @@ export type UserExistsResponse = {
 
 export type UserSignupPayload = {
     first_name: string;
-    last_name: string;
+    last_name?: string;
     email: string;
-    phone?: (string | null);
-    street_1: string;
+    phone: string;
+    street_1?: (string | null);
     street_2?: (string | null);
-    city: string;
-    state: string;
+    city?: (string | null);
+    state?: (string | null);
     zip_code: string;
     country: string;
-    dob: string;
+    dob?: (string | null);
 };
 
 export type ValidationError = {
@@ -229,6 +229,10 @@ export type VerifyTokenVerifyGetError = (HTTPValidationError);
 export type ProtectedRouteProtectedRouteGetResponse = (CheckAuthResponse);
 
 export type ProtectedRouteProtectedRouteGetError = unknown;
+
+export type TriggerErrorSentryDebugGetResponse = (unknown);
+
+export type TriggerErrorSentryDebugGetError = unknown;
 
 export type GetEventUnauthenticatedEventsUnauthenticatedEventIdGetData = {
     path: {
