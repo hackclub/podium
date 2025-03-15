@@ -9,7 +9,8 @@ from pyairtable.formulas import match
 
 class UserBase(BaseModel):
     first_name: str
-    last_name: str
+    # Optional since some users don't have a last name in the DB
+    last_name: Optional[str] = ""
     email: EmailStr
     # International phone number format, allowing empty string
     phone: Optional[Annotated[str, StringConstraints(pattern=r"(^$|^\+?[1-9]\d{1,14}$)")]] = ""
