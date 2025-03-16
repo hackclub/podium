@@ -4,6 +4,11 @@ export type CheckAuthResponse = {
     email: string;
 };
 
+export type CreateVotes = {
+    projects: Array<(string)>;
+    event: string;
+};
+
 export type Event = {
     name: string;
     description?: (string | null);
@@ -29,21 +34,7 @@ export type MagicLinkVerificationResponse = {
     email: string;
 };
 
-export type PrivateEvent_Input = {
-    name: string;
-    description?: (string | null);
-    id: string;
-    votable?: boolean;
-    owner: [
-        string
-    ];
-    attendees?: Array<(string)>;
-    join_code: string;
-    projects?: Array<(string)>;
-    referrals?: Array<(string)>;
-};
-
-export type PrivateEvent_Output = {
+export type PrivateEvent = {
     name: string;
     description?: (string | null);
     id: string;
@@ -168,7 +159,7 @@ export type User_Output = {
  * Return information regarding what the events the user owns and what events they are attending. If they are only attending an event, don't return sensitive information like participants.
  */
 export type UserEvents = {
-    owned_events: Array<PrivateEvent_Output>;
+    owned_events: Array<PrivateEvent>;
     attending_events: Array<Event>;
 };
 
@@ -194,17 +185,6 @@ export type ValidationError = {
     loc: Array<(string | number)>;
     msg: string;
     type: string;
-};
-
-export type Vote = {
-    /**
-     * The ID of the event to vote in.
-     */
-    event_id: string;
-    /**
-     * In no particular order, the top 3 (or 2 if there are less than 20 projects) projects that the user is voting for.
-     */
-    projects: Array<(string)>;
 };
 
 export type RequestLoginRequestLoginPostData = {
@@ -248,7 +228,7 @@ export type GetEventEventsEventIdGetData = {
     };
 };
 
-export type GetEventEventsEventIdGetResponse = ((PrivateEvent_Output | Event));
+export type GetEventEventsEventIdGetResponse = ((PrivateEvent | Event));
 
 export type GetEventEventsEventIdGetError = (HTTPValidationError);
 
@@ -296,7 +276,7 @@ export type MakeVotableEventsMakeVotablePostResponse = (unknown);
 export type MakeVotableEventsMakeVotablePostError = (HTTPValidationError);
 
 export type VoteEventsVotePostData = {
-    body: Vote;
+    body: CreateVotes;
 };
 
 export type VoteEventsVotePostResponse = (unknown);

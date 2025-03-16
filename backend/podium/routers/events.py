@@ -2,8 +2,9 @@ from fastapi import APIRouter, Path
 from typing import Annotated, Union, List
 from fastapi import Depends, HTTPException, Query
 from podium.db.event import PrivateEvent
-from podium.db.vote import Vote, VoteBase
+from podium.db.vote import CreateVotes, VoteCreate
 from pyairtable.formulas import match
+
 from secrets import token_urlsafe
 
 
@@ -197,7 +198,7 @@ def make_votable(
 
 # Voting! The client should POST to /events/{event_id}/vote with their top 3 favorite projects, in no particular order. If there are less than 20 projects in the event, only accept the top 2
 @router.post("/vote")
-def vote(vote: VoteBase, current_user: Annotated[CurrentUser, Depends(get_current_user)]):
+def vote(votes: CreateVotes, current_user: Annotated[CurrentUser, Depends(get_current_user)]):
     """
     Vote for the top 3 projects in an event. The client must provide the event ID and a list of the top 3 projects. If there are less than 20 projects in the event, only the top 2 projects are required.
     """
@@ -207,13 +208,8 @@ def vote(vote: VoteBase, current_user: Annotated[CurrentUser, Depends(get_curren
         raise HTTPException(status_code=404, detail="User not found")
     user = db.users.get(user_id)
     user = User.model_validate({"id": user["id"], **user["fields"]})
-    vote = Vote(
-        **vote.model_dump(),
-        owner=user,
-        id="",  # Placeholder to prevent an unnecessary class
-    )
     try:
-        event = db.events.get(vote.event)
+        event = db.events.get(votes.event)
         event = PrivateEvent.model_validate({"id": event["id"], **event["fields"]})
     except HTTPError as e:
         raise (
@@ -226,7 +222,12 @@ def vote(vote: VoteBase, current_user: Annotated[CurrentUser, Depends(get_curren
     if user_id not in event.attendees:
         raise HTTPException(status_code=403, detail="User is not attending the event")
 
-    for project_id in vote.projects:
+    for project_id in votes.projects:
+        vote = VoteCreate(
+            project=[project_id],
+            event=[event.id],
+            voter=[user_id],
+        )
         try:
             project = db.projects.get(project_id)
         except HTTPError as e:
@@ -237,13 +238,17 @@ def vote(vote: VoteBase, current_user: Annotated[CurrentUser, Depends(get_curren
         project = Project.model_validate({"id": project["id"], **project["fields"]})
 
         # Check if the project is in the event
-        if project.event != event.id:
+        if project.event != [event.id]:
             raise HTTPException(
                 status_code=400, detail="Project is not in the event"
             )
 
-        # fetch votes wherein the user is the voter and the event is the event_id
-        existing_votes = db.votes.all(formula={"user": user_id, "event": event.id})
+        # fetch votes wherein the user is the voter and the event is the event_id. These need to be lookup fields, it seems
+        formula = match(
+            {"user_id": user_id, "event_id": event.id}
+        )
+            
+        existing_votes = db.votes.all(formula=formula)
         # Check if the user has already met the required number of votes
         if len(existing_votes) >= event.max_votes_per_user:
             raise HTTPException(
@@ -252,7 +257,11 @@ def vote(vote: VoteBase, current_user: Annotated[CurrentUser, Depends(get_curren
             )
         
         # Check if the user has already voted for this project
-        if project_id in user.votes:
+        if db.votes.all(
+            formula=match(
+                {"user_id": user_id, "event_id": event.id, "project_id": project.id}
+            )
+        ):
             raise HTTPException(
                 status_code=400,
                 detail="User has already voted for this project",
@@ -265,7 +274,7 @@ def vote(vote: VoteBase, current_user: Annotated[CurrentUser, Depends(get_curren
             )
         
         # Create vote record
-        db.votes.create(vote.model_dump(exclude={"id"}))
+        db.votes.create(vote.model_dump())
             
 
             
