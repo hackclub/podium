@@ -205,21 +205,25 @@ class Vote(BaseModel):
                 if e.response.status_code == 404
                 else e
             )
+        
         if not self.event["fields"].get("votable", False):
             raise HTTPException(status_code=400, detail="Event is not votable yet")
+        
         if len(self.projects) < 2:
             raise HTTPException(
                 status_code=400, detail="At least 2 projects are required"
             )
+        
+        
         if len(self.projects) < 3 and len(self.event["fields"]["projects"]) >= 20:
             raise HTTPException(
                 status_code=400,
-                detail="3 projects are required for events with 20 or more projects",
+                detail="3 nominations are required for events with 20 or more projects",
             )
         elif len(self.projects) > 2 and len(self.event["fields"]["projects"]) < 20:
             raise HTTPException(
                 status_code=400,
-                detail="Only 2 projects are allowed for events with less than 20 projects",
+                detail="Only 2 nominations are allowed for events with less than 20 projects",
             )
         if len(self.projects) > 3:
             raise HTTPException(
@@ -282,6 +286,14 @@ def vote(vote: Vote, current_user: Annotated[CurrentUser, Depends(get_current_us
     if vote.event_id not in user["fields"].get("attending_events", []):
         raise HTTPException(status_code=403, detail="User is not attending event")
 
+    # Update the user's votes
+    db.users.update(
+        user["id"],
+        {
+            "votes": user["fields"].get("votes", []) + [vote.event_id],
+        },
+    )
+    
     # Check if the user is trying to vote for their own project(s) or if a project doesn't exist
     projects = []
     for project_id in vote.projects:
@@ -310,13 +322,6 @@ def vote(vote: Vote, current_user: Annotated[CurrentUser, Depends(get_current_us
             project["id"], {"points": project["fields"].get("points", 0) + 1}
         )
 
-    # Update the user's votes
-    db.users.update(
-        user["id"],
-        {
-            "votes": user["fields"].get("votes", []) + [vote.event_id],
-        },
-    )
 
 
 @router.get("/{event_id}/leaderboard")
