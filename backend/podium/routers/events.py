@@ -309,6 +309,17 @@ def vote(vote: Vote, current_user: Annotated[CurrentUser, Depends(get_current_us
                     status_code=400, detail="User cannot vote for their own project"
                 )
         except HTTPError as e:
+            # Unmark user as voted if something goes wrong
+            user_votes = user["fields"].get("votes", [])
+            # Remove the event ID from the user's votes
+            user_votes.remove(vote.event_id)
+            # Update the user's votes
+            db.users.update(
+                user["id"],
+                {
+                    "votes": user_votes,
+                },
+            )
             raise (
                 HTTPException(status_code=404, detail="Project not found")
                 if e.response.status_code == 404
