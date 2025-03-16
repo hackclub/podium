@@ -305,6 +305,17 @@ def vote(vote: Vote, current_user: Annotated[CurrentUser, Depends(get_current_us
             projects.append(project)
             # Check if the user is the owner and raise an error if they are
             if user_id in project["fields"].get("owner", []) or user_id in project["fields"].get("collaborators", []):
+            # Unmark user as voted if something goes wrong
+                user_votes = user["fields"].get("votes", [])
+                # Remove the event ID from the user's votes
+                user_votes.remove(vote.event_id)
+                # Update the user's votes
+                db.users.update(
+                    user["id"],
+                    {
+                        "votes": user_votes,
+                    },
+                )
                 raise HTTPException(
                     status_code=400, detail="User cannot vote for their own project"
                 )
