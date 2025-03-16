@@ -26,23 +26,28 @@
   class="m-4"
 >
   <div
-    class="card bg-base-100 card-compact rounded transition-transform duration-200 border-solid border-base {isSelected
+    class="card bg-base-100 card-compact rounded transition-transform duration-200 border-solid border-base max-w-sm {isSelected
       ? 'border-info scale-110 border-2'
       : ''}"
   >
-    <figure>
-      <img src={project.image_url} alt="Project" />
+    <figure class="relative w-full aspect-video">
+      <img 
+        src={project.image_url} 
+        alt="Project"
+        class="absolute inset-0 w-full h-full object-cover"
+        loading="lazy"
+      />
     </figure>
     <div class="card-body">
-      <h2 class="card-title">
+      <h2 class="card-title break-words text-lg">
         {project.name}
       </h2>
-      <p class="break-words">{project.description}</p>
-      <div class="card-actions justify-end">
-        <a href={project.repo} target="_blank">
+      <p class="break-words text-sm">{project.description}</p>
+      <div class="card-actions justify-end mt-2">
+        <a href={project.repo} target="_blank" rel="noopener">
           <div class="badge badge-secondary badge-lg underline">Repo</div>
         </a>
-        <a href={project.demo} target="_blank">
+        <a href={project.demo} target="_blank" rel="noopener">
           <div class="badge badge-primary badge-lg underline">Demo</div>
         </a>
       </div>
