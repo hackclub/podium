@@ -30,8 +30,12 @@
       ? 'border-info scale-110 border-2'
       : ''}"
   >
-    <figure>
-      <img src={project.image_url} alt="Project" />
+    <figure class="h-48 w-full overflow-hidden">
+      <img 
+        src={project.image_url} 
+        alt="Project"
+        class="w-full h-full object-cover"
+      />
     </figure>
     <div class="card-body">
       <h2 class="break-words">
