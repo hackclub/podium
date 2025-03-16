@@ -41,6 +41,7 @@ class ProjectUpdate(ProjectBase): ...
 class Project(ProjectBase):
     id: str
     points: int = 0
+    voters: MultiRecordField = []
     collaborators: MultiRecordField = []
     owner: SingleRecordField
 

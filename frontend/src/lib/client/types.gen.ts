@@ -29,7 +29,7 @@ export type MagicLinkVerificationResponse = {
     email: string;
 };
 
-export type PrivateEvent = {
+export type PrivateEvent_Input = {
     name: string;
     description?: (string | null);
     id: string;
@@ -39,6 +39,26 @@ export type PrivateEvent = {
     ];
     attendees?: Array<(string)>;
     join_code: string;
+    projects?: Array<(string)>;
+    referrals?: Array<(string)>;
+};
+
+export type PrivateEvent_Output = {
+    name: string;
+    description?: (string | null);
+    id: string;
+    votable?: boolean;
+    owner: [
+        string
+    ];
+    attendees?: Array<(string)>;
+    join_code: string;
+    projects?: Array<(string)>;
+    referrals?: Array<(string)>;
+    /**
+     * The maximum number of votes a user can cast for this event. This is based on the number of projects in the event. If there are 20 or more projects, the user can vote for 3 projects. Otherwise, they can vote for 2 projects.
+     */
+    readonly max_votes_per_user: number;
 };
 
 export type PrivateProject = {
@@ -57,6 +77,7 @@ export type PrivateProject = {
     hours_spent?: number;
     id: string;
     points?: number;
+    voters?: Array<(string)>;
     collaborators?: Array<(string)>;
     owner: [
         string
@@ -80,6 +101,7 @@ export type Project = {
     hours_spent?: number;
     id: string;
     points?: number;
+    voters?: Array<(string)>;
     collaborators?: Array<(string)>;
     owner: [
         string
@@ -118,26 +140,6 @@ export type PublicProjectCreationPayload = {
     hours_spent?: number;
 };
 
-/**
- * A ``dict`` representing a record returned from the Airtable API.
- * See `List records <https://airtable.com/developers/web/api/list-records>`__.
- *
- * Usage:
- * >>> table.first(formula="Name = 'Alice'")
- * {
- * 'id': 'recAdw9EjV90xbW',
- * 'createdTime': '2023-05-22T21:24:15.333134Z',
- * 'fields': {'Name': 'Alice', 'Department': 'Engineering'}
- * }
- */
-export type RecordDict = {
-    id: string;
-    createdTime: string;
-    fields: {
-        [key: string]: unknown;
-    };
-};
-
 export type User_Input = {
     email: string;
 };
@@ -146,13 +148,13 @@ export type User_Output = {
     first_name: string;
     last_name?: string;
     email: string;
-    phone: string;
+    phone?: string;
     street_1?: (string | null);
     street_2?: (string | null);
     city?: (string | null);
     state?: (string | null);
-    zip_code: string;
-    country: string;
+    zip_code?: (string | null);
+    country?: (string | null);
     dob?: (string | null);
     id: string;
     votes?: Array<(string)>;
@@ -166,7 +168,7 @@ export type User_Output = {
  * Return information regarding what the events the user owns and what events they are attending. If they are only attending an event, don't return sensitive information like participants.
  */
 export type UserEvents = {
-    owned_events: Array<PrivateEvent>;
+    owned_events: Array<PrivateEvent_Output>;
     attending_events: Array<Event>;
 };
 
@@ -178,13 +180,13 @@ export type UserSignupPayload = {
     first_name: string;
     last_name?: string;
     email: string;
-    phone: string;
+    phone?: string;
     street_1?: (string | null);
     street_2?: (string | null);
     city?: (string | null);
     state?: (string | null);
-    zip_code: string;
-    country: string;
+    zip_code?: (string | null);
+    country?: (string | null);
     dob?: (string | null);
 };
 
@@ -230,10 +232,6 @@ export type ProtectedRouteProtectedRouteGetResponse = (CheckAuthResponse);
 
 export type ProtectedRouteProtectedRouteGetError = unknown;
 
-export type TriggerErrorSentryDebugGetResponse = (unknown);
-
-export type TriggerErrorSentryDebugGetError = unknown;
-
 export type GetEventUnauthenticatedEventsUnauthenticatedEventIdGetData = {
     path: {
         event_id: string;
@@ -250,7 +248,7 @@ export type GetEventEventsEventIdGetData = {
     };
 };
 
-export type GetEventEventsEventIdGetResponse = ((PrivateEvent | Event));
+export type GetEventEventsEventIdGetResponse = ((PrivateEvent_Output | Event));
 
 export type GetEventEventsEventIdGetError = (HTTPValidationError);
 

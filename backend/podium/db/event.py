@@ -1,5 +1,5 @@
 from podium.constants import MultiRecordField, SingleRecordField
-from pydantic import BaseModel, Field, StringConstraints
+from pydantic import BaseModel, StringConstraints, computed_field
 from typing import Annotated, List, Optional
 
 
@@ -22,6 +22,20 @@ class PrivateEvent(Event):
     # List of record IDs, since that's what Airtable uses
     attendees: MultiRecordField = []
     join_code: str
+    projects: MultiRecordField = []
+    referrals: MultiRecordField = []
+    
+    @computed_field
+    @property
+    def max_votes_per_user(self) -> int:
+        """
+        The maximum number of votes a user can cast for this event. This is based on the number of projects in the event. If there are 20 or more projects, the user can vote for 3 projects. Otherwise, they can vote for 2 projects.
+        """
+        if len(self.projects) >= 20:
+            return 3
+        else:
+            return 2
+        
 
 
 class UserEvents(BaseModel):
