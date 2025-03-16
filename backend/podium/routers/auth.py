@@ -291,9 +291,9 @@ def magic_link_email_content(magic_link: str) -> dict:
 </html>
 """
     text = """
-👋 Hey ${name}, \n\n
+👋 Hey, \n\n
       
-You requested a login code for The Summit. Here it is: ${loginCode}. \n\n
+You requested a login link for Podium. It's here!
       
 - Hack Club`
 """
