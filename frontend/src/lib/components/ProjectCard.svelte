@@ -34,7 +34,7 @@
       <img src={project.image_url} alt="Project" />
     </figure>
     <div class="card-body">
-      <h2 class="card-title">
+      <h2 class="break-words">
         {project.name}
       </h2>
       <p class="break-words">{project.description}</p>
