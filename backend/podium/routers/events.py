@@ -278,6 +278,10 @@ def vote(vote: Vote, current_user: Annotated[CurrentUser, Depends(get_current_us
     if vote.event_id in user["fields"].get("votes", []):
         raise HTTPException(status_code=400, detail="User has already voted in event")
 
+    # Check if they're an attendee of the event
+    if vote.event_id not in user["fields"].get("attending_events", []):
+        raise HTTPException(status_code=403, detail="User is not attending event")
+
     # Check if the user is trying to vote for their own project(s) or if a project doesn't exist
     projects = []
     for project_id in vote.projects:
