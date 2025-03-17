@@ -17,10 +17,17 @@ export const load: PageLoad = async ({ params, fetch, depends }) => {
     const { data } = await EventsService.getAttendingEventsEventsGet({
       throwOnError: true,
     });
+    if (!data) {
+      throw error(404, "No events found");
+    }
     return {
       events: data,
     };
   } catch (err) {
+    // If it's already an HTTP error (like 401), rethrow it
+    if (err && typeof err === 'object' && 'status' in err) {
+      throw err;
+    }
     console.error(err);
     throw error(500, "Failed to load events");
   }

@@ -19,6 +19,10 @@ export const load: PageLoad = async ({ params, fetch }) => {
     }
     return { projects: projects.data };
   } catch (err) {
+    // If it's already an HTTP error, rethrow it
+    if (err && typeof err === 'object' && 'status' in err) {
+      throw err;
+    }
     console.error(err);
     throw error(500, "Failed to load projects");
   }
