@@ -14,12 +14,17 @@ export const load: PageLoad = async ({ params, fetch }) => {
         },
         throwOnError: true,
       });
+    if (!projectsResp?.data) {
+      throw error(404, "No leaderboard data found");
+    }
     return {
-      // If this isn't a list of projects, return an empty list
-      // ?. is used to check if projectsResp.data is null/undefined
-      projects: (projectsResp?.data as Project[]) ?? [],
+      projects: projectsResp.data as Project[],
     };
   } catch (err) {
+    // If it's already an HTTP error, rethrow it
+    if (err && typeof err === 'object' && 'status' in err) {
+      throw err;
+    }
     console.error(err);
     throw error(500, "Failed to load rankings");
   }

@@ -30,33 +30,41 @@
   {/if}
 </svelte:head>
 
-<nav class="p-1 text-center rounded-b-full w-1/2  mx-auto bg-neutral relative max-h-30">
-  <a href="/" class="text-2xl font-bold text-neutral-content">Podium</a>
-  <div class="grid grid-cols-2 items-center p-2 w-7/12 mx-auto max-h-40 my-auto space-x-2">
-   <a href="/projects" class="btn btn-xs ring-1 ring-opacity-45 ring-accent">Projects</a>
-   <a href="/events" class="btn btn-xs ring-1 ring-opacity-45 ring-accent">Events</a>
+<header class="sticky top-0 z-50 shadow-md bg-neutral">
+  <div class="container mx-auto px-4">
+    <nav class="flex justify-between items-center py-4">
+      <a href="/" class="text-3xl font-bold text-neutral-content">Podium</a>
+      <div class="flex space-x-6">
+        <a href="/projects" class="text-neutral-content hover:text-accent text-lg font-medium transition-colors duration-200">Projects</a>
+        <a href="/events" class="text-neutral-content hover:text-accent text-lg font-medium transition-colors duration-200">Events</a>
+      </div>
+    </nav>
   </div>
-</nav>
+</header>
 
-<div class="p-4 bg-info text-center rounded-xl max-w-2xl mx-auto m-4">
-  <p class="text-info-content">
-    Welcome to Scrapyard! Need help? Send a message in #scrapyard-support. Podium isn't working? DM @Angad Behl on Slack or call +1 (415) 570-4995
-  </p>
+<div class="container mx-auto px-4 py-6">
+  <div class="bg-info/80 text-center rounded-lg p-3 mb-8 shadow-sm max-w-4xl mx-auto backdrop-blur-sm border border-info/20">
+    <p class="text-info-content text-sm">
+      Welcome to Scrapyard! Need help? Send a message in <a href="h" class="font-medium underline">#scrapyard-support</a>. Podium isn't working? DM <a href="s" class="font-medium underline">@Angad Behl</a> on Slack or call <span class="font-medium">+1 (415) 570-4995</span>
+    </p>
+  </div>
+
+  {#if navigating.to && navigating.type != "form"}
+    <div class="flex items-center justify-center min-h-[60vh] flex-col">
+      <span class="loading loading-ball loading-lg mb-4"></span>
+      <p class="text-lg">{returnLoadingText()}</p>
+    </div>
+  {:else}
+    <main class="min-h-[70vh]">
+      {@render children()}
+    </main>
+  {/if}
 </div>
 
-{#if navigating.to && navigating.type != "form"}
-  <div class="flex items-center justify-center min-h-screen flex-col">
-    <span class="loading loading-ball loading-lg mb-2"></span>
-    {returnLoadingText()}
-  </div>
-{:else}
-  {@render children()}
-{/if}
-
-<div class="fixed bottom-4 left-4">
+<div class="fixed bottom-6 left-6">
   <!-- Info Button -->
   <button
-    class="btn btn-info btn-square btn-md font-serif font-light"
+    class="btn btn-info btn-circle btn-lg font-serif font-light shadow-lg"
     aria-label="Info"
     onclick={() => {
       showModal = true;
@@ -69,9 +77,9 @@
 <!-- Modal -->
 {#if showModal}
   <div class="modal modal-open modal-bottom sm:modal-middle">
-    <div class="modal-box">
-      <h2 class="font-bold text-lg">About the Project</h2>
-      <p class="py-4">
+    <div class="modal-box max-w-2xl">
+      <h2 class="font-bold text-xl mb-4">About the Project</h2>
+      <p class="py-4 text-base">
         Podium is <a href="https://hackclub.com" class="hover-link">Hack Club's </a><a
           href="https://github.com/hackclub/podium" class="hover-link">open-source</a
         >
@@ -82,12 +90,12 @@
         Need help? Ask on the <a href="https://hackclub.com/slack" class="hover-link">Slack</a> or
         email <a href="mailto:angad@hackclub.com" class="hover-link">angad@hackclub.com</a>.
       </p>
-      <p class="text-right">
+      <p class="text-right mt-4">
         <a href="https://github.com/slashtechno" class="hover-link">-Angad Behl</a>
       </p>
       <div class="modal-action">
         <button
-          class="btn"
+          class="btn btn-primary"
           onclick={() => {
             showModal = false;
           }}>Close</button
@@ -97,7 +105,7 @@
   </div>
 {/if}
 
-<div class="fixed bottom-4 right-4">
+<div class="fixed bottom-6 right-32">
   <ThemeSwitcher />
 </div>
 

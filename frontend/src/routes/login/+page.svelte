@@ -2,7 +2,7 @@
 <script lang="ts">
   import { toast, Toaster } from "svelte-sonner";
   import { onMount } from "svelte";
-  import { user, validateToken } from "$lib/user.svelte";
+  import { user, validateToken, signOut } from "$lib/user.svelte";
   import { AuthService, UsersService } from "$lib/client/sdk.gen";
   import { goto } from "$app/navigation";
   import type { HTTPValidationError } from "$lib/client/types.gen";
@@ -182,209 +182,237 @@
   // }
 </script>
 
-<div class="p-4 max-w-md mx-auto" {...rest}>
+<style>
+  .card-container {
+    @apply rounded-lg shadow-md bg-neutral transition-all duration-300 hover:shadow-lg;
+    @apply border border-accent/20;
+    @apply relative overflow-hidden;
+  }
+
+  .card-container::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-50;
+  }
+
+  .card-container > * {
+    @apply relative z-10;
+  }
+</style>
+
+<div class="p-6 max-w-md mx-auto" {...rest}>
   {#if user.isAuthenticated}
-    <div class="text-center">
-      <h2 class="text-2xl font-bold mb-2">
-        You are logged in as {user.email}
+    <div class="card-container p-5 text-center">
+      <h2 class="text-lg font-medium mb-2">
+        You are logged in as <span class="text-accent">{user.email}</span>
       </h2>
-      <button
-        class="mt-4 px-4 py-2 btn btn-primary"
-        onclick={() => history.back()}
-      >
-        Go back to previous page
-      </button>
+      <div class="flex justify-center gap-3 mt-3">
+        <button
+          class="btn btn-outline btn-accent btn-sm"
+          onclick={signOut}
+        >
+          Sign out
+        </button>
+        <button
+          class="btn btn-outline btn-sm"
+          onclick={() => history.back()}
+        >
+          Go back
+        </button>
+      </div>
     </div>
   {:else}
     <!-- space-y-n adds space (margin) between the children -->
-    <form onsubmit={eitherLoginOrSignUp} class="space-y-2">
-      <label class="form-control">
-        <div class="label">
-          <span class="label-text">Email</span>
-        </div>
-        <input
-          id="email"
-          type="email"
-          class="input input-bordered grow"
-          bind:value={userInfo.email}
-          placeholder="example@example.com"
-          onblur={async () => {
-            // If the signup field is expanded and the email currently entered into the field may be valid, check if the signup fields should be hidden since the user already exists
-            if (
-              expandedDueTo != userInfo.email &&
-              userInfo.email &&
-              showSignupFields
-            ) {
-              const userExists = await checkUserExists();
-              if (userExists) {
-                showSignupFields = false;
-              } else {
-                // If the user still doesn't exist, keep the signup fields open
+    <div class="card-container p-5">
+      <h2 class="text-xl font-medium mb-4 text-center">Login / Sign Up</h2>
+      <form onsubmit={eitherLoginOrSignUp} class="space-y-4">
+        <label class="form-control">
+          <div class="label">
+            <span class="label-text">Email</span>
+          </div>
+          <input
+            id="email"
+            type="email"
+            class="input input-bordered grow"
+            bind:value={userInfo.email}
+            placeholder="example@example.com"
+            onblur={async () => {
+              // If the signup field is expanded and the email currently entered into the field may be valid, check if the signup fields should be hidden since the user already exists
+              if (
+                expandedDueTo != userInfo.email &&
+                userInfo.email &&
+                showSignupFields
+              ) {
+                const userExists = await checkUserExists();
+                if (userExists) {
+                  showSignupFields = false;
+                } else {
+                  // If the user still doesn't exist, keep the signup fields open
+                }
               }
-            }
-          }}
-        />
-        <div class="label">
-          <span class="label-text-alt"> We'll send you a magic link </span>
-        </div>
-      </label>
-
-      {#if showSignupFields}
-        <label class="form-control">
-          <div class="label">
-            <span class="label-text">First Name</span>
-          </div>
-          <input
-            id="first_name"
-            type="text"
-            class="input input-bordered grow"
-            placeholder="Abc"
-            bind:value={userInfo.first_name}
+            }}
           />
+          <div class="label">
+            <span class="label-text-alt text-opacity-75"> We'll send you a magic link </span>
+          </div>
         </label>
 
-        <label class="form-control">
-          <div class="label">
-            <span class="label-text">Last Name</span>
-          </div>
-          <input
-            id="last_name"
-            type="text"
-            class="input input-bordered grow"
-            placeholder="Xyz"
-            bind:value={userInfo.last_name}
-          />
-        </label>
-        <label class="form-control">
-          <div class="label">
-            <span class="label-text">Phone</span>
-            <span class="label-text-alt">
-              Optional, but recommended
-            </span>
-          </div>
-          <input
-            id="phone"
-            type="tel"
-            class="input input-bordered grow"
-            placeholder="+15555555555"
-            bind:value={userInfo.phone}
-          />
-          <div class="label">
-            <span class="label-text-alt">
-              International format without spaces or special characters
-            </span>
-          </div>
-        </label>
-        <label class="form-control">
-          <div class="label">
-            <span class="label-text">Address line 1</span>
-          </div>
-          <input
-            id="street_1"
-            type="text"
-            class="input input-bordered grow"
-            placeholder="123 Main St"
-            bind:value={userInfo.street_1}
-          />
-        </label>
-        <label class="form-control">
-          <div class="label">
-            <span class="label-text">Address line 2</span>
-            <span class="label-text-alt">Optional</span>
-          </div>
-          <input
-            id="street_2"
-            type="text"
-            class="input input-bordered grow"
-            placeholder="Apt 4B"
-            bind:value={userInfo.street_2}
-          />
-        </label>
-        <label class="form-control">
-          <div class="label">
-            <span
-              class="label-text
+        {#if showSignupFields}
+          <label class="form-control">
+            <div class="label">
+              <span class="label-text">First Name</span>
+            </div>
+            <input
+              id="first_name"
+              type="text"
+              class="input input-bordered grow"
+              placeholder="Abc"
+              bind:value={userInfo.first_name}
+            />
+          </label>
+
+          <label class="form-control">
+            <div class="label">
+              <span class="label-text">Last Name</span>
+            </div>
+            <input
+              id="last_name"
+              type="text"
+              class="input input-bordered grow"
+              placeholder="Xyz"
+              bind:value={userInfo.last_name}
+            />
+          </label>
+          <label class="form-control">
+            <div class="label">
+              <span class="label-text">Phone</span>
+              <span class="label-text-alt">
+                Optional, but recommended
+              </span>
+            </div>
+            <input
+              id="phone"
+              type="tel"
+              class="input input-bordered grow"
+              placeholder="+15555555555"
+              bind:value={userInfo.phone}
+            />
+            <div class="label">
+              <span class="label-text-alt">
+                International format without spaces or special characters
+              </span>
+            </div>
+          </label>
+          <label class="form-control">
+            <div class="label">
+              <span class="label-text">Address line 1</span>
+            </div>
+            <input
+              id="street_1"
+              type="text"
+              class="input input-bordered grow"
+              placeholder="123 Main St"
+              bind:value={userInfo.street_1}
+            />
+          </label>
+          <label class="form-control">
+            <div class="label">
+              <span class="label-text">Address line 2</span>
+              <span class="label-text-alt">Optional</span>
+            </div>
+            <input
+              id="street_2"
+              type="text"
+              class="input input-bordered grow"
+              placeholder="Apt 4B"
+              bind:value={userInfo.street_2}
+            />
+          </label>
+          <label class="form-control">
+            <div class="label">
+              <span
+                class="label-text
 ">City</span
-            >
-          </div>
-          <input
-            id="city"
-            type="text"
-            class="input input-bordered grow"
-            placeholder="New York"
-            bind:value={userInfo.city}
-          />
-        </label>
-        <label class="form-control">
-          <div class="label">
-            <span class="label-text">State/Province</span>
-          </div>
-          <input
-            id="state"
-            type="text"
-            class="input input-bordered grow"
-            placeholder="NY"
-            bind:value={userInfo.state}
-          />
-        </label>
-        <label class="form-control">
-          <div class="label">
-            <span class="label-text">Zip/Postal Code</span>
-          </div>
-          <input
-            id="zip_code"
-            type="text"
-            class="input input-bordered grow"
-            placeholder="10001"
-            bind:value={userInfo.zip_code}
-          />
-        </label>
-        <label class="form-control">
-          <div class="label">
-            <span class="label-text">Country</span>
-            <!-- <span class="label-text-alt">
-              <a
-                href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2"
-                class="underline">ISO 3166-1 alpha-2</a
               >
-            </span> -->
-          </div>
-          <select
-            id="country"
-            class="select select-bordered grow"
-            bind:value={userInfo.country}
-          >
-            {#each countryList as { code, name } (code)}
-              <option value={code} selected={userInfo.country == code}>
-                {name}
-              </option>
-            {/each}
-          </select>
-        </label>
-        <label class="form-control">
-          <div class="label">
-            <span class="label-text">Date of Birth</span>
-            <span class="label-text-alt"
-              >Hack Club is only for students {"<="}18</span
+            </div>
+            <input
+              id="city"
+              type="text"
+              class="input input-bordered grow"
+              placeholder="New York"
+              bind:value={userInfo.city}
+            />
+          </label>
+          <label class="form-control">
+            <div class="label">
+              <span class="label-text">State/Province</span>
+            </div>
+            <input
+              id="state"
+              type="text"
+              class="input input-bordered grow"
+              placeholder="NY"
+              bind:value={userInfo.state}
+            />
+          </label>
+          <label class="form-control">
+            <div class="label">
+              <span class="label-text">Zip/Postal Code</span>
+            </div>
+            <input
+              id="zip_code"
+              type="text"
+              class="input input-bordered grow"
+              placeholder="10001"
+              bind:value={userInfo.zip_code}
+            />
+          </label>
+          <label class="form-control">
+            <div class="label">
+              <span class="label-text">Country</span>
+              <!-- <span class="label-text-alt">
+                <a
+                  href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2"
+                  class="underline">ISO 3166-1 alpha-2</a
+                >
+              </span> -->
+            </div>
+            <select
+              id="country"
+              class="select select-bordered grow"
+              bind:value={userInfo.country}
             >
-          </div>
-          <input
-            id="dob"
-            type="date"
-            class="input input-bordered grow"
-            bind:value={userInfo.dob}
-          />
-        </label>
-      {/if}
-      <div class="flex justify-center">
-        <button type="submit" class="btn btn-primary mt-4" disabled={isLoading}>
-          Login / Sign Up
-        </button>
-      </div>
-    </form>
+              {#each countryList as { code, name } (code)}
+                <option value={code} selected={userInfo.country == code}>
+                  {name}
+                </option>
+              {/each}
+            </select>
+          </label>
+          <label class="form-control">
+            <div class="label">
+              <span class="label-text">Date of Birth</span>
+              <span class="label-text-alt"
+                >Hack Club is only for students {"<="}18</span
+              >
+            </div>
+            <input
+              id="dob"
+              type="date"
+              class="input input-bordered grow"
+              bind:value={userInfo.dob}
+            />
+          </label>
+        {/if}
+        <div class="flex justify-center">
+          <button type="submit" class="btn btn-accent btn-outline hover:bg-accent/20 mt-2" disabled={isLoading}>
+            {isLoading ? 'Processing...' : 'Login / Sign Up'}
+          </button>
+        </div>
+      </form>
+    </div>
   {/if}
   <!-- TODO: Make this use a var -->
   <div class="text-center mt-4">
-    <a href="/" class="btn-sm btn-secondary btn">← Back to Home</a>
+    <a href="/" class="btn btn-sm btn-outline">← Back to Home</a>
   </div>
 </div>

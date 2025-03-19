@@ -16,28 +16,41 @@
     if (expandByDefault) {
       setTimeout(() => {
         collapseDiv.focus();
+        isOpen = true;
       }, 10);
     }
   });
 
   function handleFocusIn() {
     isOpen = true;
-    console.log("Focus in");
   }
 
   function handleFocusOut(event: FocusEvent) {
     setTimeout(() => {
       try {
         // If the div does not contain the active element (isn't focused),
-      if (!collapseDiv.contains(document.activeElement)) {
+        if (!collapseDiv.contains(document.activeElement)) {
+          isOpen = false;
+        }
+      } catch (error) {
+        // If the active element doesn't exist, close the collapse
+        // (realistically this is probably because the user is navigating away from the page)
         isOpen = false;
       }
-    } catch (error) {
-      // If we the active element doesn't exist stare into space and ponder why
-      // (realistically this is probably because the user is navigating away from the page, so close the collapse)
-      isOpen = false;
-    }
     }, 10); // Small delay to allow new focus to be set
+  }
+  
+  function toggleCollapse() {
+    isOpen = !isOpen;
+    if (isOpen) {
+      collapseDiv.focus();
+    }
+  }
+  
+  function handleKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Enter') {
+      toggleCollapse();
+    }
   }
 </script>
 
@@ -51,7 +64,7 @@
 
 <div
   tabindex="0"
-  class="collapse bg-base-200 collapse-arrow max-w-2xl mx-auto {isOpen
+  class="collapse collapse-arrow rounded-lg transition-all duration-300 max-w-3xl mx-auto {isOpen
     ? 'collapse-open'
     : 'collapse-close'}"
   role="button"
@@ -59,12 +72,27 @@
   onfocusout={handleFocusOut}
   bind:this={collapseDiv}
 >
-  <div class="collapse-title text-xl font-medium text-center">
-    {title}
+  <div 
+    class="collapse-title text-xl font-medium text-center py-4 flex items-center justify-between cursor-pointer"
+    onclick={toggleCollapse}
+    onkeydown={handleKeyDown}
+  >
+    <span class="flex-grow text-center">{title}</span>
   </div>
-  <!-- <div class="collapse-content" onmousedown={handleFocusIn} role="button"> -->
-  <!-- <div class="collapse-content" onfocusin={handleFocusIn} onblur={handleFocusOut} role="button" tabindex="0"> -->
-  <div class="collapse-content overflow-x-auto" role="button" tabindex="0">
-    {@render children?.()}
+  
+  <div class="collapse-content p-4 overflow-x-auto" role="region">
+    <div class="pt-2">
+      {@render children?.()}
+    </div>
   </div>
 </div>
+
+<style>
+  .collapse {
+    @apply bg-transparent border-t border-accent/10;
+  }
+  
+  .collapse-open .collapse-title {
+    @apply text-accent;
+  }
+</style>
