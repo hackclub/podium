@@ -277,6 +277,8 @@ def vote(vote: Vote, current_user: Annotated[CurrentUser, Depends(get_current_us
     """
 
     user_id = db.user.get_user_record_id_by_email(current_user.email)
+    if user_id is None:
+        raise HTTPException(status_code=404, detail="User not found")
     user = db.users.get(user_id)
 
     if vote.event_id in user["fields"].get("votes", []):
@@ -293,6 +295,9 @@ def vote(vote: Vote, current_user: Annotated[CurrentUser, Depends(get_current_us
             "votes": user["fields"].get("votes", []) + [vote.event_id],
         },
     )
+    # Fetch the user again so we can remove the event ID if we need to
+    user_id = db.user.get_user_record_id_by_email(current_user.email)
+    user = db.users.get(user_id)
     
     # Check if the user is trying to vote for their own project(s) or if a project doesn't exist
     projects = []
@@ -305,7 +310,7 @@ def vote(vote: Vote, current_user: Annotated[CurrentUser, Depends(get_current_us
             projects.append(project)
             # Check if the user is the owner and raise an error if they are
             if user_id in project["fields"].get("owner", []) or user_id in project["fields"].get("collaborators", []):
-            # Unmark user as voted if something goes wrong
+                # Unmark user as voted if they are the owner of the project and it's oging to error
                 user_votes = user["fields"].get("votes", [])
                 # Remove the event ID from the user's votes
                 user_votes.remove(vote.event_id)

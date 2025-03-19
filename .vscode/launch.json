@@ -25,6 +25,7 @@
                 "--reload"
             ],
             "cwd": "${workspaceFolder}/backend",
+            "justMyCode": true
             // "jinja": true
         }
     ],
