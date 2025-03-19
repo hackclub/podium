@@ -24,6 +24,9 @@
                 "podium.main:app",
                 "--reload"
             ],
+            "env": {
+                "ENV_FOR_DYNACONF": "development",
+            },
             "cwd": "${workspaceFolder}/backend",
             // "jinja": true
         }

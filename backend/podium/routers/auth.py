@@ -112,7 +112,9 @@ async def verify_token(token: Annotated[str, Query()]) -> MagicLinkVerificationR
             raise HTTPException(status_code=400, detail="Invalid token")
     except PyJWTError:
         raise HTTPException(status_code=400, detail="Invalid token")
-
+    # Check if the user exists
+    if db.user.get_user_record_id_by_email(email) is None:
+        raise HTTPException(status_code=404, detail="User not found")
     access_token = create_access_token(
         data={"sub": email},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
@@ -154,6 +156,9 @@ class CheckAuthResponse(BaseModel):
 async def protected_route(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
 ) -> CheckAuthResponse:
+    # Check if the user exists
+    if db.user.get_user_record_id_by_email(current_user.email) is None:
+        raise HTTPException(status_code=404, detail="User not found")
     return CheckAuthResponse(email=current_user.email)
 
 
