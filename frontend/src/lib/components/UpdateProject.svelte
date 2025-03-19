@@ -29,7 +29,6 @@
 
   const emptyProjectUpdate: ProjectUpdate = {
     name: "",
-    readme: "https://example.com",
     repo: "",
     image_url: "",
     demo: "",
