@@ -6,7 +6,6 @@
 
   let project: PublicProjectCreationPayload = $state({
     name: "",
-    readme: "https://example.com",
     repo: "",
     demo: "",
     image_url: "",
@@ -39,7 +38,6 @@
       toast("Project created successfully");
       project = {
         name: "",
-        readme: "https://example.com",
         repo: "",
         demo: "",
         image_url: "",

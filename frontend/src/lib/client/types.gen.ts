@@ -54,7 +54,6 @@ export type PrivateEvent = {
 
 export type PrivateProject = {
     name: string;
-    readme: string;
     repo: string;
     image_url: string;
     demo: string;
@@ -78,7 +77,6 @@ export type PrivateProject = {
 
 export type Project = {
     name: string;
-    readme: string;
     repo: string;
     image_url: string;
     demo: string;
@@ -101,7 +99,6 @@ export type Project = {
 
 export type ProjectUpdate = {
     name: string;
-    readme: string;
     repo: string;
     image_url: string;
     demo: string;
@@ -117,7 +114,6 @@ export type ProjectUpdate = {
 
 export type PublicProjectCreationPayload = {
     name: string;
-    readme: string;
     repo: string;
     image_url: string;
     demo: string;
