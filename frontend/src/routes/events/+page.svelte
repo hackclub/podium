@@ -13,8 +13,9 @@
   async function onVotableCheck(value: boolean, eventId: string) {
     try {
       console.log(value, eventId);
-      await EventsService.makeVotableEventsMakeVotablePost({
-        query: { votable: value, event_id: eventId },
+      await EventsService.changeVotableEventsChangeVotablePut({
+        query: { votable: value },
+        path: { event_id: eventId },
         throwOnError: true,
       });
     } catch (err) {

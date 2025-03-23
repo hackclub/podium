@@ -275,9 +275,11 @@ export type AttendEventEventsAttendPostResponse = (unknown);
 
 export type AttendEventEventsAttendPostError = (HTTPValidationError);
 
-export type MakeVotableEventsMakeVotablePostData = {
-    query: {
+export type ChangeVotableEventsChangeVotablePutData = {
+    path: {
         event_id: string;
+    };
+    query: {
         /**
          * Whether the event is votable or not
          */
@@ -285,9 +287,9 @@ export type MakeVotableEventsMakeVotablePostData = {
     };
 };
 
-export type MakeVotableEventsMakeVotablePostResponse = (unknown);
+export type ChangeVotableEventsChangeVotablePutResponse = (unknown);
 
-export type MakeVotableEventsMakeVotablePostError = (HTTPValidationError);
+export type ChangeVotableEventsChangeVotablePostError = (HTTPValidationError);
 
 export type VoteEventsVotePostData = {
     body: Vote;

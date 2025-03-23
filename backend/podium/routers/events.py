@@ -247,14 +247,14 @@ class Vote(BaseModel):
         return self
 
 
-@router.post("/make-votable")
-def make_votable(
-    event_id: Annotated[str, Query(title="Event ID")],
+@router.put("/{event_id}/change-votable/")
+def change_votable(
+    event_id: Annotated[str, Path(title="Event ID")],
     votable: Annotated[bool, Query(description="Whether the event is votable or not")],
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
 ):
     """
-    Make an event votable. This means that users can vote for their favorite projects in the event.
+    Change event's votable state. Toogled votable status means that users can vote for their favorite projects in the event.
     """
     user_id = db.user.get_user_record_id_by_email(current_user.email)
     if user_id is None:
@@ -267,6 +267,7 @@ def make_votable(
         raise HTTPException(status_code=403, detail="User is not an owner of the event")
 
     db.events.update(event_id, {"votable": votable})
+    return {"status": "success", "event_id": event_id}
 
 
 # @router.post("/{event_id}/vote")
