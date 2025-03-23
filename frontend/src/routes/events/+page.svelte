@@ -6,6 +6,7 @@
   import { EventsService } from "$lib/client";
   import type { PageData } from "./$types";
   import { handleError } from "$lib/misc";
+  import { toast } from "svelte-sonner";
   import Collapse from "$lib/components/Collapse.svelte";
 
   let { data }: { data: PageData } = $props();
@@ -18,6 +19,7 @@
         path: { event_id: eventId },
         throwOnError: true,
       });
+      toast(value ? "Voting is now open." : "Voting is now closed.");
     } catch (err) {
       handleError(err);
     }
