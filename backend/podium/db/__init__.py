@@ -2,6 +2,7 @@ from podium.db.db import tables
 from podium.db.event import PrivateEvent as PrivateEvent
 from podium.db.event import EventCreationPayload as EventCreationPayload
 from podium.db.event import UserEvents as UserEvents
+from podium.db.event import EventUpdate as EventUpdate
 from podium.db.event import Event as Event
 from podium.db import user as user
 from podium.db.project import ProjectUpdate as ProjectUpdate

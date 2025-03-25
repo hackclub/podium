@@ -16,6 +16,7 @@ from podium.db.user import CurrentUser, User
 from podium import db
 from podium.db import (
     EventCreationPayload,
+    EventUpdate,
     PrivateEvent,
     UserEvents,
     Event,
@@ -247,14 +248,14 @@ class Vote(BaseModel):
         return self
 
 
-@router.put("/{event_id}/change-votable/")
-def change_votable(
+@router.put("/{event_id}")
+def update_event(
     event_id: Annotated[str, Path(title="Event ID")],
-    votable: Annotated[bool, Query(description="Whether the event is votable or not")],
+    event: EventUpdate,
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
 ):
     """
-    Change event's votable state. Toogled votable status means that users can vote for their favorite projects in the event.
+    Update event's information
     """
     user_id = db.user.get_user_record_id_by_email(current_user.email)
     if user_id is None:
@@ -266,8 +267,23 @@ def change_votable(
         # This also ensures the event exists since it has to exist to be in the user's owned events
         raise HTTPException(status_code=403, detail="User is not an owner of the event")
 
-    db.events.update(event_id, {"votable": votable})
-    return {"status": "success", "event_id": event_id}
+    return db.events.update(event_id, event.model_dump())["fields"]
+
+
+@router.delete("/{event_id}")
+def delete_event(
+    event_id: Annotated[str, Path(title="Event ID")],
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+):
+    # Check if the user is an owner of the project
+    user_id = db.user.get_user_record_id_by_email(current_user.email)
+    user = db.users.get(user_id)
+    user = User.model_validate({"id": user["id"], **user["fields"]})
+    # Check if the user is the owner of the event
+    if event_id not in user.owned_events:
+        raise HTTPException(status_code=403, detail="User not an owner of the event")
+
+    return db.events.delete(event_id)
 
 
 # @router.post("/{event_id}/vote")

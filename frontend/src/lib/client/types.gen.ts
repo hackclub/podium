@@ -14,6 +14,12 @@ export type Event = {
     ];
 };
 
+export type EventUpdate = {
+    name: string;
+    description?: (string | null);
+    votable?: boolean;
+};
+
 export type EventCreationPayload = {
     name: string;
     description?: (string | null);
@@ -287,9 +293,26 @@ export type ChangeVotableEventsChangeVotablePutData = {
     };
 };
 
-export type ChangeVotableEventsChangeVotablePutResponse = (unknown);
+export type UpdateEventEventsEventIdPutData = {
+    body: EventUpdate;
+    path: {
+        event_id: string;
+    };
+};
 
-export type ChangeVotableEventsChangeVotablePostError = (HTTPValidationError);
+export type UpdateEventEventsEventIdPutResponse = (unknown);
+
+export type UpdateEventEventsEventIdPutError = (HTTPValidationError);
+
+export type DeleteEventEventsEventIdDeleteData = {
+    path: {
+        event_id: string;
+    };
+};
+
+export type DeleteEventEventsEventIdDeleteResponse = (unknown);
+
+export type DeleteEventEventsEventIdDeleteError = (HTTPValidationError);
 
 export type VoteEventsVotePostData = {
     body: Vote;

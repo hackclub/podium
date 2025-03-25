@@ -3,6 +3,7 @@
 <script lang="ts">
   import AttendEvent from "$lib/components/AttendEvent.svelte";
   import CreateEvent from "$lib/components/CreateEvent.svelte";
+  import UpdateEvent from "$lib/components/UpdateEvent.svelte";
   import { EventsService } from "$lib/client";
   import type { PageData } from "./$types";
   import { handleError } from "$lib/misc";
@@ -10,20 +11,6 @@
   import Collapse from "$lib/components/Collapse.svelte";
 
   let { data }: { data: PageData } = $props();
-
-  async function onVotableCheck(value: boolean, eventId: string) {
-    try {
-      console.log(value, eventId);
-      await EventsService.changeVotableEventsChangeVotablePut({
-        query: { votable: value },
-        path: { event_id: eventId },
-        throwOnError: true,
-      });
-      toast(value ? "Voting is now open." : "Voting is now closed.");
-    } catch (err) {
-      handleError(err);
-    }
-  }
 </script>
 
 <div class="space-y-8 p-4">
@@ -68,7 +55,6 @@
           <th>Event Name</th>
           <th>Description</th>
           <th>Join Code</th>
-          <th>Votable</th>
         </tr>
       </thead>
       <tbody>
@@ -83,23 +69,16 @@
                 data-sveltekit-noscroll class="hover-link">{event.join_code}</a
               ></td
             >
-            <td
-              ><input
-                type="checkbox"
-                class="checkbox"
-                checked={event.votable}
-                onchange={(e) =>
-                  onVotableCheck(
-                    (e.target as HTMLInputElement).checked,
-                    event.id,
-                  )}
-              /></td
-            >
           </tr>
         {/each}
       </tbody>
     </table>
   </div>
+  </Collapse>
+  </section>
+  <section>
+    <Collapse title="Update an Event">
+    <UpdateEvent events={data.events.owned_events} />
   </Collapse>
   </section>
 </div>
