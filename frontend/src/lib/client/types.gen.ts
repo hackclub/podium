@@ -14,6 +14,12 @@ export type Event = {
     ];
 };
 
+export type EventUpdate = {
+    name: string;
+    description?: (string | null);
+    votable?: boolean;
+};
+
 export type EventCreationPayload = {
     name: string;
     description?: (string | null);
@@ -275,9 +281,11 @@ export type AttendEventEventsAttendPostResponse = (unknown);
 
 export type AttendEventEventsAttendPostError = (HTTPValidationError);
 
-export type MakeVotableEventsMakeVotablePostData = {
-    query: {
+export type ChangeVotableEventsChangeVotablePutData = {
+    path: {
         event_id: string;
+    };
+    query: {
         /**
          * Whether the event is votable or not
          */
@@ -285,9 +293,26 @@ export type MakeVotableEventsMakeVotablePostData = {
     };
 };
 
-export type MakeVotableEventsMakeVotablePostResponse = (unknown);
+export type UpdateEventEventsEventIdPutData = {
+    body: EventUpdate;
+    path: {
+        event_id: string;
+    };
+};
 
-export type MakeVotableEventsMakeVotablePostError = (HTTPValidationError);
+export type UpdateEventEventsEventIdPutResponse = (unknown);
+
+export type UpdateEventEventsEventIdPutError = (HTTPValidationError);
+
+export type DeleteEventEventsEventIdDeleteData = {
+    path: {
+        event_id: string;
+    };
+};
+
+export type DeleteEventEventsEventIdDeleteResponse = (unknown);
+
+export type DeleteEventEventsEventIdDeleteError = (HTTPValidationError);
 
 export type VoteEventsVotePostData = {
     body: Vote;
