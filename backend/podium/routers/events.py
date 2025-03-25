@@ -275,7 +275,7 @@ def delete_event(
     event_id: Annotated[str, Path(title="Event ID")],
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
 ):
-    # Check if the user is an owner of the project
+    # Check if the user is an owner of the event
     user_id = db.user.get_user_record_id_by_email(current_user.email)
     user = db.users.get(user_id)
     user = User.model_validate({"id": user["id"], **user["fields"]})
