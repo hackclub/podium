@@ -150,7 +150,7 @@ def get_project(project_id: Annotated[str, Path(pattern=r"^rec\w*$")]):
     except HTTPError as e:
         raise (
             HTTPException(status_code=404, detail="Project not found")
-            if e.response.status_code == 404 or 403
+            if e.response.status_code in [404, 403]
             else e
         )
     return Project.model_validate({id: project["id"], **project["fields"]})

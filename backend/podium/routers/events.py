@@ -35,7 +35,7 @@ def get_event_unauthenticated(event_id: Annotated[str, Path(title="Event ID")]) 
     except HTTPError as e:
         raise (
                 HTTPException(status_code=404, detail="Event not found")
-                if e.response.status_code == 404 or 403
+                if e.response.status_code in [404, 403]
                 else e
             )
     return Event.model_validate({"id": event["id"], **event["fields"]})
@@ -60,7 +60,7 @@ def get_event(
     except HTTPError as e:
         raise (
                 HTTPException(status_code=404, detail="Event not found")
-                if e.response.status_code == 404 or 403
+                if e.response.status_code in [404, 403]
                 else e
             )
 
@@ -214,7 +214,7 @@ def vote(votes: CreateVotes, current_user: Annotated[CurrentUser, Depends(get_cu
     except HTTPError as e:
         raise (
             HTTPException(status_code=404, detail="Event not found")
-            if e.response.status_code == 404 or 403
+            if e.response.status_code in [404, 403]
             else e
         )
 
@@ -231,7 +231,7 @@ def vote(votes: CreateVotes, current_user: Annotated[CurrentUser, Depends(get_cu
         try:
             project = db.projects.get(project_id)
         except HTTPError as e:
-            if e.response.status_code == 404 or 403:
+            if e.response.status_code in [404, 403]:
                 raise HTTPException(status_code=404, detail="Project not found")
             else:
                 raise e
@@ -289,7 +289,7 @@ def get_leaderboard(event_id: Annotated[str, Path(title="Event ID")]) -> List[Pr
     except HTTPError as e:
         raise (
                 HTTPException(status_code=404, detail="Event not found")
-                if e.response.status_code == 404 or 403
+                if e.response.status_code in [404, 403]
                 else e
             )
     projects = []
@@ -298,7 +298,7 @@ def get_leaderboard(event_id: Annotated[str, Path(title="Event ID")]) -> List[Pr
             project = db.projects.get(project_id)
             projects.append(project)
         except HTTPError as e:
-            if e.response.status_code == 404 or 403:
+            if e.response.status_code in [404, 403]:
                 print(
                     f"WARNING: Project {project_id} not found when getting leaderboard for event {event_id}"
                 )
@@ -327,7 +327,7 @@ def get_event_projects(
     except HTTPError as e:
         raise (
             HTTPException(status_code=404, detail="Event not found")
-            if e.response.status_code == 404 or 403
+            if e.response.status_code in [404, 403]
             else e
         )
 
