@@ -1,6 +1,6 @@
 import datetime
 from typing import Annotated, Optional
-from pydantic import BaseModel, EmailStr, Field, StringConstraints
+from pydantic import BaseModel, EmailStr, Field, StringConstraints, field_validator
 from podium import constants
 
 from podium.db import tables
@@ -37,6 +37,11 @@ class UserBase(BaseModel):
         else:
             data["dob"] = None
         return data
+    
+    # Ensure email is normalized to lowercase and stripped of whitespace
+    @field_validator("email", mode="before")
+    def normalize_email(cls, v: str) -> str:
+        return v.strip().lower()
 
 
 class UserSignupPayload(UserBase): ...
