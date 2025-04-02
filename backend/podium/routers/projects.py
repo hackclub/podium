@@ -72,7 +72,7 @@ def create_project(
         owner=owner,
         id="",  # Placeholder to prevent an unnecessary class
     )
-    db.projects.create(full_project.model_dump(exclude={"id"}))["fields"]
+    db.projects.create(full_project.model_dump(exclude={"id", "points"}))["fields"]
 
 
 @router.post("/join")

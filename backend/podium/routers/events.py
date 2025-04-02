@@ -135,7 +135,7 @@ def create_event(
         owner=owner,
         id="",  # Placeholder to prevent an unnecessary class
     )
-    db.events.create(full_event.model_dump(exclude={"id"}))["fields"]
+    db.events.create(full_event.model_dump(exclude={"id", "max_votes_per_user"}))["fields"]
 
 @router.post("/attend")
 def attend_event(
