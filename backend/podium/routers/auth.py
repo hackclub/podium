@@ -58,7 +58,7 @@ async def send_magic_link(email: str, redirect: str = ""):
         data=token_data, expires_delta=timedelta(minutes=15), token_type="magic_link"
     )
 
-    magic_link = f"{settings.production_url}login?token={token}"
+    magic_link = f"{settings.production_url}/login?token={token}"
     if redirect:
         magic_link += f"&redirect={redirect}"
 
