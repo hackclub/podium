@@ -8,28 +8,34 @@ from pyairtable.formulas import match
 
 
 class UserBase(BaseModel):
-    first_name: str
-    last_name: str
+    first_name: str = Field(..., min_length=1, max_length=50)
+    # Optional since some users don't have a last name in the DB
+    last_name: str = "N/A"
     email: EmailStr
     # International phone number format, allowing empty string
-    phone: Optional[Annotated[str, StringConstraints(pattern=r"(^$|^\+?[1-9]\d{1,14}$)")]] = ""
-    street_1: str
+    # this should have a default since I think Airtable may return None 
+    phone: Annotated[str, StringConstraints(pattern=r"(^$|^\+?[1-9]\d{1,14}$)")] = ""
+    street_1: Optional[str] = ""
     street_2: Optional[str] = ""
-    city: str
-    state: str
+    city: Optional[str] = ""
+    state: Optional[str] = ""
     # str but only allow digits
-    zip_code: Annotated[str, StringConstraints()]
-    # zip_code: Annotated[str, StringConstraints(pattern=r"^[\d|\s\w]*$")]
+    zip_code: Optional[Annotated[str, StringConstraints(pattern=r"^.*$")]] = ""
     # https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
-    country: Annotated[str, StringConstraints(pattern=r"^[A-Z]{2}$")]
+    # country: Optional[Annotated[str, StringConstraints(pattern=r"(^$|^[A-Z]{2}$)")]] = ""
+    # I think some other HQ stuff uses the full country name
+    country: Optional[Annotated[str, StringConstraints(pattern=r"(^$|^[\w\s]+$)")]] = ""
     # YYYY-MM-DD or unix time is probably the best
     # Airtable returns 2025-01-25 :)
-    dob: datetime.date
+    dob: Optional[datetime.date] = None
 
     def model_dump(self, *args, **kwargs):
         data = super().model_dump(*args, **kwargs)
         # Convert dob to YYYY-MM-DD
-        data["dob"] = self.dob.strftime("%Y-%m-%d")
+        if isinstance(self.dob, datetime.date):
+            data["dob"] = self.dob.strftime("%Y-%m-%d")
+        else:
+            data["dob"] = None
         return data
 
 

@@ -78,7 +78,7 @@ async def send_magic_link(email: str, redirect: str = ""):
         raise HTTPException(status_code=500, detail="Failed to send auth email")
 
     print(
-        f"Token for {email}: {token} | magic_link: {settings.production_url}login?token={token}"
+        f"Token for {email}: {token} | magic_link: {settings.production_url}/login?token={token} | local magic_link: http://localhost:5173/login?token={token}"
     )
 
 
@@ -291,9 +291,9 @@ def magic_link_email_content(magic_link: str) -> dict:
 </html>
 """
     text = """
-👋 Hey ${name}, \n\n
+👋 Hey, \n\n
       
-You requested a login code for The Summit. Here it is: ${loginCode}. \n\n
+You requested a login link for Podium. It's here!
       
 - Hack Club`
 """

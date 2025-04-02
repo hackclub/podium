@@ -1,8 +1,23 @@
+import * as Sentry from "@sentry/sveltekit";
 import type { ServerInit } from "@sveltejs/kit";
 import { client } from "$lib/client/sdk.gen";
 import { user, validateToken } from "$lib/user.svelte";
 // @ts-ignore
 import { PUBLIC_API_URL } from "$env/static/public";
+
+// If you don't want to use Session Replay, remove the `Replay` integration,
+// `replaysSessionSampleRate` and `replaysOnErrorSampleRate` options.
+Sentry.init({
+    dsn: "https://489f4a109d07aeadfd13387bcd3197ab@o4508979744210944.ingest.de.sentry.io/4508979747553360",
+    replaysSessionSampleRate: 0.1,
+    replaysOnErrorSampleRate: 1,
+    integrations: [Sentry.replayIntegration(
+      {
+        maskAllText: false,
+      }
+    )],
+    sendDefaultPii: false,
+})
 
 client.setConfig({
   baseUrl: PUBLIC_API_URL,
@@ -31,3 +46,4 @@ export const init: ServerInit = async () => {
     // console.debug('Client config: ', client.getConfig());
   }
 };
+export const handleError = Sentry.handleErrorWithSentry();

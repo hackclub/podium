@@ -33,6 +33,10 @@ def get_current_user(
 # Eventually, this should probably be rate-limited
 @router.post("/")
 def create_user(user: UserSignupPayload):
+    # Check if the user already exists
+    user_id = get_user_record_id_by_email(user.email)
+    if user_id:
+        raise HTTPException(status_code=400, detail="User already exists")
     db.users.create(user.model_dump())
 
 

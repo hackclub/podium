@@ -14,7 +14,6 @@
 
   let isLoading = $state(false);
   let showSignupFields = $state(false);
-  $inspect(showSignupFields);
   let expandedDueTo = "";
   let userInfo: UserSignupPayload = $state({
     email: "",
@@ -28,10 +27,11 @@
     zip_code: "",
     country: "",
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/date
-    dob: "",
+    dob: null,
   });
+  $inspect(userInfo);
   let redirectUrl: string;
-
+  
   // Convert countries to a list of objects with name and code
   const countryList = Object.entries(countries).map(([code, data]) => ({
     code,

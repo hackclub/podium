@@ -145,7 +145,7 @@ export class EventsService {
 export class ProjectsService {
     /**
      * Get Projects
-     * Get the current user's projects.
+     * Get the current user's projects and projects they are collaborating on.
      */
     public static getProjectsProjectsMineGet<ThrowOnError extends boolean = false>(options?: OptionsLegacyParser<unknown, ThrowOnError>) {
         return (options?.client ?? client).get<GetProjectsProjectsMineGetResponse, GetProjectsProjectsMineGetError, ThrowOnError>({

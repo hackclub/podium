@@ -43,7 +43,6 @@ export type PrivateEvent = {
 
 export type PrivateProject = {
     name: string;
-    readme: string;
     repo: string;
     image_url: string;
     demo: string;
@@ -66,7 +65,6 @@ export type PrivateProject = {
 
 export type Project = {
     name: string;
-    readme: string;
     repo: string;
     image_url: string;
     demo: string;
@@ -88,7 +86,6 @@ export type Project = {
 
 export type ProjectUpdate = {
     name: string;
-    readme: string;
     repo: string;
     image_url: string;
     demo: string;
@@ -104,7 +101,6 @@ export type ProjectUpdate = {
 
 export type PublicProjectCreationPayload = {
     name: string;
-    readme: string;
     repo: string;
     image_url: string;
     demo: string;
@@ -144,16 +140,16 @@ export type User_Input = {
 
 export type User_Output = {
     first_name: string;
-    last_name: string;
+    last_name?: string;
     email: string;
-    phone?: (string | null);
-    street_1: string;
+    phone?: string;
+    street_1?: (string | null);
     street_2?: (string | null);
-    city: string;
-    state: string;
-    zip_code: string;
-    country: string;
-    dob: string;
+    city?: (string | null);
+    state?: (string | null);
+    zip_code?: (string | null);
+    country?: (string | null);
+    dob?: (string | null);
     id: string;
     votes?: Array<(string)>;
     projects?: Array<(string)>;
@@ -176,16 +172,16 @@ export type UserExistsResponse = {
 
 export type UserSignupPayload = {
     first_name: string;
-    last_name: string;
+    last_name?: string;
     email: string;
-    phone?: (string | null);
-    street_1: string;
+    phone?: string;
+    street_1?: (string | null);
     street_2?: (string | null);
-    city: string;
-    state: string;
-    zip_code: string;
-    country: string;
-    dob: string;
+    city?: (string | null);
+    state?: (string | null);
+    zip_code?: (string | null);
+    country?: (string | null);
+    dob?: (string | null);
 };
 
 export type ValidationError = {

@@ -3,6 +3,15 @@ from pathlib import Path
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import sentry_sdk
+
+sentry_sdk.init(
+    dsn="https://489f4a109d07aeadfd13387bcd3197ab@o4508979744210944.ingest.de.sentry.io/4508979747553360",
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+)
+
 
 app = FastAPI()
 
@@ -30,6 +39,10 @@ for path in routers_dir.glob("*.py"):
         # If the module has a router attribute, include it in the app
         if hasattr(module, "router"):
             app.include_router(getattr(module, "router"))
+
+# @app.get("/sentry-debug")
+# async def trigger_error():
+#     division_by_zero = 1 / 0
 
 if __name__ == "__main__":
     # Go to http://localhost:8000/docs to see the Swagger UI
