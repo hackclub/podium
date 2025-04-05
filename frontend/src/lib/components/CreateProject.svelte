@@ -45,6 +45,7 @@
         event: [""],
         hours_spent: 0,
       };
+      // TODO: invalidate projects
     } catch (err) {
       handleError(err);
     }

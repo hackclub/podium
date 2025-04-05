@@ -72,7 +72,7 @@ def create_project(
         owner=owner,
         id="",  # Placeholder to prevent an unnecessary class
     )
-    db.projects.create(full_project.model_dump(exclude={"id"}))["fields"]
+    db.projects.create(full_project.model_dump(exclude={"id", "points"}))["fields"]
 
 
 @router.post("/join")
@@ -150,7 +150,7 @@ def get_project(project_id: Annotated[str, Path(pattern=r"^rec\w*$")]):
     except HTTPError as e:
         raise (
             HTTPException(status_code=404, detail="Project not found")
-            if e.response.status_code == 404
+            if e.response.status_code in [404, 403]
             else e
         )
-    return Project.model_validate({id: project["id"], **project["fields"]})
+    return Project.model_validate({"id": project["id"], **project["fields"]})
