@@ -9,7 +9,7 @@ from podium import db, settings
 from fastapi import APIRouter, HTTPException, Query, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from podium.db.user import CurrentUser
-from pydantic import BaseModel
+from pydantic import BaseModel, StringConstraints
 import jwt
 from jwt.exceptions import PyJWTError
 
@@ -28,7 +28,8 @@ DEBUG_EMAIL = "angad+debug@hackclub.com"
 
 
 class User(BaseModel):
-    email: str
+    # Might be better to use EmailStr here, but this is more convenient
+    email: Annotated[str, StringConstraints(strip_whitespace=True, to_lower=True)]
 
 
 def create_access_token(

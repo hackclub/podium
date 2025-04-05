@@ -4,7 +4,7 @@ airtable_events_table_id = "tblf7gxCB41f6PaPf"
 airtable_users_table_id = "tblwoiggOeX0s6nyG"
 airtable_projects_table_id = "tbl0mqJURRV5VpkIj"
 airtable_referrals_table_id = "tblHPIrWpu4IYrIm0"
-production_url = "https://podium.hackclub.com/"
+production_url = "https://podium.hackclub.com"
 sendgrid_from_email="team@hackclub.com"
 
 [development]

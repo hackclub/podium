@@ -28,6 +28,7 @@
                 "ENV_FOR_DYNACONF": "development",
             },
             "cwd": "${workspaceFolder}/backend",
+            "justMyCode": true
             // "jinja": true
         }
     ],

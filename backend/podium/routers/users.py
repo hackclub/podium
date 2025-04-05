@@ -46,5 +46,6 @@ class UserExistsResponse(BaseModel):
 
 @router.get("/exists")
 def user_exists(email: Annotated[EmailStr, Query(...)]) -> UserExistsResponse:
+    email = email.strip().lower()
     exists = True if db.user.get_user_record_id_by_email(email) else False
     return UserExistsResponse(exists=exists)
