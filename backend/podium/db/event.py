@@ -4,17 +4,26 @@ from typing import Annotated, List, Optional
 
 
 # https://docs.pydantic.dev/1.10/usage/schema/#field-customization
-class EventCreationPayload(BaseModel):
+class BaseEvent(BaseModel):
     name: Annotated[str, StringConstraints(min_length=1)]
     description: Optional[Annotated[str, StringConstraints(max_length=500)]] = ""
+    votable: bool = False
     
 
+    def model_dump(self, *args, **kwargs):
+        data = super().model_dump(*args, **kwargs)
+        return data
+
+
+class EventCreationPayload(BaseEvent): ...
+
+
+class EventUpdate(BaseEvent): ...
+    
 
 class Event(EventCreationPayload):
     id: str
-    votable: bool = False
     owner: SingleRecordField
-
 
 
 class PrivateEvent(Event):

@@ -15,6 +15,8 @@ from podium.db.user import CurrentUser, User
 from podium import db
 from podium.db import (
     EventCreationPayload,
+    EventUpdate,
+    PrivateEvent,
     UserEvents,
     Event,
     ReferralBase,
@@ -174,14 +176,14 @@ def attend_event(
 
 
 
-@router.post("/make-votable")
-def make_votable(
-    event_id: Annotated[str, Query(title="Event ID")],
-    votable: Annotated[bool, Query(description="Whether the event is votable or not")],
+@router.put("/{event_id}")
+def update_event(
+    event_id: Annotated[str, Path(title="Event ID")],
+    event: EventUpdate,
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
 ):
     """
-    Make an event votable. This means that users can vote for their favorite projects in the event.
+    Update event's information
     """
     user_id = db.user.get_user_record_id_by_email(current_user.email)
     if user_id is None:
@@ -193,7 +195,23 @@ def make_votable(
         # This also ensures the event exists since it has to exist to be in the user's owned events
         raise HTTPException(status_code=403, detail="User is not an owner of the event")
 
-    db.events.update(event_id, {"votable": votable})
+    return db.events.update(event_id, event.model_dump())["fields"]
+
+
+@router.delete("/{event_id}")
+def delete_event(
+    event_id: Annotated[str, Path(title="Event ID")],
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+):
+    # Check if the user is an owner of the event
+    user_id = db.user.get_user_record_id_by_email(current_user.email)
+    user = db.users.get(user_id)
+    user = User.model_validate({"id": user["id"], **user["fields"]})
+    # Check if the user is the owner of the event
+    if event_id not in user.owned_events:
+        raise HTTPException(status_code=403, detail="User not an owner of the event")
+
+    return db.events.delete(event_id)
 
 
 # Voting! The client should POST to /events/{event_id}/vote with their top 3 favorite projects, in no particular order. If there are less than 20 projects in the event, only accept the top 2
