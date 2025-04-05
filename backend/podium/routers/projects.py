@@ -153,4 +153,4 @@ def get_project(project_id: Annotated[str, Path(pattern=r"^rec\w*$")]):
             if e.response.status_code in [404, 403]
             else e
         )
-    return Project.model_validate({id: project["id"], **project["fields"]})
+    return Project.model_validate({"id": project["id"], **project["fields"]})
