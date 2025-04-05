@@ -30,6 +30,10 @@ settings.validators.register(
             must_exist=True,
         ),
         Validator(
+            "airtable_votes_table_id",
+            must_exist=True,
+        ),
+        Validator(
             "sendgrid_api_key",
             must_exist=True,
             # condition=lambda x: re.match(r"^SG\..+", x) is not None,

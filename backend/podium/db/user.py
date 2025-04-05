@@ -1,6 +1,6 @@
 import datetime
 from typing import Annotated, Optional
-from pydantic import BaseModel, EmailStr, Field, StringConstraints
+from pydantic import BaseModel, EmailStr, Field, StringConstraints, field_validator
 from podium import constants
 
 from podium.db import tables
@@ -37,6 +37,11 @@ class UserBase(BaseModel):
         else:
             data["dob"] = None
         return data
+    
+    # Ensure email is normalized to lowercase and stripped of whitespace
+    @field_validator("email", mode="before")
+    def normalize_email(cls, v: str) -> str:
+        return v.strip().lower()
 
 
 class UserSignupPayload(UserBase): ...
@@ -58,15 +63,6 @@ class CurrentUser(BaseModel):
 # TODO: make this part of CurrentUser or something, since this is used way too much
 def get_user_record_id_by_email(email: str) -> Optional[str]:
     users_table = tables["users"]
-    # Use formula filtering to search by email
-    # try:
-    #     formula = match({'Email': email})
-    #     records = users_table.all(formula=formula)
-    #     return records[0]['id'] if records else None
-    # except HTTPError as e:
-    #     if '404' in str(e):  # Check specifically for 404 error
-    #         return None
-    #     raise  # Re-raise other HTTP errors
     formula = match({"email": email})
     records = users_table.all(formula=formula)
     return records[0]["id"] if records else None

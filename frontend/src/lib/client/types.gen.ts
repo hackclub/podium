@@ -4,6 +4,11 @@ export type CheckAuthResponse = {
     email: string;
 };
 
+export type CreateVotes = {
+    projects: Array<(string)>;
+    event: string;
+};
+
 export type Event = {
     name: string;
     description?: (string | null);
@@ -45,6 +50,12 @@ export type PrivateEvent = {
     ];
     attendees?: Array<(string)>;
     join_code: string;
+    projects?: Array<(string)>;
+    referrals?: Array<(string)>;
+    /**
+     * The maximum number of votes a user can cast for this event. This is based on the number of projects in the event. If there are 20 or more projects, the user can vote for 3 projects. Otherwise, they can vote for 2 projects.
+     */
+    readonly max_votes_per_user: number;
 };
 
 export type PrivateProject = {
@@ -62,6 +73,7 @@ export type PrivateProject = {
     hours_spent?: number;
     id: string;
     points?: number;
+    voters?: Array<(string)>;
     collaborators?: Array<(string)>;
     owner: [
         string
@@ -84,6 +96,7 @@ export type Project = {
     hours_spent?: number;
     id: string;
     points?: number;
+    voters?: Array<(string)>;
     collaborators?: Array<(string)>;
     owner: [
         string
@@ -118,26 +131,6 @@ export type PublicProjectCreationPayload = {
      * A lower-bound estimate of the number of hours spent on the project. Only used for general statistics.
      */
     hours_spent?: number;
-};
-
-/**
- * A ``dict`` representing a record returned from the Airtable API.
- * See `List records <https://airtable.com/developers/web/api/list-records>`__.
- *
- * Usage:
- * >>> table.first(formula="Name = 'Alice'")
- * {
- * 'id': 'recAdw9EjV90xbW',
- * 'createdTime': '2023-05-22T21:24:15.333134Z',
- * 'fields': {'Name': 'Alice', 'Department': 'Engineering'}
- * }
- */
-export type RecordDict = {
-    id: string;
-    createdTime: string;
-    fields: {
-        [key: string]: unknown;
-    };
 };
 
 export type User_Input = {
@@ -194,17 +187,6 @@ export type ValidationError = {
     loc: Array<(string | number)>;
     msg: string;
     type: string;
-};
-
-export type Vote = {
-    /**
-     * The ID of the event to vote in.
-     */
-    event_id: string;
-    /**
-     * In no particular order, the top 3 (or 2 if there are less than 20 projects) projects that the user is voting for.
-     */
-    projects: Array<(string)>;
 };
 
 export type RequestLoginRequestLoginPostData = {
@@ -315,7 +297,7 @@ export type DeleteEventEventsEventIdDeleteResponse = (unknown);
 export type DeleteEventEventsEventIdDeleteError = (HTTPValidationError);
 
 export type VoteEventsVotePostData = {
-    body: Vote;
+    body: CreateVotes;
 };
 
 export type VoteEventsVotePostResponse = (unknown);

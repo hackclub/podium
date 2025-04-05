@@ -1,6 +1,5 @@
 from pyairtable import Api, Table
 
-# from pyairtable.formulas import match
 from podium import settings
 
 
@@ -25,6 +24,9 @@ def main():
     )
     tables["referrals"] = get_table(
         api, settings.airtable_base_id, settings.airtable_referrals_table_id
+    )
+    tables["votes"] = get_table(
+        api, settings.airtable_base_id, settings.airtable_votes_table_id
     )
 
 
