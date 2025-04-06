@@ -2,7 +2,7 @@
   import { EventsService } from "$lib/client/sdk.gen";
   import type { Event } from "$lib/client";
   import { toast } from "svelte-sonner";
-  import { handleError } from "$lib/misc";
+  import { handleError, invalidateEvents } from "$lib/misc";
   import type { EventUpdate } from "$lib/client/types.gen";
   import { fade } from "svelte/transition";
 
@@ -36,6 +36,9 @@
       toast("Event deleted successfully");
       // Reset the fields
       event = emptyEventUpdate;
+      chosenEvent = emptyEvent;
+      // Invalidate events to refresh the list
+      invalidateEvents();
     } catch (err) {
       handleError(err);
     }
@@ -59,6 +62,8 @@
       // Reset the fields
       event = emptyEventUpdate;
       chosenEvent = emptyEvent;
+      // Invalidate events to refresh the list
+      invalidateEvents()
     } catch (err) {
       handleError(err);
     }
@@ -102,6 +107,7 @@
         {/each}
       </select>
     </label>
+    {#if chosenEvent.id}
     <label class="form-control">
       <div class="label">
         <span class="label-text">Event Name</span>
@@ -137,7 +143,6 @@
       />
     </label>
 
-    {#if chosenEvent.id}
       <button type="submit" class="btn btn-block mt-4 btn-primary">
         Update Event
       </button>

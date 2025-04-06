@@ -194,8 +194,8 @@ def update_event(
     if event_id not in user.owned_events:
         # This also ensures the event exists since it has to exist to be in the user's owned events
         raise HTTPException(status_code=403, detail="User is not an owner of the event")
-
-    return db.events.update(event_id, event.model_dump())["fields"]
+    
+    db.events.update(event_id, event.model_dump())["fields"]
 
 
 @router.delete("/{event_id}")
@@ -211,7 +211,7 @@ def delete_event(
     if event_id not in user.owned_events:
         raise HTTPException(status_code=403, detail="User not an owner of the event")
 
-    return db.events.delete(event_id)
+    db.events.delete(event_id)
 
 
 # Voting! The client should POST to /events/{event_id}/vote with their top 3 favorite projects, in no particular order. If there are less than 20 projects in the event, only accept the top 2
