@@ -2,7 +2,7 @@
   import { EventsService, ProjectsService } from "$lib/client/sdk.gen";
   import type { PublicProjectCreationPayload, Event } from "$lib/client";
   import { toast } from "svelte-sonner";
-  import { handleError } from "$lib/misc";
+  import { handleError, invalidateProjects } from "$lib/misc";
 
   let project: PublicProjectCreationPayload = $state({
     name: "",
@@ -45,7 +45,7 @@
         event: [""],
         hours_spent: 0,
       };
-      // TODO: invalidate projects
+      invalidateProjects();
     } catch (err) {
       handleError(err);
     }

@@ -2,7 +2,7 @@
   import { EventsService, ProjectsService } from "$lib/client/sdk.gen";
   import type { Event, Project } from "$lib/client";
   import { toast } from "svelte-sonner";
-  import { handleError } from "$lib/misc";
+  import { handleError, invalidateProjects } from "$lib/misc";
   import type { PrivateProject, ProjectUpdate } from "$lib/client/types.gen";
   import { fade } from "svelte/transition";
   import { onMount } from "svelte";
@@ -75,6 +75,7 @@
       chosenProject = emptyProject;
       // Fetch the projects again if the user wants to perform another update to reflect the deletion
       fetchedProjects = false;
+      invalidateProjects(); 
     } catch (err) {
       handleError(err);
     }
@@ -104,6 +105,7 @@
       chosenProject = emptyProject;
       // fetch the projects again if the user wants to perform another update
       fetchedProjects = false;
+      invalidateProjects();  
     } catch (err) {
       handleError(err);
     }
@@ -147,6 +149,7 @@
         {/each}
       </select>
     </label>
+    {#if chosenProject.id}
     <label class="form-control">
       <div class="label">
         <span class="label-text">Project Name</span>
@@ -158,7 +161,6 @@
         class="input input-bordered grow"
       />
     </label>
-    <!-- Project description field -->
     <label class="form-control">
       <div class="label">
         <span class="label-text">Project Description</span>
@@ -237,7 +239,6 @@
         {/each}
       </select>
     </label>
-    {#if chosenProject.id}
       <button type="submit" class="btn btn-block mt-4 btn-primary">
         Update Project
       </button>
