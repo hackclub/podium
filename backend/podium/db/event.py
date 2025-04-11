@@ -8,11 +8,7 @@ class BaseEvent(BaseModel):
     name: Annotated[str, StringConstraints(min_length=1)]
     description: Optional[Annotated[str, StringConstraints(max_length=500)]] = ""
     votable: bool = False
-    
 
-    def model_dump(self, *args, **kwargs):
-        data = super().model_dump(*args, **kwargs)
-        return data
 
 
 class EventCreationPayload(BaseEvent): ...

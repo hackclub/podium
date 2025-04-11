@@ -5,7 +5,7 @@ from podium import db
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pyairtable.formulas import EQ, RECORD_ID, match
 from podium.routers.auth import get_current_user
-from podium.db.user import CurrentUser
+from podium.db.user import User
 from podium.db.project import PrivateProject, Project, PublicProjectCreationPayload
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -14,24 +14,23 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 # Get the current user's projects
 @router.get("/mine")
 def get_projects(
-    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> list[PrivateProject]:
     """
     Get the current user's projects and projects they are collaborating on.
     """
 
-    user_id = db.user.get_user_record_id_by_email(current_user.email)
-    if user_id is None:
+    if user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
     projects = [
         PrivateProject.model_validate({"id": project["id"], **project["fields"]})
         for project in [
             db.projects.get(project_id)
-            for project_id in db.users.get(user_id)["fields"].get("projects", [])
+            for project_id in user.projects
         ] + 
             [db.projects.get(project_id)
-            for project_id in db.users.get(user_id)["fields"].get("collaborations", [])]
+            for project_id in user.collaborations]
     ]
     return projects
 
@@ -40,13 +39,14 @@ def get_projects(
 @router.post("/")
 def create_project(
     project: PublicProjectCreationPayload,
-    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """
     Create a new project. The current user is automatically added as an owner of the project.
     """
-
-    owner = [db.user.get_user_record_id_by_email(current_user.email)]
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    owner = [user.id]
 
     # Fetch all events that have a record ID matching the project's event ID
     records = db.events.all(formula=EQ(RECORD_ID(), project.event[0]))
@@ -80,10 +80,9 @@ def join_project(
     join_code: Annotated[
         str, Query(description="A unique code used to join a project as a collaborator")
     ],
-    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
 ):
-    user_id = db.user.get_user_record_id_by_email(current_user.email)
-    if user_id is None:
+    if user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
     project = db.projects.first(formula=match({"join_code": join_code.upper()}))
@@ -96,7 +95,7 @@ def join_project(
     )
 
     # Ensure the user isn't already a collaborator
-    if user_id in project.collaborators or user_id in project.owner:
+    if user.id in project.collaborators or user.id in project.owner:
         raise HTTPException(
             status_code=400,
             detail="User is already a collaborator or owner of the project",
@@ -104,10 +103,10 @@ def join_project(
 
     # Ensure the user is part of the event that the project is associated with
     event_attendees = db.events.get(project.event[0])["fields"].get("attendees", [])
-    if user_id not in event_attendees:
+    if user.id not in event_attendees:
         raise HTTPException(status_code=403, detail="User not part of event")
 
-    db.events.update(project.id, {"collaborators": project.collaborators + [user_id]})
+    db.projects.update(project.id, {"collaborators": project.collaborators + [user.id]})
 
 
 # Update project
@@ -115,14 +114,13 @@ def join_project(
 def update_project(
     project_id: Annotated[str, Path(pattern=r"^rec\w*$")],
     project: db.ProjectUpdate,
-    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """
     Update a project by replacing it
     """
-    # Check if the user is an owner of the project
-    user_id = db.user.get_user_record_id_by_email(current_user.email)
-    if user_id not in db.projects.get(project_id)["fields"].get("owner", []):
+    # Check if the user is an owner of the project or if they even exist
+    if user is None or user.id not in db.projects.get(project_id)["fields"].get("owner", []):
         raise HTTPException(status_code=403, detail="User not an owner of the project")
 
     return db.projects.update(project_id, project.model_dump())["fields"]
@@ -132,11 +130,10 @@ def update_project(
 @router.delete("/{project_id}")
 def delete_project(
     project_id: Annotated[str, Path(pattern=r"^rec\w*$")],
-    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
 ):
-    # Check if the user is an owner of the project
-    user_id = db.user.get_user_record_id_by_email(current_user.email)
-    if user_id not in db.projects.get(project_id)["fields"].get("owner", []):
+    # Check if the user is an owner of the project or if they even exist
+    if user is None or user.id not in db.projects.get(project_id)["fields"].get("owner", []):
         raise HTTPException(status_code=403, detail="User not an owner of the project")
 
     return db.projects.delete(project_id)

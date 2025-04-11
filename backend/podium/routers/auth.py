@@ -8,11 +8,12 @@ from podium import db, settings
 
 from fastapi import APIRouter, HTTPException, Query, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from podium.db.user import CurrentUser
-from pydantic import BaseModel, StringConstraints
+from podium.db.user import User, UserLoginPayload
+from pydantic import BaseModel
 import jwt
 from jwt.exceptions import PyJWTError
 
+from requests import HTTPError
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
@@ -27,9 +28,7 @@ MAGIC_LINK_EXPIRE_MINUTES = 15
 DEBUG_EMAIL = "angad+debug@hackclub.com"
 
 
-class User(BaseModel):
-    # Might be better to use EmailStr here, but this is more convenient
-    email: Annotated[str, StringConstraints(strip_whitespace=True, to_lower=True)]
+
 
 
 def create_access_token(
@@ -85,7 +84,7 @@ async def send_magic_link(email: str, redirect: str = ""):
 
 @router.post("/request-login")
 # https://fastapi.tiangolo.com/tutorial/query-param-models/
-async def request_login(user: User, redirect: Annotated[str, Query()]):
+async def request_login(user: UserLoginPayload, redirect: Annotated[str, Query()]):
     """Send a magic link to the user's email. If the user has not yet signed up, an error will be raised"""
     # Check if the user exists
     if db.user.get_user_record_id_by_email(user.email) is None:
@@ -132,7 +131,10 @@ security = HTTPBearer()
 
 async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
-) -> CurrentUser:
+) -> User:
+    """
+    Create a user object from a JWT access token. If the email that's encoded in the token isn't associated with a record, return None. 
+    """
     token = credentials.credentials
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -146,7 +148,22 @@ async def get_current_user(
             raise credentials_exception
     except PyJWTError:
         raise credentials_exception
-    return CurrentUser(email=email)
+    # Check if the user exists
+    user_id = db.user.get_user_record_id_by_email(email)
+    try:
+        user = db.users.get(user_id)
+    except HTTPError as e:  # noqa: F821
+        raise (
+                HTTPException(status_code=404, detail="User not found")
+                if e.response.status_code in [404, 403]
+                else e
+            )
+
+    # If it's none, it's none :)
+    return User(
+        id=user["id"],
+        **user["fields"],
+    )
 
 
 class CheckAuthResponse(BaseModel):
@@ -155,7 +172,7 @@ class CheckAuthResponse(BaseModel):
 
 @router.get("/protected-route")
 async def protected_route(
-    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> CheckAuthResponse:
     # Check if the user exists
     if db.user.get_user_record_id_by_email(current_user.email) is None:

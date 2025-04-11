@@ -1,17 +1,18 @@
 import datetime
 from typing import Annotated, Optional
-from pydantic import BaseModel, EmailStr, Field, StringConstraints, field_validator
+from pydantic import BaseModel, Field, StringConstraints
 from podium import constants
 
 from podium.db import tables
 from pyairtable.formulas import match
 
+class UserLoginPayload(BaseModel):
+    email: Annotated[str, StringConstraints(strip_whitespace=True, to_lower=True)]
 
-class UserBase(BaseModel):
+class UserBase(UserLoginPayload):
     first_name: str = Field(..., min_length=1, max_length=50)
     # Optional since some users don't have a last name in the DB
     last_name: str = "N/A"
-    email: EmailStr
     # International phone number format, allowing empty string
     # this should have a default since I think Airtable may return None 
     phone: Annotated[str, StringConstraints(pattern=r"(^$|^\+?[1-9]\d{1,14}$)")] = ""
@@ -39,9 +40,9 @@ class UserBase(BaseModel):
         return data
     
     # Ensure email is normalized to lowercase and stripped of whitespace
-    @field_validator("email", mode="before")
-    def normalize_email(cls, v: str) -> str:
-        return v.strip().lower()
+    # @field_validator("email", mode="before")
+    # def normalize_email(cls, v: str) -> str:
+    #     return v.strip().lower()
 
 
 class UserSignupPayload(UserBase): ...
@@ -51,13 +52,12 @@ class User(UserBase):
     id: Annotated[str, StringConstraints(pattern=constants.RECORD_REGEX)]
     votes: constants.MultiRecordField = []
     projects: constants.MultiRecordField = []
+    collaborations: constants.MultiRecordField = []
     owned_events: constants.MultiRecordField = []
     attending_events: constants.MultiRecordField = []
     referral: constants.MultiRecordField = []
 
 
-class CurrentUser(BaseModel):
-    email: str
 
 
 # TODO: make this part of CurrentUser or something, since this is used way too much
