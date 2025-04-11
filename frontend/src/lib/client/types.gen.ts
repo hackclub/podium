@@ -12,22 +12,23 @@ export type CreateVotes = {
 export type Event = {
     name: string;
     description?: (string | null);
-    id: string;
     votable?: boolean;
+    id: string;
     owner: [
         string
     ];
+};
+
+export type EventCreationPayload = {
+    name: string;
+    description?: (string | null);
+    votable?: boolean;
 };
 
 export type EventUpdate = {
     name: string;
     description?: (string | null);
     votable?: boolean;
-};
-
-export type EventCreationPayload = {
-    name: string;
-    description?: (string | null);
 };
 
 export type HTTPValidationError = {
@@ -43,8 +44,8 @@ export type MagicLinkVerificationResponse = {
 export type PrivateEvent = {
     name: string;
     description?: (string | null);
-    id: string;
     votable?: boolean;
+    id: string;
     owner: [
         string
     ];
@@ -73,7 +74,7 @@ export type PrivateProject = {
     hours_spent?: number;
     id: string;
     points?: number;
-    voters?: Array<(string)>;
+    votes?: Array<(string)>;
     collaborators?: Array<(string)>;
     owner: [
         string
@@ -96,7 +97,7 @@ export type Project = {
     hours_spent?: number;
     id: string;
     points?: number;
-    voters?: Array<(string)>;
+    votes?: Array<(string)>;
     collaborators?: Array<(string)>;
     owner: [
         string
@@ -133,14 +134,10 @@ export type PublicProjectCreationPayload = {
     hours_spent?: number;
 };
 
-export type User_Input = {
+export type User = {
     email: string;
-};
-
-export type User_Output = {
     first_name: string;
     last_name?: string;
-    email: string;
     phone?: string;
     street_1?: (string | null);
     street_2?: (string | null);
@@ -152,6 +149,7 @@ export type User_Output = {
     id: string;
     votes?: Array<(string)>;
     projects?: Array<(string)>;
+    collaborations?: Array<(string)>;
     owned_events?: Array<(string)>;
     attending_events?: Array<(string)>;
     referral?: Array<(string)>;
@@ -169,10 +167,14 @@ export type UserExistsResponse = {
     exists: boolean;
 };
 
+export type UserLoginPayload = {
+    email: string;
+};
+
 export type UserSignupPayload = {
+    email: string;
     first_name: string;
     last_name?: string;
-    email: string;
     phone?: string;
     street_1?: (string | null);
     street_2?: (string | null);
@@ -190,7 +192,7 @@ export type ValidationError = {
 };
 
 export type RequestLoginRequestLoginPostData = {
-    body: User_Input;
+    body: UserLoginPayload;
     query: {
         redirect: string;
     };
@@ -234,6 +236,27 @@ export type GetEventEventsEventIdGetResponse = ((PrivateEvent | Event));
 
 export type GetEventEventsEventIdGetError = (HTTPValidationError);
 
+export type UpdateEventEventsEventIdPutData = {
+    body: EventUpdate;
+    path: {
+        event_id: string;
+    };
+};
+
+export type UpdateEventEventsEventIdPutResponse = (unknown);
+
+export type UpdateEventEventsEventIdPutError = (HTTPValidationError);
+
+export type DeleteEventEventsEventIdDeleteData = {
+    path: {
+        event_id: string;
+    };
+};
+
+export type DeleteEventEventsEventIdDeleteResponse = (unknown);
+
+export type DeleteEventEventsEventIdDeleteError = (HTTPValidationError);
+
 export type GetAttendingEventsEventsGetResponse = (UserEvents);
 
 export type GetAttendingEventsEventsGetError = unknown;
@@ -262,39 +285,6 @@ export type AttendEventEventsAttendPostData = {
 export type AttendEventEventsAttendPostResponse = (unknown);
 
 export type AttendEventEventsAttendPostError = (HTTPValidationError);
-
-export type ChangeVotableEventsChangeVotablePutData = {
-    path: {
-        event_id: string;
-    };
-    query: {
-        /**
-         * Whether the event is votable or not
-         */
-        votable: boolean;
-    };
-};
-
-export type UpdateEventEventsEventIdPutData = {
-    body: EventUpdate;
-    path: {
-        event_id: string;
-    };
-};
-
-export type UpdateEventEventsEventIdPutResponse = (unknown);
-
-export type UpdateEventEventsEventIdPutError = (HTTPValidationError);
-
-export type DeleteEventEventsEventIdDeleteData = {
-    path: {
-        event_id: string;
-    };
-};
-
-export type DeleteEventEventsEventIdDeleteResponse = (unknown);
-
-export type DeleteEventEventsEventIdDeleteError = (HTTPValidationError);
 
 export type VoteEventsVotePostData = {
     body: CreateVotes;
@@ -380,7 +370,7 @@ export type GetProjectProjectsProjectIdGetResponse = (unknown);
 
 export type GetProjectProjectsProjectIdGetError = (HTTPValidationError);
 
-export type GetCurrentUserUsersCurrentGetResponse = (User_Output);
+export type GetCurrentUserUsersCurrentGetResponse = (User);
 
 export type GetCurrentUserUsersCurrentGetError = unknown;
 
