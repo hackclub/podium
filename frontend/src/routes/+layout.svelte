@@ -40,7 +40,7 @@
 
 <div class="p-4 bg-info text-center rounded-xl max-w-2xl mx-auto m-4">
   <p class="text-info-content">
-    Welcome to Scrapyard! Need help? Send a message in #scrapyard-support. Podium isn't working? DM @Angad Behl on Slack or call +1 (415) 570-4995
+    Podium isn't working and need urgent help? DM @Angad Behl on Slack or call +1 (415) 570-4995.
   </p>
 </div>
 
@@ -62,7 +62,7 @@
       showModal = true;
     }}
   >
-    i
+    ?
   </button>
 </div>
 
