@@ -6,14 +6,13 @@ from typing import Annotated
 
 from podium import db, settings
 
-from fastapi import APIRouter, HTTPException, Query, status, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from podium.db.user import User, UserLoginPayload
 from pydantic import BaseModel
 import jwt
 from jwt.exceptions import PyJWTError
 
-from requests import HTTPError
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
