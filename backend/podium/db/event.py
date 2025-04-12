@@ -24,6 +24,9 @@ class Event(EventCreationPayload):
 
 
 class PrivateEvent(Event):
+    """
+    All data loaded from the event table. Should only be used internally or by the owner of the event.
+    """
     # https://stackoverflow.com/questions/63793662/how-to-give-a-pydantic-list-field-a-default-value/63808835#63808835
     # List of record IDs, since that's what Airtable uses
     attendees: MultiRecordField = []

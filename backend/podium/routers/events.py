@@ -1,4 +1,4 @@
-from random import random
+import random
 from fastapi import APIRouter, Path
 from typing import Annotated, Union, List
 from fastapi import Depends, HTTPException, Query
@@ -270,6 +270,9 @@ def get_leaderboard(event_id: Annotated[str, Path(title="Event ID")]) -> List[Pr
                 if e.response.status_code in [404, 403]
                 else e
             )
+    event = PrivateEvent.model_validate(event["fields"])
+    if not event.leaderboard_enabled:
+        raise HTTPException(status_code=403, detail="Leaderboard is not enabled for this event")
     projects = []
     for project_id in event["fields"].get("projects", []):
         try:
