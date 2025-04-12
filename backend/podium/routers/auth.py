@@ -171,6 +171,9 @@ class CheckAuthResponse(BaseModel):
 async def protected_route(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> CheckAuthResponse:
+    # Check if null user was sent
+    if current_user is None:
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
     # Check if the user exists
     if db.user.get_user_record_id_by_email(current_user.email) is None:
         raise HTTPException(status_code=404, detail="User not found")
