@@ -39,7 +39,7 @@ def get_event_unauthenticated(event_id: Annotated[str, Path(title="Event ID")]) 
                 if e.response.status_code in [404, 403]
                 else e
             )
-    return Event.model_validate(**event["fields"])
+    return Event.model_validate(event["fields"])
 
 @router.get("/{event_id}")
 def get_event(
