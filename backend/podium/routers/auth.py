@@ -160,10 +160,7 @@ async def get_current_user(
             )
 
     # If it's none, it's none :)
-    return User(
-        id=user["id"],
-        **user["fields"],
-    )
+    return User.model_validate(user["fields"])
 
 
 class CheckAuthResponse(BaseModel):

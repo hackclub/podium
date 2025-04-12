@@ -39,7 +39,7 @@ def get_event_unauthenticated(event_id: Annotated[str, Path(title="Event ID")]) 
                 if e.response.status_code in [404, 403]
                 else e
             )
-    return Event.model_validate({"id": event["id"], **event["fields"]})
+    return Event.model_validate(**event["fields"])
 
 @router.get("/{event_id}")
 def get_event(
@@ -60,9 +60,9 @@ def get_event(
             )
 
     if user and user.id in event["fields"].get("owner", []):
-        event = PrivateEvent.model_validate({"id": event["id"], **event["fields"]})
+        event = PrivateEvent.model_validate(event["fields"])
     else:
-        return Event.model_validate({"id": event["id"], **event["fields"]})
+        return Event.model_validate(event["fields"])
 
 
 # Used to be /attending
@@ -79,14 +79,14 @@ def get_attending_events(
     # Eventually it might be better to return a user object. Otherwise, the client that the event owner is using would need to fetch the user. Since user emails probably shouldn't be public with just a record ID as a parameter, we would need to check if the person calling GET /users?user=ID has an event wherein that user ID is present. To avoid all this, the user object could be returned.
     
     owned_events = [
-        PrivateEvent.model_validate({"id": event["id"], **event["fields"]})
+        PrivateEvent.model_validate(event["fields"])
         for event in [
             db.events.get(event_id)
             for event_id in user.owned_events
         ]
     ]
     attending_events = [
-        Event.model_validate({"id": event["id"], **event["fields"]})
+        Event.model_validate(event["fields"])
         for event in [
             db.events.get(event_id)
             for event_id in user.attending_events
@@ -141,7 +141,7 @@ def attend_event(
     event = db.events.first(formula=match({"join_code": join_code.upper()}))
     if event is None:
         raise HTTPException(status_code=404, detail="Event not found")
-    event = PrivateEvent.model_validate({"id": event["id"], **event["fields"]})
+    event = PrivateEvent.model_validate(event["fields"])
 
     # If the event is found, add the current user to the attendees list
     # But first, ensure that the user is not already in the list
@@ -202,7 +202,7 @@ def vote(votes: CreateVotes, user: Annotated[User, Depends(get_current_user)]):
 
     try:
         event = db.events.get(votes.event)
-        event = PrivateEvent.model_validate({"id": event["id"], **event["fields"]})
+        event = PrivateEvent.model_validate(event["fields"])
     except HTTPError as e:
         raise (
             HTTPException(status_code=404, detail="Event not found")
@@ -227,7 +227,7 @@ def vote(votes: CreateVotes, user: Annotated[User, Depends(get_current_user)]):
                 raise HTTPException(status_code=404, detail="Project not found")
             else:
                 raise e
-        project = Project.model_validate({"id": project["id"], **project["fields"]})
+        project = Project.model_validate(project["fields"])
 
         # Check if the project is in the event
         if project.event != [event.id]:
@@ -301,7 +301,7 @@ def get_leaderboard(event_id: Annotated[str, Path(title="Event ID")]) -> List[Pr
     projects.sort(key=lambda project: project["fields"].get("points", 0), reverse=True)
 
     projects = [
-        Project.model_validate({"id": project["id"], **project["fields"]})
+        Project.model_validate(project["fields"])
         for project in projects
     ]
     return projects
@@ -324,7 +324,7 @@ def get_event_projects(
         )
 
     projects = [
-        Project.model_validate({"id": project["id"], **project["fields"]})
+        Project.model_validate(project["fields"])
         for project in [
             db.projects.get(project_id)
             for project_id in event["fields"].get("projects", [])

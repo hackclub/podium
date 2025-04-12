@@ -24,7 +24,7 @@ def get_projects(
         raise HTTPException(status_code=404, detail="User not found")
 
     projects = [
-        PrivateProject.model_validate({"id": project["id"], **project["fields"]})
+        PrivateProject.model_validate(project["fields"])
         for project in [
             db.projects.get(project_id)
             for project_id in user.projects
@@ -89,10 +89,7 @@ def join_project(
     if project is None:
         raise HTTPException(status_code=404, detail="No project found")
 
-    project = Project(
-        id=project["id"],
-        **project["fields"],
-    )
+    project = Project.model_validate(project["fields"])
 
     # Ensure the user isn't already a collaborator
     if user.id in project.collaborators or user.id in project.owner:
@@ -150,4 +147,4 @@ def get_project(project_id: Annotated[str, Path(pattern=r"^rec\w*$")]):
             if e.response.status_code in [404, 403]
             else e
         )
-    return Project.model_validate({"id": project["id"], **project["fields"]})
+    return Project.model_validate(project["fields"])
