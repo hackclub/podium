@@ -147,7 +147,8 @@ async def get_current_user(
         if email is None or token_type != "access":
             raise credentials_exception
     except PyJWTError:
-        raise credentials_exception
+        # raise credentials_exception
+        return None
     # Check if the user exists
     user_id = db.user.get_user_record_id_by_email(email)
     try:
@@ -159,7 +160,6 @@ async def get_current_user(
                 else e
             )
 
-    # If it's none, it's none :)
     return User.model_validate(user["fields"])
 
 

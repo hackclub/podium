@@ -25,31 +25,14 @@ from podium.db.project import Project
 router = APIRouter(prefix="/events", tags=["events"])
 
 
-# TODO: The only reason there is a different endpoint for an unauthenticated request to get an event is because Depends(get_current_user) will not return None if there is no token, it'll error
-@router.get("/unauthenticated/{event_id}")
-def get_event_unauthenticated(event_id: Annotated[str, Path(title="Event ID")]) -> Event:
-    """
-    Get an event by its ID. This is used for the public event page.
-    """
-    try:
-        event = db.events.get(event_id)
-    except HTTPError as e:
-        raise (
-                HTTPException(status_code=404, detail="Event not found")
-                if e.response.status_code in [404, 403]
-                else e
-            )
-    return Event.model_validate(event["fields"])
-
 @router.get("/{event_id}")
 def get_event(
     event_id: Annotated[str, Path(title="Event ID")],
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)]
 ) -> Union[PrivateEvent, Event]:
     """
-    Get an event by its ID. If the user owns it, return a PrivateEvent. Otherwise, return a regular event.
+    Get an event by its ID. If the user owns it, return a PrivateEvent. Otherwise, return a regular event. Can be called with invalid auth credentials if needed, but will need something in the bearer token for the code to work
     """
-
     try:
         event = db.events.get(event_id)
     except HTTPError as e:
