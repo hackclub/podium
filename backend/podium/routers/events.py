@@ -1,3 +1,4 @@
+from random import random
 from fastapi import APIRouter, Path
 from typing import Annotated, Union, List
 from fastapi import Depends, HTTPException, Query
@@ -259,7 +260,7 @@ def vote(votes: CreateVotes, user: Annotated[User, Depends(get_current_user)]):
 @router.get("/{event_id}/leaderboard")
 def get_leaderboard(event_id: Annotated[str, Path(title="Event ID")]) -> List[Project]:
     """
-    Get the leaderboard for an event. The leaderboard is a list of projects in the event, sorted by the number of votes they have received.
+    Return a sorted list of projects in the event
     """
     try:
         event = db.events.get(event_id)
@@ -297,7 +298,7 @@ def get_event_projects(
     event_id: Annotated[str, Path(title="Event ID")],
 ) -> List[Project]:
     """
-    Get the projects for a specific event.
+    Get the projects for a specific event in a random order
     """
     try:
         event = db.events.get(event_id)
@@ -315,4 +316,5 @@ def get_event_projects(
             for project_id in event["fields"].get("projects", [])
         ]
     ]
+    random.shuffle(projects)
     return projects

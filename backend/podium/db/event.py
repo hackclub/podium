@@ -8,6 +8,7 @@ class BaseEvent(BaseModel):
     name: Annotated[str, StringConstraints(min_length=1)]
     description: Optional[Annotated[str, StringConstraints(max_length=500)]] = ""
     votable: bool = False
+    leaderboard_enabled: bool = False
 
 
 

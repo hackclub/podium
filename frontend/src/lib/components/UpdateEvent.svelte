@@ -13,7 +13,8 @@
   const emptyEventUpdate: EventUpdate = {
     name: "",
     description: null,
-    votable: false
+    votable: false,
+    leaderboard_enabled: false,
   };
   const emptyEvent: Event = {
     ...emptyEventUpdate,
@@ -142,7 +143,16 @@
         bind:checked={event.votable}
       />
     </label>
-
+    <label class="form-control">
+      <div class="label">
+        <span class="label-text">Leaderboard Enabled</span>
+      </div>
+      <input
+        type="checkbox"
+        class="checkbox"
+        bind:checked={event.leaderboard_enabled}
+      />
+    </label>
       <button type="submit" class="btn btn-block mt-4 btn-primary">
         Update Event
       </button>
