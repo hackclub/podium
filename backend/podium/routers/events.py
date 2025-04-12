@@ -62,7 +62,9 @@ def get_event(
     if user and user.id in event["fields"].get("owner", []):
         event = PrivateEvent.model_validate(event["fields"])
     else:
-        return Event.model_validate(event["fields"])
+        event = Event.model_validate(event["fields"])
+
+    return event
 
 
 # Used to be /attending
