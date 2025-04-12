@@ -19,47 +19,37 @@ export const load: LayoutLoad = async ({ params, fetch, url, route }) => {
   let event: { data: Event | null } = {
     data: null,
   };
+
   try {
     event = await EventsService.getEventEventsEventIdGet({
       path: {
         event_id: params.id,
       },
+      // If the user isn't logged in, just give an empty bearer token. Otherwise, don't set the token since it's already set in the client.
+      headers: user.isAuthenticated ? {} : { Authorization: `Bearer SentSinceBearerTokenSeemedToBeNeededForThisToWork` },
       throwOnError: true,
     });
     partOfEvent = true;
+    if (!event.data) {
+      throw error(404, "Event not found");
+    }
+    const meta = [
+      {
+        name: "description",
+        content: event.data.description || "No description provided",
+      },
+    ];
+    return {
+      event: {
+        ...event.data,
+        owned: "attendees" in event,
+        partOfEvent,
+      },
+      title: event.data.name,
+      meta,
+    };
   } catch (err) {
-    // If request fails (user might not be part of the event), load it unauthenticated (right now this is the same response)
-    try {
-      event =
-        await EventsService.getEventUnauthenticatedEventsUnauthenticatedEventIdGet(
-          {
-            path: {
-              event_id: params.id,
-            },
-            throwOnError: true,
-          },
-        );
-    } catch (err) {
       console.error(err);
       throw error(500, "Failed to load event");
     } 
-  }
-  if (!event.data) {
-    throw error(404, "Event not found");
-  }
-  const meta = [
-    {
-      name: "description",
-      content: event.data.description || "No description provided",
-    },
-  ];
-  return {
-    event: {
-      ...event.data,
-      owned: "attendees" in event,
-      partOfEvent,
-    },
-    title: event.data.name,
-    meta,
   };
-};
