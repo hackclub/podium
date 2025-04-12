@@ -6,11 +6,17 @@
 
 <div class="flex justify-center flex-col mx-auto max-w-md space-y-4 mt-4">
   {#if data.event.partOfEvent}
-  <a href={`/events/${data.event.id}/rank`} class="btn-primary btn"
+  <div class="tooltip" data-tip={data.event.votable ? "Vote for your favorite projects" : "You can't vote yet! If you think you should be able to, contact your event organizer."}>
+  <a href={`/events/${data.event.id}/rank`} class="btn-primary btn btn-block {data.event.votable ? '' : 'btn-disabled'}"
     >Rank Projects</a
   >
+  </div>
   {/if}
-  <a href={`/events/${data.event.id}/leaderboard`} class="btn-primary btn"
+  <!-- {#if data.event.leaderboard_enabled} -->
+  <div class="tooltip" data-tip={data.event.leaderboard_enabled ? "View the leaderboard" : "The event organizer has not enabled the leaderboard yet."}>
+  <a href={`/events/${data.event.id}/leaderboard`} class="btn-primary btn btn-block {data.event.leaderboard_enabled ? '' : 'btn-disabled'}"
     >Leaderboard</a
   >
+  </div>
+  <!-- {/if} -->
 </div>

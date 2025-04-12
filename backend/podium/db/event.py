@@ -22,7 +22,6 @@ class Event(EventCreationPayload):
     id: str
     owner: SingleRecordField
 
-
 class PrivateEvent(Event):
     """
     All data loaded from the event table. Should only be used internally or by the owner of the event.

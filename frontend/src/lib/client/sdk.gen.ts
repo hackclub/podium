@@ -130,7 +130,7 @@ export class EventsService {
     
     /**
      * Get Event Projects
-     * Get the projects for a specific event.
+     * Get the projects for a specific event in a random order
      */
     public static getEventProjectsEventsEventIdProjectsGet<ThrowOnError extends boolean = false>(options: OptionsLegacyParser<GetEventProjectsEventsEventIdProjectsGetData, ThrowOnError>) {
         return (options?.client ?? client).get<GetEventProjectsEventsEventIdProjectsGetResponse, GetEventProjectsEventsEventIdProjectsGetError, ThrowOnError>({

@@ -6,7 +6,7 @@
 </script>
 
 <div class="flex my-4 flex-col items-center space-y-4">
-  {#if page.status == 403 || page.status == 401}
+  {#if page.status == 401}
     <p>Authentication required</p>
     <button
       class="btn btn-primary"

@@ -44,6 +44,9 @@ export type MagicLinkVerificationResponse = {
     email: string;
 };
 
+/**
+ * All data loaded from the event table. Should only be used internally or by the owner of the event.
+ */
 export type PrivateEvent = {
     name: string;
     description?: (string | null);
