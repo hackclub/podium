@@ -42,11 +42,10 @@ For secrets, you need the following as environment variables or in the `backend/
 * `airtable_token`  
 * `jwt_secret`
 * `sendgrid_api_key`
+  
+Airtable is heavily relied upon but it's rather difficult to easily import/export schemas. If you're in Hack Club, just message @Angad Behl or ask in #podium for dev creds. Otherwise, you might be able go through the `db` module in the backend to get the mandatory fields. `settings.toml` has the table IDs and configuration that isn't sensitive. To set secrets, you can use `.secrets.toml`. You can also use environment variables or `.env` files, just remember to prefix them with `PODIUM_`.
 
-### Airtable  
-Airtable is heavily relied upon. You need the following tables (change the IDs in `settings.toml`):  
-
-* Users
+<!-- * Users
     * `email` - primary, email
     * `first_name` - single line text
     * `last_name` - single line text
@@ -83,4 +82,4 @@ Airtable is heavily relied upon. You need the following tables (change the IDs i
 * referrals
     * `content` - single line text
     * `user` - link to another record in the Users table
-    * `event` - link to another record in the Events table
+    * `event` - link to another record in the Events table -->

@@ -8,6 +8,7 @@ from podium.db.user import (
     get_user_record_id_by_email,
 )
 from podium.routers.auth import get_current_user
+from podium.constants import BAD_AUTH
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -24,7 +25,7 @@ def get_current_user(
 ) -> User:
     if current_user:
         return current_user
-    raise HTTPException(status_code=404, detail="User not found")
+    raise BAD_AUTH
 
 
 # Eventually, this should probably be rate-limited

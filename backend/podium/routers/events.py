@@ -1,3 +1,4 @@
+import random
 from fastapi import APIRouter, Path
 from typing import Annotated, Union, List
 from fastapi import Depends, HTTPException, Query
@@ -21,6 +22,7 @@ from podium.db import (
     ReferralBase,
 )
 from podium.db.project import Project
+from podium.constants import BAD_AUTH, BAD_ACCESS
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -59,7 +61,7 @@ def get_attending_events(
     Get a list of all events that the current user is attending.
     """    
     if user is None:
-        raise HTTPException(status_code=400, detail="User not found")
+        raise BAD_AUTH
 
     # Eventually it might be better to return a user object. Otherwise, the client that the event owner is using would need to fetch the user. Since user emails probably shouldn't be public with just a record ID as a parameter, we would need to check if the person calling GET /users?user=ID has an event wherein that user ID is present. To avoid all this, the user object could be returned.
     
@@ -90,7 +92,7 @@ def create_event(
     Create a new event. The current user is automatically added as an owner of the event.
     """
     if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise BAD_AUTH
     owner = [user.id]
 
 
@@ -120,7 +122,7 @@ def attend_event(
     Attend an event. The client must supply a join code that matches the event's join code.
     """
     if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise BAD_AUTH
 
     # Get the first (and presumably only) event with the given join code
     event = db.events.first(formula=match({"join_code": join_code.upper()}))
@@ -161,7 +163,7 @@ def update_event(
     # Check if the user is the owner of the event
     if user is None or event_id not in user.owned_events:
         # This also ensures the event exists since it has to exist to be in the user's owned events
-        raise HTTPException(status_code=403, detail="User is not an owner of the event")
+        raise BAD_ACCESS
     
     db.events.update(event_id, event.model_dump())["fields"]
 
@@ -173,7 +175,7 @@ def delete_event(
 ):
     # Check if the user is an owner of the event
     if user is None or event_id not in user.owned_events:
-        raise HTTPException(status_code=403, detail="User not an owner of the event")
+        raise BAD_ACCESS
 
     db.events.delete(event_id)
 
@@ -197,7 +199,7 @@ def vote(votes: CreateVotes, user: Annotated[User, Depends(get_current_user)]):
 
     # Check if the user is not None and is attending the event
     if user is None or user.id not in event.attendees:
-        raise HTTPException(status_code=403, detail="User is not attending the event")
+        raise BAD_ACCESS
 
     for project_id in votes.projects:
         vote = VoteCreate(
@@ -254,12 +256,10 @@ def vote(votes: CreateVotes, user: Annotated[User, Depends(get_current_user)]):
         db.votes.create(vote.model_dump())
             
 
-            
-
 @router.get("/{event_id}/leaderboard")
 def get_leaderboard(event_id: Annotated[str, Path(title="Event ID")]) -> List[Project]:
     """
-    Get the leaderboard for an event. The leaderboard is a list of projects in the event, sorted by the number of votes they have received.
+    Return a sorted list of projects in the event
     """
     try:
         event = db.events.get(event_id)
@@ -269,8 +269,11 @@ def get_leaderboard(event_id: Annotated[str, Path(title="Event ID")]) -> List[Pr
                 if e.response.status_code in [404, 403]
                 else e
             )
+    event = PrivateEvent.model_validate(event["fields"])
+    if not event.leaderboard_enabled:
+        raise HTTPException(status_code=403, detail="Leaderboard is not enabled for this event")
     projects = []
-    for project_id in event["fields"].get("projects", []):
+    for project_id in event.projects:
         try:
             project = db.projects.get(project_id)
             projects.append(project)
@@ -297,7 +300,7 @@ def get_event_projects(
     event_id: Annotated[str, Path(title="Event ID")],
 ) -> List[Project]:
     """
-    Get the projects for a specific event.
+    Get the projects for a specific event in a random order
     """
     try:
         event = db.events.get(event_id)
@@ -315,4 +318,5 @@ def get_event_projects(
             for project_id in event["fields"].get("projects", [])
         ]
     ]
+    random.shuffle(projects)
     return projects

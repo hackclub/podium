@@ -8,6 +8,7 @@ class BaseEvent(BaseModel):
     name: Annotated[str, StringConstraints(min_length=1)]
     description: Optional[Annotated[str, StringConstraints(max_length=500)]] = ""
     votable: bool = False
+    leaderboard_enabled: bool = False
 
 
 
@@ -21,8 +22,10 @@ class Event(EventCreationPayload):
     id: str
     owner: SingleRecordField
 
-
 class PrivateEvent(Event):
+    """
+    All data loaded from the event table. Should only be used internally or by the owner of the event.
+    """
     # https://stackoverflow.com/questions/63793662/how-to-give-a-pydantic-list-field-a-default-value/63808835#63808835
     # List of record IDs, since that's what Airtable uses
     attendees: MultiRecordField = []

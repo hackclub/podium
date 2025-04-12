@@ -6,14 +6,13 @@ from typing import Annotated
 
 from podium import db, settings
 
-from fastapi import APIRouter, HTTPException, Query, status, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from podium.db.user import User, UserLoginPayload
 from pydantic import BaseModel
 import jwt
 from jwt.exceptions import PyJWTError
 
-from requests import HTTPError
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
@@ -136,29 +135,20 @@ async def get_current_user(
     Create a user object from a JWT access token. If the email that's encoded in the token isn't associated with a record, return None. 
     """
     token = credentials.credentials
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid authentication credentials",
-    )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
         token_type: str = payload.get("token_type")
         if email is None or token_type != "access":
-            raise credentials_exception
+            raise HTTPException(status_code=400, detail="Bad JWT")            
     except PyJWTError:
         # raise credentials_exception
         return None
     # Check if the user exists
     user_id = db.user.get_user_record_id_by_email(email)
-    try:
-        user = db.users.get(user_id)
-    except HTTPError as e:  # noqa: F821
-        raise (
-                HTTPException(status_code=404, detail="User not found")
-                if e.response.status_code in [404, 403]
-                else e
-            )
+    if user_id is None:
+        return None
+    user = db.users.get(user_id)
 
     return User.model_validate(user["fields"])
 
@@ -176,7 +166,7 @@ async def protected_route(
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
     # Check if the user exists
     if db.user.get_user_record_id_by_email(current_user.email) is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=403, detail="Invalid authentication credentials")
     return CheckAuthResponse(email=current_user.email)
 
 

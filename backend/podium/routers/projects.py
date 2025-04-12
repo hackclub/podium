@@ -7,6 +7,7 @@ from pyairtable.formulas import EQ, RECORD_ID, match
 from podium.routers.auth import get_current_user
 from podium.db.user import User
 from podium.db.project import PrivateProject, Project, PublicProjectCreationPayload
+from podium.constants import BAD_AUTH, BAD_ACCESS
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -21,7 +22,7 @@ def get_projects(
     """
 
     if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise BAD_AUTH
 
     projects = [
         PrivateProject.model_validate(project["fields"])
@@ -45,7 +46,7 @@ def create_project(
     Create a new project. The current user is automatically added as an owner of the project.
     """
     if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise BAD_AUTH
     owner = [user.id]
 
     # Fetch all events that have a record ID matching the project's event ID
@@ -83,7 +84,7 @@ def join_project(
     user: Annotated[User, Depends(get_current_user)],
 ):
     if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise BAD_AUTH
 
     project = db.projects.first(formula=match({"join_code": join_code.upper()}))
     if project is None:
@@ -101,7 +102,7 @@ def join_project(
     # Ensure the user is part of the event that the project is associated with
     event_attendees = db.events.get(project.event[0])["fields"].get("attendees", [])
     if user.id not in event_attendees:
-        raise HTTPException(status_code=403, detail="User not part of event")
+        raise BAD_ACCESS
 
     db.projects.update(project.id, {"collaborators": project.collaborators + [user.id]})
 
@@ -118,7 +119,7 @@ def update_project(
     """
     # Check if the user is an owner of the project or if they even exist
     if user is None or user.id not in db.projects.get(project_id)["fields"].get("owner", []):
-        raise HTTPException(status_code=403, detail="User not an owner of the project")
+        raise BAD_ACCESS
 
     return db.projects.update(project_id, project.model_dump())["fields"]
 
@@ -131,7 +132,7 @@ def delete_project(
 ):
     # Check if the user is an owner of the project or if they even exist
     if user is None or user.id not in db.projects.get(project_id)["fields"].get("owner", []):
-        raise HTTPException(status_code=403, detail="User not an owner of the project")
+        raise BAD_ACCESS
 
     return db.projects.delete(project_id)
 

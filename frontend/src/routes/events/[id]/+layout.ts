@@ -26,13 +26,37 @@ export const load: LayoutLoad = async ({ params, fetch, url, route }) => {
         event_id: params.id,
       },
       // If the user isn't logged in, just give an empty bearer token. Otherwise, don't set the token since it's already set in the client.
-      headers: user.isAuthenticated ? {} : { Authorization: `Bearer SentSinceBearerTokenSeemedToBeNeededForThisToWork` },
+      headers: user.isAuthenticated
+        ? {}
+        : {
+            Authorization: `Bearer SentSinceBearerTokenSeemedToBeNeededForThisToWork`,
+          },
       throwOnError: true,
     });
-    partOfEvent = true;
     if (!event.data) {
       throw error(404, "Event not found");
     }
+
+    // Check if the user is attending the event
+    if (user.isAuthenticated) {
+      const {
+        data,
+        error: err,
+        response,
+      } = await EventsService.getAttendingEventsEventsGet({
+        throwOnError: false,
+      });
+      if (err) {
+        console.error(err, response);
+        throw error(response.status, JSON.stringify(err));
+      } else {
+        partOfEvent =
+          data?.attending_events.some((e) => e.id === event.data?.id) || false;
+      }
+    } else {
+      partOfEvent = false;
+    }
+
     const meta = [
       {
         name: "description",
@@ -49,7 +73,7 @@ export const load: LayoutLoad = async ({ params, fetch, url, route }) => {
       meta,
     };
   } catch (err) {
-      console.error(err);
-      throw error(500, "Failed to load event");
-    } 
-  };
+    console.error(err);
+    throw error(500, "Failed to load event");
+  }
+};

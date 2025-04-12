@@ -13,6 +13,7 @@ export type Event = {
     name: string;
     description?: (string | null);
     votable?: boolean;
+    leaderboard_enabled?: boolean;
     id: string;
     owner: [
         string
@@ -23,12 +24,14 @@ export type EventCreationPayload = {
     name: string;
     description?: (string | null);
     votable?: boolean;
+    leaderboard_enabled?: boolean;
 };
 
 export type EventUpdate = {
     name: string;
     description?: (string | null);
     votable?: boolean;
+    leaderboard_enabled?: boolean;
 };
 
 export type HTTPValidationError = {
@@ -41,10 +44,14 @@ export type MagicLinkVerificationResponse = {
     email: string;
 };
 
+/**
+ * All data loaded from the event table. Should only be used internally or by the owner of the event.
+ */
 export type PrivateEvent = {
     name: string;
     description?: (string | null);
     votable?: boolean;
+    leaderboard_enabled?: boolean;
     id: string;
     owner: [
         string
@@ -215,16 +222,6 @@ export type VerifyTokenVerifyGetError = (HTTPValidationError);
 export type ProtectedRouteProtectedRouteGetResponse = (CheckAuthResponse);
 
 export type ProtectedRouteProtectedRouteGetError = unknown;
-
-export type GetEventUnauthenticatedEventsUnauthenticatedEventIdGetData = {
-    path: {
-        event_id: string;
-    };
-};
-
-export type GetEventUnauthenticatedEventsUnauthenticatedEventIdGetResponse = (Event);
-
-export type GetEventUnauthenticatedEventsUnauthenticatedEventIdGetError = (HTTPValidationError);
 
 export type GetEventEventsEventIdGetData = {
     path: {

@@ -26,6 +26,7 @@ client.setConfig({
   },
   // Instead of returning an error, throw an exception that can be caught with try/catch
   // This can be overridden by passing throwOnError.
+  // Maybe change to throwOnError: false in the future since otherwise, there doesn't seem to be a way to get the actual response code (https://github.com/orgs/hey-api/discussions/1655)
   throwOnError: true,
 });
 export const init: ServerInit = async () => {
