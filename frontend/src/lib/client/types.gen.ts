@@ -167,6 +167,7 @@ export type UserPrivate = {
     owned_events?: Array<(string)>;
     attending_events?: Array<(string)>;
     referral?: Array<(string)>;
+    email: string;
 };
 
 export type UserPublic = {

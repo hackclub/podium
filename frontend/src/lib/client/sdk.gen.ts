@@ -244,7 +244,7 @@ export class UsersService {
     public static userExistsUsersExistsGet<ThrowOnError extends boolean = false>(options: OptionsLegacyParser<UserExistsUsersExistsGetData, ThrowOnError>) {
         return (options?.client ?? client).get<UserExistsUsersExistsGetResponse, UserExistsUsersExistsGetError, ThrowOnError>({
             ...options,
-            url: '/users/exists'
+            url: '/users/exists/'
         });
     }
     
