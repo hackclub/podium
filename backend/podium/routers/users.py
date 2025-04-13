@@ -1,28 +1,37 @@
 from typing import Annotated
 from pydantic import BaseModel, EmailStr
 from podium import db
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from podium.db.user import (
     UserSignupPayload,
-    User,
+    UserPrivate,
+    UserPublic,
     get_user_record_id_by_email,
 )
 from podium.routers.auth import get_current_user
 from podium.constants import BAD_AUTH
+from requests import HTTPError
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-# DISABLE THIS IN PRODUCTION
-# @router.get("/")
-# def get_users():
-#     return db.users.all()
-
+@router.get("/{user_id}")
+def get_user_public(user_id: Annotated[str, Path(title="User Airtable ID")]) -> UserPublic:
+    try:
+        user = db.users.get(user_id)
+    except HTTPError as e:
+        raise (
+                HTTPException(status_code=404, detail="User not found")
+                if e.response.status_code in [404, 403]
+                else e
+            )
+            
+    return UserPublic.model_validate(user["fields"])
 
 @router.get("/current")
 def get_current_user(
-    current_user: Annotated[User, Depends(get_current_user)],
-) -> User:
+    current_user: Annotated[UserPrivate, Depends(get_current_user)],
+) -> UserPrivate:
     if current_user:
         return current_user
     raise BAD_AUTH

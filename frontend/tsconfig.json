@@ -1,9 +1,9 @@
 {
   "extends": "./.svelte-kit/tsconfig.json",
   "compilerOptions": {
-    "lib": ["DOM", "ES2017"],
+    "lib": ["DOM", "ES2023"],
     "module": "ESNext",
-    "target": "ES2017",
+    "target": "ES2023",
     "moduleResolution": "Node",
     "strict": true,
     "esModuleInterop": true,

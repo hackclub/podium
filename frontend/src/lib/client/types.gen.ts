@@ -141,27 +141,6 @@ export type PublicProjectCreationPayload = {
     hours_spent?: number;
 };
 
-export type User = {
-    email: string;
-    first_name: string;
-    last_name?: string;
-    phone?: string;
-    street_1?: (string | null);
-    street_2?: (string | null);
-    city?: (string | null);
-    state?: (string | null);
-    zip_code?: (string | null);
-    country?: (string | null);
-    dob?: (string | null);
-    id: string;
-    votes?: Array<(string)>;
-    projects?: Array<(string)>;
-    collaborations?: Array<(string)>;
-    owned_events?: Array<(string)>;
-    attending_events?: Array<(string)>;
-    referral?: Array<(string)>;
-};
-
 /**
  * Return information regarding what the events the user owns and what events they are attending. If they are only attending an event, don't return sensitive information like participants.
  */
@@ -178,10 +157,27 @@ export type UserLoginPayload = {
     email: string;
 };
 
-export type UserSignupPayload = {
-    email: string;
+export type UserPrivate = {
     first_name: string;
     last_name?: string;
+    id: string;
+    votes?: Array<(string)>;
+    projects?: Array<(string)>;
+    collaborations?: Array<(string)>;
+    owned_events?: Array<(string)>;
+    attending_events?: Array<(string)>;
+    referral?: Array<(string)>;
+};
+
+export type UserPublic = {
+    first_name: string;
+    last_name?: string;
+};
+
+export type UserSignupPayload = {
+    first_name: string;
+    last_name?: string;
+    email: string;
     phone?: string;
     street_1?: (string | null);
     street_2?: (string | null);
@@ -367,7 +363,17 @@ export type GetProjectProjectsProjectIdGetResponse = (unknown);
 
 export type GetProjectProjectsProjectIdGetError = (HTTPValidationError);
 
-export type GetCurrentUserUsersCurrentGetResponse = (User);
+export type GetUserPublicUsersUserIdGetData = {
+    path: {
+        user_id: string;
+    };
+};
+
+export type GetUserPublicUsersUserIdGetResponse = (UserPublic);
+
+export type GetUserPublicUsersUserIdGetError = (HTTPValidationError);
+
+export type GetCurrentUserUsersCurrentGetResponse = (UserPrivate);
 
 export type GetCurrentUserUsersCurrentGetError = unknown;
 

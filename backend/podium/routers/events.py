@@ -12,7 +12,7 @@ from secrets import token_urlsafe
 from requests import HTTPError
 
 from podium.routers.auth import get_current_user
-from podium.db.user import User
+from podium.db.user import UserPrivate
 from podium import db
 from podium.db import (
     EventCreationPayload,
@@ -29,8 +29,8 @@ router = APIRouter(prefix="/events", tags=["events"])
 
 @router.get("/{event_id}")
 def get_event(
-    event_id: Annotated[str, Path(title="Event ID")],
-    user: Annotated[User, Depends(get_current_user)]
+    event_id: Annotated[str, Path(title="Event Airtable ID")],
+    user: Annotated[UserPrivate, Depends(get_current_user)]
 ) -> Union[PrivateEvent, Event]:
     """
     Get an event by its ID. If the user owns it, return a PrivateEvent. Otherwise, return a regular event. Can be called with invalid auth credentials if needed, but will need something in the bearer token for the code to work
@@ -55,7 +55,7 @@ def get_event(
 # Used to be /attending
 @router.get("/")
 def get_attending_events(
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[UserPrivate, Depends(get_current_user)],
 ) -> UserEvents:
     """
     Get a list of all events that the current user is attending.
@@ -86,7 +86,7 @@ def get_attending_events(
 @router.post("/")
 def create_event(
     event: EventCreationPayload,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[UserPrivate, Depends(get_current_user)],
 ):
     """
     Create a new event. The current user is automatically added as an owner of the event.
@@ -116,7 +116,7 @@ def create_event(
 def attend_event(
     join_code: Annotated[str, Query(description="A unique code used to join an event")],
     referral: Annotated[str, Query(description="How did you hear about this event?")],
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[UserPrivate, Depends(get_current_user)],
 ):
     """
     Attend an event. The client must supply a join code that matches the event's join code.
@@ -155,7 +155,7 @@ def attend_event(
 def update_event(
     event_id: Annotated[str, Path(title="Event ID")],
     event: EventUpdate,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[UserPrivate, Depends(get_current_user)],
 ):
     """
     Update event's information
@@ -171,7 +171,7 @@ def update_event(
 @router.delete("/{event_id}")
 def delete_event(
     event_id: Annotated[str, Path(title="Event ID")],
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[UserPrivate, Depends(get_current_user)],
 ):
     # Check if the user is an owner of the event
     if user is None or event_id not in user.owned_events:
@@ -182,7 +182,7 @@ def delete_event(
 
 # Voting! The client should POST to /events/{event_id}/vote with their top 3 favorite projects, in no particular order. If there are less than 20 projects in the event, only accept the top 2
 @router.post("/vote")
-def vote(votes: CreateVotes, user: Annotated[User, Depends(get_current_user)]):
+def vote(votes: CreateVotes, user: Annotated[UserPrivate, Depends(get_current_user)]):
     """
     Vote for the top 3 projects in an event. The client must provide the event ID and a list of the top 3 projects. If there are less than 20 projects in the event, only the top 2 projects are required.
     """

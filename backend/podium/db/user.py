@@ -6,13 +6,24 @@ from podium import constants
 from podium.db import tables
 from pyairtable.formulas import match
 
-class UserLoginPayload(BaseModel):
-    email: Annotated[str, StringConstraints(strip_whitespace=True, to_lower=True)]
+FirstName = Annotated[str, Field(..., min_length=1, max_length=50)]
+LastName = Annotated[str, Field(default="")]
+EmailStrippedLower = Annotated[str, StringConstraints(strip_whitespace=True, to_lower=True)]
 
-class UserBase(UserLoginPayload):
-    first_name: str = Field(..., min_length=1, max_length=50)
+
+class UserLoginPayload(BaseModel):
+    email: EmailStrippedLower 
+
+class UserBase(BaseModel):
+    first_name: FirstName
+    last_name: LastName
+
+class UserPublic(UserBase):
+    ...
+
+class UserSignupPayload(UserBase):
+    email: EmailStrippedLower
     # Optional since some users don't have a last name in the DB
-    last_name: str = "N/A"
     # International phone number format, allowing empty string
     # this should have a default since I think Airtable may return None 
     phone: Annotated[str, StringConstraints(pattern=r"(^$|^\+?[1-9]\d{1,14}$)")] = ""
@@ -45,10 +56,9 @@ class UserBase(UserLoginPayload):
     #     return v.strip().lower()
 
 
-class UserSignupPayload(UserBase): ...
 
 
-class User(UserBase):
+class UserPrivate(UserBase):
     id: Annotated[str, StringConstraints(pattern=constants.RECORD_REGEX)]
     votes: constants.MultiRecordField = []
     projects: constants.MultiRecordField = []
@@ -60,7 +70,6 @@ class User(UserBase):
 
 
 
-# TODO: make this part of CurrentUser or something, since this is used way too much
 def get_user_record_id_by_email(email: str) -> Optional[str]:
     users_table = tables["users"]
     formula = match({"email": email})

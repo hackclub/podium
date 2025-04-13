@@ -8,7 +8,7 @@ from podium import db, settings
 
 from fastapi import APIRouter, HTTPException, Query, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from podium.db.user import User, UserLoginPayload
+from podium.db.user import UserLoginPayload, UserPrivate
 from pydantic import BaseModel
 import jwt
 from jwt.exceptions import PyJWTError
@@ -130,7 +130,7 @@ security = HTTPBearer()
 
 async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
-) -> User:
+) -> UserPrivate:
     """
     Create a user object from a JWT access token. If the email that's encoded in the token isn't associated with a record, return None. 
     """
@@ -150,7 +150,7 @@ async def get_current_user(
         return None
     user = db.users.get(user_id)
 
-    return User.model_validate(user["fields"])
+    return UserPrivate.model_validate(user["fields"])
 
 
 class CheckAuthResponse(BaseModel):
@@ -159,7 +159,7 @@ class CheckAuthResponse(BaseModel):
 
 @router.get("/protected-route")
 async def protected_route(
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[UserPrivate, Depends(get_current_user)],
 ) -> CheckAuthResponse:
     # Check if null user was sent
     if current_user is None:

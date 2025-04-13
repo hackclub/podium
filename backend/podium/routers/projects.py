@@ -5,7 +5,7 @@ from podium import db
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pyairtable.formulas import EQ, RECORD_ID, match
 from podium.routers.auth import get_current_user
-from podium.db.user import User
+from podium.db.user import UserPrivate
 from podium.db.project import PrivateProject, Project, PublicProjectCreationPayload
 from podium.constants import BAD_AUTH, BAD_ACCESS
 
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 # Get the current user's projects
 @router.get("/mine")
 def get_projects(
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[UserPrivate, Depends(get_current_user)],
 ) -> list[PrivateProject]:
     """
     Get the current user's projects and projects they are collaborating on.
@@ -40,7 +40,7 @@ def get_projects(
 @router.post("/")
 def create_project(
     project: PublicProjectCreationPayload,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[UserPrivate, Depends(get_current_user)],
 ):
     """
     Create a new project. The current user is automatically added as an owner of the project.
@@ -81,7 +81,7 @@ def join_project(
     join_code: Annotated[
         str, Query(description="A unique code used to join a project as a collaborator")
     ],
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[UserPrivate, Depends(get_current_user)],
 ):
     if user is None:
         raise BAD_AUTH
@@ -112,7 +112,7 @@ def join_project(
 def update_project(
     project_id: Annotated[str, Path(pattern=r"^rec\w*$")],
     project: db.ProjectUpdate,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[UserPrivate, Depends(get_current_user)],
 ):
     """
     Update a project by replacing it
@@ -128,7 +128,7 @@ def update_project(
 @router.delete("/{project_id}")
 def delete_project(
     project_id: Annotated[str, Path(pattern=r"^rec\w*$")],
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[UserPrivate, Depends(get_current_user)],
 ):
     # Check if the user is an owner of the project or if they even exist
     if user is None or user.id not in db.projects.get(project_id)["fields"].get("owner", []):
