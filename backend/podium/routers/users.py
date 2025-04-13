@@ -14,6 +14,15 @@ from requests import HTTPError
 
 router = APIRouter(prefix="/users", tags=["users"])
 
+class UserExistsResponse(BaseModel):
+    exists: bool
+
+
+@router.get("/exists")
+def user_exists(email: Annotated[EmailStr, Query(...)]) -> UserExistsResponse:
+    email = email.strip().lower()
+    exists = True if db.user.get_user_record_id_by_email(email) else False
+    return UserExistsResponse(exists=exists)
 
 @router.get("/{user_id}")
 def get_user_public(user_id: Annotated[str, Path(title="User Airtable ID")]) -> UserPublic:
@@ -47,13 +56,3 @@ def create_user(user: UserSignupPayload):
     db.users.create(user.model_dump())
 
 
-class UserExistsResponse(BaseModel):
-    exists: bool
-
-
-@router.get("/exists/")
-def user_exists(email: Annotated[EmailStr, Query(...)]) -> UserExistsResponse:
-    print(email)
-    email = email.strip().lower()
-    exists = True if db.user.get_user_record_id_by_email(email) else False
-    return UserExistsResponse(exists=exists)
