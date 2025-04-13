@@ -66,6 +66,7 @@ class UserPrivate(UserBase):
     owned_events: constants.MultiRecordField = []
     attending_events: constants.MultiRecordField = []
     referral: constants.MultiRecordField = []
+    email: EmailStrippedLower
 
 
 
