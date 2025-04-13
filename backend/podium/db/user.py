@@ -58,7 +58,7 @@ class UserSignupPayload(UserBase):
 
 
 
-class UserPrivate(UserBase):
+class UserPrivate(UserSignupPayload):
     id: Annotated[str, StringConstraints(pattern=constants.RECORD_REGEX)]
     votes: constants.MultiRecordField = []
     projects: constants.MultiRecordField = []

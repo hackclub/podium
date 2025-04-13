@@ -160,6 +160,15 @@ export type UserLoginPayload = {
 export type UserPrivate = {
     first_name: string;
     last_name?: string;
+    email: string;
+    phone?: string;
+    street_1?: (string | null);
+    street_2?: (string | null);
+    city?: (string | null);
+    state?: (string | null);
+    zip_code?: (string | null);
+    country?: (string | null);
+    dob?: (string | null);
     id: string;
     votes?: Array<(string)>;
     projects?: Array<(string)>;
@@ -363,6 +372,16 @@ export type GetProjectProjectsProjectIdGetResponse = (unknown);
 
 export type GetProjectProjectsProjectIdGetError = (HTTPValidationError);
 
+export type UserExistsUsersExistsGetData = {
+    query: {
+        email: string;
+    };
+};
+
+export type UserExistsUsersExistsGetResponse = (UserExistsResponse);
+
+export type UserExistsUsersExistsGetError = (HTTPValidationError);
+
 export type GetUserPublicUsersUserIdGetData = {
     path: {
         user_id: string;
@@ -384,13 +403,3 @@ export type CreateUserUsersPostData = {
 export type CreateUserUsersPostResponse = (unknown);
 
 export type CreateUserUsersPostError = (HTTPValidationError);
-
-export type UserExistsUsersExistsGetData = {
-    query: {
-        email: string;
-    };
-};
-
-export type UserExistsUsersExistsGetResponse = (UserExistsResponse);
-
-export type UserExistsUsersExistsGetError = (HTTPValidationError);
