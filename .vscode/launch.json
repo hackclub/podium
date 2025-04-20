@@ -7,6 +7,9 @@
       "request": "launch",
       "module": "podium.quality",
       "cwd": "${workspaceFolder}/backend",
+      "env": {
+        "ENV_FOR_DYNACONF": "development"
+      },
     },
     {
       "command": "npm run dev",
