@@ -7894,4 +7894,4 @@ dev = ["aiosmtpd", "ruff"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.13,<4.0"
-content-hash = "48879a9838c682d5feb49575786c6f4642b417b67e1c962d94ce771e628c4a9d"
+content-hash = "a215c8e79fc5a1264f9da0cd43d5c2f78bba56e5265aeea9c461057b7a3def0a"
