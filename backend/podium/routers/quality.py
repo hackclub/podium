@@ -1,16 +1,20 @@
 from enum import Enum
 import logging
+import sys
 from fastapi import APIRouter
 from langchain_google_genai import ChatGoogleGenerativeAI
 from browser_use import Agent, Browser, BrowserConfig, Controller
+from browser_use.browser.context import BrowserContext
 import asyncio
 import os
 from podium import settings
 from podium.db.project import Project, Result, Results
 from string import Template
-import atexit
+
+# import atexit
 import mimetypes
 import httpx
+from steel import Steel
 
 logging.getLogger("browser_use").setLevel(logging.WARNING)
 
@@ -18,36 +22,39 @@ os.environ["GEMINI_API_KEY"] = settings.gemini_api_key
 # os.environ["ANONYMIZED_TELEMETRY"] = "false" # set in .env already
 os.environ["OPENAI_API_KEY"] = "..."
 
-router = APIRouter(prefix="/projects", tags=["projects"])
+router = APIRouter(prefix="/projects", tags=["projects", "quality"])
 
+controller = Controller(output_model=Result)
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.0-flash-exp",
     api_key=settings.gemini_api_key,
 )
+# https://docs.steel.dev/overview/integrations/browser-use/quickstart
+steel_client = Steel(
+        steel_api_key=settings.steel_api_key,
+)
+session = steel_client.sessions.create()
+print(f"View live session at: {session.session_viewer_url}")
+cdp_url = f"wss://connect.steel.dev?apiKey={settings.steel_api_key}&sessionId={session.id}"
+browser = Browser(config=BrowserConfig(cdp_url=cdp_url))
+browser_context = BrowserContext(browser=browser)
+
+
 
 
 class CheckType(Enum):
     source_code = "Check if $url is a source code repository"
-    demo = "Check if $url looks like a experienceable website, game, or submission for a hackathon. If someone submits a video, that's not a real project. If someone submits a source code repository, that's not a real project. If someone submits an itch.io project that looks like a proper game, that's a real project. If someone submits something that people will be able to easily experience, that's a real project. If someone submits a web app or website that isn't just a simple \"hello world\" page and not something existing like google.com, that's a real project. If there's a login wall on the web app that the user submitted, just check if the website looks real and not just a demo video or source code. Don't try to signup. Please note, unless the page at $url looks like something like itch.io, steam, or PyPi, treat it as a web app."
+    demo = "Check if $url looks like an experienceable project, which is to say that someone at a hackathon could easily use it. If it's a web app, perfect! If it's something else, as long as it looked like it would be relatively easy to run locally, like a PyPi package or itch.io game, that's fine too. If it's a video or something like that, that's not a real project. If you can't validate it due to something like a login wall but it looks like a real project and not just 'hello world' on a page, then it's valid."
 
 
-controller = Controller(output_model=Result)
-
-# task="Check if podium.hackclub.com looks like a proper, functional project and not something like just source code or a demo video. Don't actually try to login or signup, but do check a page or two to see if it looks like a real project that could be submitted to a hackathon or something. For example, if someone submits google.com, that's not a real project. If you can't validate it due to something like a login wall but it looks like a real project and not just 'hello world' on a page, then it's valid.",
 
 
 @router.post("/check")
 async def check_project(project: Project) -> Results:
-    browser = Browser(
-    BrowserConfig(
-        browser_class="firefox",
-        # headless=True,
-    ),
-)
 
     options = {
         "llm": llm,
-        "browser": browser,
+        "browser_context": browser_context,
         "controller": controller,
     }
 
@@ -126,10 +133,22 @@ async def main():
                 owner=["recj2PpwaPPxGsAbk"],
             )
         )
+        # {
+        #     "id": "123",
+        #     "name": "Podium",
+        #     "demo": "https://podium.hackclub.com",
+        #     "repo": "https://github.com/hackclub/podium",
+        #     "description": "A platform for hackathons",
+        #     "image_url": "https://assets.hackclub.com/icon-rounded.png",
+        #     "event": ["recj2PpwaPPxGsAbk"],
+        #     "owner": ["recj2PpwaPPxGsAbk"]
+        # }
         print(f"{test_run}\n\n{test_run.valid}\n{test_run.reasons}")
+
     finally:
+        ...
         # Explicitly close the browser in case of direct execution
-        await browser.close()
+        # await browser.close()
 
 
 if __name__ == "__main__":
@@ -138,3 +157,7 @@ if __name__ == "__main__":
     # Error in sys.excepthook:
     # Original exception was:
     # Seems to have no impact on the program
+
+
+if sys.platform.startswith("win"):
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())

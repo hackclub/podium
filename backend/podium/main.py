@@ -45,7 +45,10 @@ for path in routers_dir.glob("*.py"):
 # async def trigger_error():
 #     division_by_zero = 1 / 0
 
-if __name__ == "__main__":
+def main():
     # Go to http://localhost:8000/docs to see the Swagger UI
     # or http://localhost:8000/redoc to see the specification
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+if __name__ == "__main__":
+    main()

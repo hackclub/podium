@@ -17,8 +17,10 @@ dependencies = [
     "sendgrid (>=6.11.0,<7.0.0)",
     "sentry-sdk[fastapi] (>=2.22.0,<3.0.0)",
     "playwright (>=1.51.0,<2.0.0)",
-    "browser-use @ git+https://github.com/browser-use/browser-use.git@main",
-    "httpx (>=0.28.1,<0.29.0)"
+    # "browser-use @ git+https://github.com/browser-use/browser-use.git@main",
+    "httpx (>=0.28.1,<0.29.0)",
+    "browser-use (>=0.1.41,<0.2.0)",
+    "steel-sdk (>=0.1.0,<0.2.0)"
 ]
 
 [project.optional-dependencies]

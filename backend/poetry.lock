@@ -228,10 +228,12 @@ name = "browser-use"
 version = "0.1.41"
 description = "Make websites accessible for AI agents"
 optional = false
-python-versions = ">=3.11,<4.0"
+python-versions = "<4.0,>=3.11"
 groups = ["main"]
-files = []
-develop = false
+files = [
+    {file = "browser_use-0.1.41-py3-none-any.whl", hash = "sha256:e030d5504b4be41083134f639472745859854efbdb84a4be4bfa173e1e0300c5"},
+    {file = "browser_use-0.1.41.tar.gz", hash = "sha256:41ace74489153c54910c166a4171f5431efd14d56e7cad65aa910f9925c41e5d"},
+]
 
 [package.dependencies]
 botocore = ">=1.37.23"
@@ -259,12 +261,6 @@ requests = ">=2.32.3"
 screeninfo = {version = ">=0.8.1", markers = "platform_system != \"darwin\""}
 sentence-transformers = ">=4.0.2"
 typing-extensions = ">=4.12.2"
-
-[package.source]
-type = "git"
-url = "https://github.com/browser-use/browser-use.git"
-reference = "main"
-resolved_reference = "e280cab621afc4a1c900d8a905f6503602b6a6d9"
 
 [[package]]
 name = "cachetools"
@@ -7186,6 +7182,26 @@ anyio = ">=3.6.2,<5"
 full = ["httpx (>=0.27.0,<0.29.0)", "itsdangerous", "jinja2", "python-multipart (>=0.0.18)", "pyyaml"]
 
 [[package]]
+name = "steel-sdk"
+version = "0.1.0"
+description = "The official Python library for the steel API"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "steel_sdk-0.1.0-py3-none-any.whl", hash = "sha256:658a8dafd56a213f9218d0798d4d190ef2dfca78aa787cee11f967b610a91dce"},
+    {file = "steel_sdk-0.1.0.tar.gz", hash = "sha256:32c490375c1d010c60c4d4a10c6194edce600ea980810ef2730f84237c77399d"},
+]
+
+[package.dependencies]
+anyio = ">=3.5.0,<5"
+distro = ">=1.7.0,<2"
+httpx = ">=0.23.0,<1"
+pydantic = ">=1.9.0,<3"
+sniffio = "*"
+typing-extensions = ">=4.10,<5"
+
+[[package]]
 name = "sympy"
 version = "1.13.1"
 description = "Computer algebra system (CAS) in Python"
@@ -7894,4 +7910,4 @@ dev = ["aiosmtpd", "ruff"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.13,<4.0"
-content-hash = "a215c8e79fc5a1264f9da0cd43d5c2f78bba56e5265aeea9c461057b7a3def0a"
+content-hash = "93e982d6a745d6e799199d4e47bf661b4027cb975187434335b2b074d30fb52a"
