@@ -15,3 +15,5 @@ services:
     volumes:
       - ./settings.toml:/app/settings.toml:ro
       - ./.secrets.toml:/app/.secrets.toml:ro
+
+# docker run --rm -it -v "$(pwd)/settings.toml:/app/settings.toml:ro" -v "$(pwd)/.secrets.toml:/app/.secrets.toml:ro" podium

@@ -16,6 +16,9 @@ import mimetypes
 import httpx
 from steel import Steel
 
+if sys.platform.startswith("win"):
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 logging.getLogger("browser_use").setLevel(logging.WARNING)
 
 os.environ["GEMINI_API_KEY"] = settings.gemini_api_key
@@ -31,19 +34,17 @@ llm = ChatGoogleGenerativeAI(
 )
 # https://docs.steel.dev/overview/integrations/browser-use/quickstart
 steel_client = Steel(
-        steel_api_key=settings.steel_api_key,
-        
+    steel_api_key=settings.steel_api_key,
 )
 
 # Create a global semaphore to limit concurrent Steel sessions
 # TODO: https://fastapi.tiangolo.com/tutorial/background-tasks/
 steel_session_semaphore = asyncio.Semaphore(2)
 
+
 class CheckType(Enum):
     source_code = "Check if $url is a source code repository"
     demo = "Check if $url looks like an experienceable project, which is to say that someone at a hackathon could easily use it. If it's a web app, perfect! If it's something else, as long as it looked like it would be relatively easy to run locally, like a PyPi package or itch.io game, that's fine too. If it's a video or something like that, that's not a real project. If you can't validate it due to something like a login wall but it looks like a real project and not just 'hello world' on a page, then it's valid."
-
-
 
 
 @router.post("/check")
@@ -84,17 +85,23 @@ async def check_project(project: Project) -> Results:
             source_task = asyncio.create_task(
                 Agent(
                     **options,
-                    task=Template(CheckType.source_code.value).substitute(url=project.repo),
+                    task=Template(CheckType.source_code.value).substitute(
+                        url=project.repo
+                    ),
                     browser_context=source_context,
                 ).run(max_steps=10)
             )
 
             # Run both agents concurrently
-            demo_result_raw, source_result_raw = await asyncio.gather(demo_task, source_task)
+            demo_result_raw, source_result_raw = await asyncio.gather(
+                demo_task, source_task
+            )
 
             # Validate results with pydantic
             demo_result = Result.model_validate_json(demo_result_raw.final_result())
-            source_code_result = Result.model_validate_json(source_result_raw.final_result())
+            source_code_result = Result.model_validate_json(
+                source_result_raw.final_result()
+            )
         finally:
             # Close browser contexts
             if demo_context:
@@ -155,42 +162,30 @@ async def is_raw_image(url: str) -> Result:
         )
 
 
-# Ensure the browser is closed when the program exits
-# @atexit.register
-# def close_browser():
-#     asyncio.run(browser.close())
-
-
 async def main():
-    try:
-        test_run = await check_project(
-            Project(
-                id="123",
-                name="Podium",
-                demo="https://podium.hackclub.com",
-                repo="https://github.com/hackclub/podium",
-                description="A platform for hackathons",
-                image_url="https://assets.hackclub.com/icon-rounded.png",
-                event=["recj2PpwaPPxGsAbk"],
-                owner=["recj2PpwaPPxGsAbk"],
-            )
+    test_run = await check_project(
+        Project(
+            id="123",
+            name="Podium",
+            demo="https://podium.hackclub.com",
+            repo="https://github.com/hackclub/podium",
+            description="A platform for hackathons",
+            image_url="https://assets.hackclub.com/icon-rounded.png",
+            event=["recj2PpwaPPxGsAbk"],
+            owner=["recj2PpwaPPxGsAbk"],
         )
-        # {
-        #     "id": "123",
-        #     "name": "Podium",
-        #     "demo": "https://podium.hackclub.com",
-        #     "repo": "https://github.com/hackclub/podium",
-        #     "description": "A platform for hackathons",
-        #     "image_url": "https://assets.hackclub.com/icon-rounded.png",
-        #     "event": ["recj2PpwaPPxGsAbk"],
-        #     "owner": ["recj2PpwaPPxGsAbk"]
-        # }
-        print(f"{test_run}\n\n{test_run.valid}\n{test_run.reasons}")
-
-    finally:
-        ...
-        # Explicitly close the browser in case of direct execution
-        # await browser.close()
+    )
+    # {
+    #     "id": "123",
+    #     "name": "Podium",
+    #     "demo": "https://podium.hackclub.com",
+    #     "repo": "https://github.com/hackclub/podium",
+    #     "description": "A platform for hackathons",
+    #     "image_url": "https://assets.hackclub.com/icon-rounded.png",
+    #     "event": ["recj2PpwaPPxGsAbk"],
+    #     "owner": ["recj2PpwaPPxGsAbk"]
+    # }
+    print(f"{test_run}\n\n{test_run.valid}\n{test_run.reasons}")
 
 
 if __name__ == "__main__":
@@ -199,7 +194,3 @@ if __name__ == "__main__":
     # Error in sys.excepthook:
     # Original exception was:
     # Seems to have no impact on the program
-
-
-if sys.platform.startswith("win"):
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
