@@ -30,7 +30,8 @@
       "type": "debugpy",
       "request": "launch",
       "module": "uvicorn",
-      "args": ["podium.main:app", "--reload"],
+      // "args": ["podium.main:app", "--reload"],
+      "args": ["podium.main:app"],
       "env": {
         "ENV_FOR_DYNACONF": "development"
       },
