@@ -35,8 +35,9 @@ steel_client = Steel(
         
 )
 
-
-
+# Create a global semaphore to limit concurrent Steel sessions
+# TODO: https://fastapi.tiangolo.com/tutorial/background-tasks/
+steel_session_semaphore = asyncio.Semaphore(2)
 
 class CheckType(Enum):
     source_code = "Check if $url is a source code repository"
@@ -47,75 +48,77 @@ class CheckType(Enum):
 
 @router.post("/check")
 async def check_project(project: Project) -> Results:
-    # Create separate sessions for each agent
-    demo_session = steel_client.sessions.create()
-    source_session = steel_client.sessions.create()
+    # Acquire the semaphore to ensure no more than 2 concurrent sessions
+    async with steel_session_semaphore:
+        # Create separate sessions for each agent
+        demo_session = steel_client.sessions.create()
+        source_session = steel_client.sessions.create()
 
-    print(f"View live demo session at: {demo_session.session_viewer_url}")
-    print(f"View live source session at: {source_session.session_viewer_url}")
+        print(f"View live demo session at: {demo_session.session_viewer_url}")
+        print(f"View live source session at: {source_session.session_viewer_url}")
 
-    demo_cdp_url = f"wss://connect.steel.dev?apiKey={settings.steel_api_key}&sessionId={demo_session.id}"
-    source_cdp_url = f"wss://connect.steel.dev?apiKey={settings.steel_api_key}&sessionId={source_session.id}"
+        demo_cdp_url = f"wss://connect.steel.dev?apiKey={settings.steel_api_key}&sessionId={demo_session.id}"
+        source_cdp_url = f"wss://connect.steel.dev?apiKey={settings.steel_api_key}&sessionId={source_session.id}"
 
-    demo_browser = Browser(config=BrowserConfig(cdp_url=demo_cdp_url))
-    source_browser = Browser(config=BrowserConfig(cdp_url=source_cdp_url))
+        demo_browser = Browser(config=BrowserConfig(cdp_url=demo_cdp_url))
+        source_browser = Browser(config=BrowserConfig(cdp_url=source_cdp_url))
 
-    demo_context = BrowserContext(browser=demo_browser)
-    source_context = BrowserContext(browser=source_browser)
+        demo_context = BrowserContext(browser=demo_browser)
+        source_context = BrowserContext(browser=source_browser)
 
-    options = {
-        "llm": llm,
-        "controller": controller,
-    }
+        options = {
+            "llm": llm,
+            "controller": controller,
+        }
 
-    try:
-        # Create tasks for concurrent execution
-        demo_task = asyncio.create_task(
-            Agent(
-                **options,
-                task=Template(CheckType.demo.value).substitute(url=project.demo),
-                browser_context=demo_context,
-            ).run(max_steps=10)
+        try:
+            # Create tasks for concurrent execution
+            demo_task = asyncio.create_task(
+                Agent(
+                    **options,
+                    task=Template(CheckType.demo.value).substitute(url=project.demo),
+                    browser_context=demo_context,
+                ).run(max_steps=10)
+            )
+
+            source_task = asyncio.create_task(
+                Agent(
+                    **options,
+                    task=Template(CheckType.source_code.value).substitute(url=project.repo),
+                    browser_context=source_context,
+                ).run(max_steps=10)
+            )
+
+            # Run both agents concurrently
+            demo_result_raw, source_result_raw = await asyncio.gather(demo_task, source_task)
+
+            # Validate results with pydantic
+            demo_result = Result.model_validate_json(demo_result_raw.final_result())
+            source_code_result = Result.model_validate_json(source_result_raw.final_result())
+        finally:
+            # Close browser contexts
+            if demo_context:
+                await demo_context.close()
+            if source_context:
+                await source_context.close()
+
+            # Close browsers
+            if demo_browser:
+                await demo_browser.close()
+            if source_browser:
+                await source_browser.close()
+
+            # Release sessions
+            if demo_session:
+                steel_client.sessions.release(demo_session.id)
+            if source_session:
+                steel_client.sessions.release(source_session.id)
+
+        return Results(
+            demo=demo_result,
+            source_code=source_code_result,
+            image_url=await is_raw_image(str(project.image_url)),
         )
-
-        source_task = asyncio.create_task(
-            Agent(
-                **options,
-                task=Template(CheckType.source_code.value).substitute(url=project.repo),
-                browser_context=source_context,
-            ).run(max_steps=10)
-        )
-
-        # Run both agents concurrently
-        demo_result_raw, source_result_raw = await asyncio.gather(demo_task, source_task)
-
-        # Validate results with pydantic
-        demo_result = Result.model_validate_json(demo_result_raw.final_result())
-        source_code_result = Result.model_validate_json(source_result_raw.final_result())
-    finally:
-        # Close browser contexts
-        if demo_context:
-            await demo_context.close()
-        if source_context:
-            await source_context.close()
-
-        # Close browsers
-        if demo_browser:
-            await demo_browser.close()
-        if source_browser:
-            await source_browser.close()
-
-        # Release sessions
-        if demo_session:
-            steel_client.sessions.release(demo_session.id)
-        if source_session:
-            steel_client.sessions.release(source_session.id)
-
-    return Results(
-        demo=demo_result,
-        source_code=source_code_result,
-        image_url=await is_raw_image(str(project.image_url)),
-    )
 
 
 async def is_raw_image(url: str) -> Result:
