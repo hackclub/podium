@@ -1,68 +1,98 @@
+# from __future__ import annotations
 from enum import Enum
-import logging
-import sys
-from fastapi import APIRouter
+# import logging
 from langchain_google_genai import ChatGoogleGenerativeAI
 from browser_use import Agent, Browser, BrowserConfig, Controller
 from browser_use.browser.context import BrowserContext
 import asyncio
 import os
+# from langchain_openai import ChatOpenAI
 from podium import settings
-from podium.db.project import Project, Result, Results
 from string import Template
-
-# import atexit
 import mimetypes
 import httpx
+from pydantic import BaseModel, ValidationError, computed_field
 from steel import Steel
+# from typing import TYPE_CHECKING
+# if TYPE_CHECKING:
+from podium.db.project import Project
 
-if sys.platform.startswith("win"):
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+USE_STEEL = False
 
-logging.getLogger("browser_use").setLevel(logging.WARNING)
+class Result(BaseModel):
+    url: str
+    valid: bool
+    reason: str
+
+class Results(BaseModel):
+    demo: Result
+    source_code: Result
+    image_url: Result
+    # Computed field to compile all the reasons into a single string
+
+    @computed_field
+    @property
+    def reasons(self) -> str:
+        individual_reasons = []
+        for check in [self.demo, self.source_code, self.image_url]:
+            if not check.valid and check.reason:
+                individual_reasons.append(f"{check.url}: {check.reason}")
+        return "\n".join(individual_reasons)
+                
+
+    @computed_field
+    @property
+    def valid(self) -> bool:
+        return self.demo.valid and self.source_code.valid and self.image_url.valid
+
+
 
 os.environ["GEMINI_API_KEY"] = settings.gemini_api_key
 # os.environ["ANONYMIZED_TELEMETRY"] = "false" # set in .env already
 os.environ["OPENAI_API_KEY"] = "..."
-
-router = APIRouter(prefix="/projects", tags=["projects", "quality"])
 
 controller = Controller(output_model=Result)
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.0-flash-exp",
     api_key=settings.gemini_api_key,
 )
-# https://docs.steel.dev/overview/integrations/browser-use/quickstart
-steel_client = Steel(
-    steel_api_key=settings.steel_api_key,
-)
+# logging.basicConfig(level=logging.DEBUG)
+# llm=ChatOpenAI(base_url='https://ai.hackclub.com/', model='abcxyz', api_key='abcxyz', verbose=True)
+
+if USE_STEEL:
+    # https://docs.steel.dev/overview/integrations/browser-use/quickstart
+    steel_client = Steel(
+        steel_api_key=settings.steel_api_key,
+    )
 
 # Create a global semaphore to limit concurrent Steel sessions
-# TODO: https://fastapi.tiangolo.com/tutorial/background-tasks/
 steel_session_semaphore = asyncio.Semaphore(2)
-
+# TODO: https://fastapi.tiangolo.com/tutorial/background-tasks/
 
 class CheckType(Enum):
     source_code = "Check if $url is a source code repository"
     demo = "Check if $url looks like an experienceable project, which is to say that someone at a hackathon could easily use it. If it's a web app, perfect! If it's something else, as long as it looked like it would be relatively easy to run locally, like a PyPi package or itch.io game, that's fine too. If it's a video or something like that, that's not a real project. If you can't validate it due to something like a login wall but it looks like a real project and not just 'hello world' on a page, then it's valid."
 
 
-@router.post("/check")
-async def check_project(project: Project) -> Results:
+async def check_project(project: "Project") -> Results:
     # Acquire the semaphore to ensure no more than 2 concurrent sessions
     async with steel_session_semaphore:
-        # Create separate sessions for each agent
-        demo_session = steel_client.sessions.create()
-        source_session = steel_client.sessions.create()
+        if USE_STEEL:
+            # Create separate sessions for each agent
+            demo_session = steel_client.sessions.create()
+            source_session = steel_client.sessions.create()
+            print(f"View live demo session at: {demo_session.session_viewer_url}")
+            print(f"View live source session at: {source_session.session_viewer_url}")
 
-        print(f"View live demo session at: {demo_session.session_viewer_url}")
-        print(f"View live source session at: {source_session.session_viewer_url}")
+            demo_cdp_url = f"wss://connect.steel.dev?apiKey={settings.steel_api_key}&sessionId={demo_session.id}"
+            source_cdp_url = f"wss://connect.steel.dev?apiKey={settings.steel_api_key}&sessionId={source_session.id}"
 
-        demo_cdp_url = f"wss://connect.steel.dev?apiKey={settings.steel_api_key}&sessionId={demo_session.id}"
-        source_cdp_url = f"wss://connect.steel.dev?apiKey={settings.steel_api_key}&sessionId={source_session.id}"
-
-        demo_browser = Browser(config=BrowserConfig(cdp_url=demo_cdp_url))
-        source_browser = Browser(config=BrowserConfig(cdp_url=source_cdp_url))
+            demo_browser = Browser(config=BrowserConfig(cdp_url=demo_cdp_url))
+            source_browser = Browser(config=BrowserConfig(cdp_url=source_cdp_url))
+        else:
+            browser = Browser()
+            demo_browser = browser
+            source_browser = browser
 
         demo_context = BrowserContext(browser=demo_browser)
         source_context = BrowserContext(browser=source_browser)
@@ -70,9 +100,22 @@ async def check_project(project: Project) -> Results:
         options = {
             "llm": llm,
             "controller": controller,
+            "max_failures": 2,
         }
 
         try:
+            # Initialize variables with default invalid results
+            demo_result = Result(
+                url=str(project.demo),
+                valid=False,
+                reason="Demo URL validation failed unexpectedly",
+            )
+            source_code_result = Result(
+                url=str(project.repo),
+                valid=False,
+                reason="Source code URL validation failed unexpectedly",
+            )
+
             # Create tasks for concurrent execution
             demo_task = asyncio.create_task(
                 Agent(
@@ -102,6 +145,9 @@ async def check_project(project: Project) -> Results:
             source_code_result = Result.model_validate_json(
                 source_result_raw.final_result()
             )
+        except ValidationError:
+            # Default values are already set in case the URL is inaccessible or something else goes with the agent
+            pass
         finally:
             # Close browser contexts
             if demo_context:
@@ -116,10 +162,11 @@ async def check_project(project: Project) -> Results:
                 await source_browser.close()
 
             # Release sessions
-            if demo_session:
-                steel_client.sessions.release(demo_session.id)
-            if source_session:
-                steel_client.sessions.release(source_session.id)
+            if USE_STEEL:
+                if demo_session:
+                    steel_client.sessions.release(demo_session.id)
+                if source_session:
+                    steel_client.sessions.release(source_session.id)
 
         return Results(
             demo=demo_result,
@@ -135,7 +182,7 @@ async def is_raw_image(url: str) -> Result:
     """
     # Check file extension
     mime_type, _ = mimetypes.guess_type(url)
-    if mime_type and mime_type.startswith("image/"):
+    if (mime_type and mime_type.startswith("image/")):
         return Result(
             url=url,
             valid=True,
@@ -194,3 +241,6 @@ if __name__ == "__main__":
     # Error in sys.excepthook:
     # Original exception was:
     # Seems to have no impact on the program
+
+
+

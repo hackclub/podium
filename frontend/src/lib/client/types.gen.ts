@@ -87,6 +87,11 @@ export type PrivateProject = {
         string
     ];
     join_code: string;
+    /**
+     * Check the quality of the project.
+     * This is done by checking the demo URL, source code URL, and image URL.
+     */
+    readonly quality: Results;
 };
 
 export type Project = {
@@ -404,6 +409,10 @@ export type UserExistsUsersExistsGetResponse = (UserExistsResponse);
 
 export type UserExistsUsersExistsGetError = (HTTPValidationError);
 
+export type GetCurrentUserUsersCurrentGetResponse = (UserPrivate);
+
+export type GetCurrentUserUsersCurrentGetError = unknown;
+
 export type GetUserPublicUsersUserIdGetData = {
     path: {
         user_id: string;
@@ -413,10 +422,6 @@ export type GetUserPublicUsersUserIdGetData = {
 export type GetUserPublicUsersUserIdGetResponse = (UserPublic);
 
 export type GetUserPublicUsersUserIdGetError = (HTTPValidationError);
-
-export type GetCurrentUserUsersCurrentGetResponse = (UserPrivate);
-
-export type GetCurrentUserUsersCurrentGetError = unknown;
 
 export type CreateUserUsersPostData = {
     body: UserSignupPayload;

@@ -1,5 +1,6 @@
 from secrets import token_urlsafe
 from typing import Annotated
+from podium.quality import quality
 from requests import HTTPError
 from podium import db
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -149,3 +150,7 @@ def get_project(project_id: Annotated[str, Path(pattern=r"^rec\w*$")]):
             else e
         )
     return Project.model_validate(project["fields"])
+
+@router.post("/check")
+async def check_project(project: Project) -> quality.Results:
+    return await quality.check_project(project)

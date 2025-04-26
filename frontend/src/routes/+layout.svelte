@@ -3,20 +3,28 @@
   import { Toaster } from "svelte-sonner";
   import { navigating, page } from "$app/state";
   let { children } = $props();
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { themeChange } from "theme-change";
   import ThemeSwitcher from "$lib/components/ThemeSwitcher.svelte";
   import { setSystemTheme, returnLoadingText } from "$lib/misc";
-  // import CheckAuth from '$lib/components/CheckAuth.svelte';
 
+  let showModal = $state(false);
+
+  let loadingText = $state(returnLoadingText());
+  let loadingTextInterval: NodeJS.Timeout = $state() as NodeJS.Timeout; 
   onMount(() => {
     console.debug("Page data:", page.data);
     themeChange(false);
-
     setSystemTheme();
-  });
 
-  let showModal = $state(false);
+    // Update loading text every 4 seconds
+    loadingTextInterval = setInterval(() => {
+      loadingText = returnLoadingText();
+    }, 4000);
+  });
+  onDestroy(() => {
+    clearInterval(loadingTextInterval);
+  });
 </script>
 
 <svelte:head>
@@ -47,7 +55,7 @@
 {#if navigating.to && navigating.type != "form"}
   <div class="flex items-center justify-center min-h-screen flex-col">
     <span class="loading loading-ball loading-lg mb-2"></span>
-    {returnLoadingText()}
+    <p>{loadingText}</p>
   </div>
 {:else}
   {@render children()}
@@ -67,6 +75,7 @@
 </div>
 
 <!-- Modal -->
+<!-- TODO: migrate to backdrop -->
 {#if showModal}
   <div class="modal modal-open modal-bottom sm:modal-middle">
     <div class="modal-box">

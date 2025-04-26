@@ -31,6 +31,7 @@
     "@sentry/sveltekit": "^9.5.0",
     "@tailwindcss/vite": "^4.1.4",
     "countries-list": "^3.1.1",
+    "dompurify": "^3.2.5",
     "svelte-sonner": "^0.3.28",
     "theme-change": "^2.5.0"
   }

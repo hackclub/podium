@@ -5,7 +5,7 @@
       "name": "quality",
       "type": "debugpy",
       "request": "launch",
-      "module": "podium.routers.quality",
+      "module": "podium.quality.quality",
       "cwd": "${workspaceFolder}/backend",
       "env": {
         "ENV_FOR_DYNACONF": "development"
