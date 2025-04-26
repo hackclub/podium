@@ -1,7 +1,20 @@
+const createDaisyUIThemes = (darkTheme: string, lightTheme: string, themes: string[]) => {
+  return themes
+    .map((theme) => {
+      if (theme === lightTheme) return `${theme} --default`;
+      if (theme === darkTheme) return `${theme} --prefersdark`;
+      return theme;
+    })
+    .join(", ");
+}
+// export const themes = ["coffee", "night", "retro", "nord", "dracula"];
 export const themes = ["scrapyard", "coffee", "night", "retro", "nord", "dracula"];
 export const lightTheme = "nord";
 // export const darkTheme = "coffee";
 export const darkTheme = "night";
+export const daisyUIThemes = createDaisyUIThemes(darkTheme, lightTheme, themes);
+
+
 export const loadingTextOptions = [
     "Testing limits... and then breaking them.",
     "Pushing the boundaries of logic.",
@@ -27,4 +40,8 @@ export const loadingTextOptions = [
     "Giving the CPU a pep talk.",
     "Testing the limits of what's possible.",
     "Feeding the servers some good vibes.",
-  ]
+  ];
+
+// node --loader ts-node/esm src/lib/consts.ts
+// console.log("Generated DaisyUI Themes:");
+// console.log(createDaisyUIThemes(darkTheme, lightTheme, themes));

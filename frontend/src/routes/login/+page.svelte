@@ -1,4 +1,3 @@
-<!-- TODO: Migrate to new API -->
 <script lang="ts">
   import { toast, Toaster } from "svelte-sonner";
   import { onMount } from "svelte";

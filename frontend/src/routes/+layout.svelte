@@ -33,8 +33,8 @@
 <nav class="p-1 text-center rounded-b-full w-1/2  mx-auto bg-neutral relative max-h-30">
   <a href="/" class="text-2xl font-bold text-neutral-content">Podium</a>
   <div class="grid grid-cols-2 items-center p-2 w-7/12 mx-auto max-h-40 my-auto space-x-2">
-   <a href="/projects" class="btn btn-xs ring-1 ring-opacity-45 ring-accent">Projects</a>
-   <a href="/events" class="btn btn-xs ring-1 ring-opacity-45 ring-accent">Events</a>
+   <a href="/projects" class="btn btn-xs ring-1 ring-accent/45">Projects</a>
+   <a href="/events" class="btn btn-xs ring-1 ring-accent/45">Events</a>
   </div>
 </nav>
 

@@ -141,6 +141,20 @@ export type PublicProjectCreationPayload = {
     hours_spent?: number;
 };
 
+export type Result = {
+    url: string;
+    valid: boolean;
+    reason: string;
+};
+
+export type Results = {
+    demo: Result;
+    source_code: Result;
+    image_url: Result;
+    readonly reasons: string;
+    readonly valid: boolean;
+};
+
 /**
  * Return information regarding what the events the user owns and what events they are attending. If they are only attending an event, don't return sensitive information like participants.
  */
@@ -371,6 +385,14 @@ export type GetProjectProjectsProjectIdGetData = {
 export type GetProjectProjectsProjectIdGetResponse = (unknown);
 
 export type GetProjectProjectsProjectIdGetError = (HTTPValidationError);
+
+export type CheckProjectProjectsCheckPostData = {
+    body: Project;
+};
+
+export type CheckProjectProjectsCheckPostResponse = (Results);
+
+export type CheckProjectProjectsCheckPostError = (HTTPValidationError);
 
 export type UserExistsUsersExistsGetData = {
     query: {

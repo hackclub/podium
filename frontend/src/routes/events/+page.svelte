@@ -62,7 +62,7 @@
           <tr>
             <td><a href={`/events/${event.id}`} class="hover-link">{event.name}</a></td>
             <td>{event.description}</td>
-            <!-- <span class="ml-4 bg-base-300 p-1 rounded"></span> -->
+            <!-- <span class="ml-4 bg-base-300 p-1 rounded-sm"></span> -->
             <td
               ><a
                 href={`/events/?join_code=${event.join_code}`}
