@@ -79,6 +79,7 @@
       <h2 class="card-title break-words overflow-x-auto">
         {project.name}
       </h2>
+      <div class="divider my-0"></div>
       <p class="break-words text-sm">{project.description}</p>
       <p class="break-words text-xs">{credits}</p>
       <div class="card-actions justify-end mt-2">

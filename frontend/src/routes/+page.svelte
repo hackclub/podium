@@ -62,7 +62,7 @@
   @reference "../app.css";
 
   section {
-    /* @apply p-6 rounded-lg shadow-sm border-accent/50 border-2 border-dotted; */
+    /* @apply p-6 rounded-lg shadow-xs border-accent/50 border-2 border-dotted; */
     @apply p-6 rounded-3xl shadow-2xl ring-2 ring-accent border-accent/10 border-2 border-dotted bg-neutral;
   }
 

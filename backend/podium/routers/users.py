@@ -24,6 +24,16 @@ def user_exists(email: Annotated[EmailStr, Query(...)]) -> UserExistsResponse:
     exists = True if db.user.get_user_record_id_by_email(email) else False
     return UserExistsResponse(exists=exists)
 
+
+@router.get("/current")
+def get_current_user(
+    current_user: Annotated[UserPrivate, Depends(get_current_user)],
+) -> UserPrivate:
+    if current_user:
+        return current_user
+    raise BAD_AUTH
+
+# It's important that this is under /current since otherwise /users/current will be be passed to this and `current` will be interpreted as a user_id
 @router.get("/{user_id}")
 def get_user_public(user_id: Annotated[str, Path(title="User Airtable ID")]) -> UserPublic:
     try:
@@ -36,15 +46,6 @@ def get_user_public(user_id: Annotated[str, Path(title="User Airtable ID")]) -> 
             )
             
     return UserPublic.model_validate(user["fields"])
-
-@router.get("/current")
-def get_current_user(
-    current_user: Annotated[UserPrivate, Depends(get_current_user)],
-) -> UserPrivate:
-    if current_user:
-        return current_user
-    raise BAD_AUTH
-
 
 # Eventually, this should probably be rate-limited
 @router.post("/")

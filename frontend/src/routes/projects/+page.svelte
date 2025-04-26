@@ -71,6 +71,6 @@ import Collapse from "$lib/components/Collapse.svelte";
 
 <style>
   /* section {
-    @apply p-6 rounded-lg shadow-sm border-accent/50 border-2 border-dotted;
+    @apply p-6 rounded-lg shadow-xs border-accent/50 border-2 border-dotted;
   } */
 </style>
