@@ -63,7 +63,7 @@
   class="m-4"
 >
   <div
-    class="card bg-base-100 card-compact rounded transition-transform duration-200 border-solid border-base {isSelected
+    class="card card-sm bg-base-100 rounded transition-transform duration-200 border-solid border-base {isSelected
       ? 'border-info scale-110 border-2'
       : ''}"
   >

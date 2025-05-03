@@ -48,16 +48,22 @@ class Results(BaseModel):
 
 
 os.environ["GEMINI_API_KEY"] = settings.gemini_api_key
-# os.environ["ANONYMIZED_TELEMETRY"] = "false" # set in .env already
 os.environ["OPENAI_API_KEY"] = "..."
+# os.environ["ANONYMIZED_TELEMETRY"] = "false" # set in .env, along with BROWSER_USE_LOGGING_LEVEL=result
+# logging.basicConfig(level=logging.DEBUG)
+
+
+# https://ai.google.dev/gemini-api/docs/rate-limits
+# model="gemini-2.0-flash-exp",
+use_vision = True
+model="gemini-2.0-flash-lite"
+llm = ChatGoogleGenerativeAI(
+    api_key=settings.gemini_api_key,
+    model=model,
+)
+# llm=ChatOpenAI(base_url='https://ai.hackclub.com/', model='abcxyz', api_key='abcxyz', verbose=True)
 
 controller = Controller(output_model=Result)
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash-exp",
-    api_key=settings.gemini_api_key,
-)
-# logging.basicConfig(level=logging.DEBUG)
-# llm=ChatOpenAI(base_url='https://ai.hackclub.com/', model='abcxyz', api_key='abcxyz', verbose=True)
 
 if USE_STEEL:
     # https://docs.steel.dev/overview/integrations/browser-use/quickstart
@@ -101,6 +107,7 @@ async def check_project(project: "Project") -> Results:
             "llm": llm,
             "controller": controller,
             "max_failures": 2,
+            "use_vision": use_vision,
         }
 
         try:
