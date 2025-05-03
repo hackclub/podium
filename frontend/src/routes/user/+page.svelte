@@ -60,7 +60,6 @@
   <p class="text-accent">{data.userData.email}</p>
 </div>
 
-<h1 class="text-xl font-semibold mb-4 text-center">Leaderboard</h1>
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mx-auto max-w-4xl">
   {#each data.projects as project}
     <div class="flex flex-col items-center">
