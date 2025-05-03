@@ -6,6 +6,9 @@
   import type { PageData } from "./$types";
   import Collapse from "$lib/components/Collapse.svelte";
   import ProjectCard from "$lib/components/ProjectCard.svelte";
+  import { onMount } from 'svelte';
+  import { ProjectsService } from '$lib/client/sdk.gen';
+  import type { Results } from "$lib/client/types.gen";
   let { data }: { data: PageData } = $props();
 
   // Create an object with modal element for each project ID
@@ -31,6 +34,25 @@
   function formatReasons(reasons: string): string {
     return DOMPurify.sanitize(reasons.replace(/\n/g, "<br>"));
   }
+
+  let projectQualityResults: Record<string, Results> = $state({});
+  onMount(async () => {
+    for (const project of data.projects) {
+      const {
+        data: qualityData,
+        response,
+        error: err,
+      } = await ProjectsService.checkProjectProjectsCheckPost({
+        body: { ...project },
+        throwOnError: false,
+      });
+      if (err || !qualityData) {
+        console.error(err, response);
+      } else {
+        if (qualityData) projectQualityResults[project.id] = qualityData;
+      }
+    }
+  });
 </script>
 
 <div class="text-center p-4">
@@ -50,15 +72,21 @@
       />
       <button
         class="badge badge-lg underline"
-        class:badge-success={data.projectQuality[project.id]?.valid}
-        class:badge-warning={!data.projectQuality[project.id]?.valid}
+        class:badge-success={projectQualityResults[project.id]?.valid}
+        class:badge-warning={!projectQualityResults[project.id]?.valid}
         onclick={() => {
           toggleProjectModal(project.id);
         }}
       >
-        {data.projectQuality[project.id]?.valid ? "Valid" : "Invalid"}
+        {#if !projectQualityResults[project.id]}
+          <span class="loading loading-dots loading-xs"></span>
+        {:else}
+          {projectQualityResults[project.id]?.valid ? "Valid" : "Invalid"}
+        {/if}
       </button>
     </div>
+    {#if projectQualityResults[project.id]} 
+    <!-- This is in a conditional to prevent trying to access null properties -->
     <dialog
       bind:this={projectModalState[project.id]}
       class="modal modal-bottom sm:modal-middle"
@@ -76,30 +104,30 @@
             <tr>
               <td>Demo</td>
               <td>
-                {#if data.projectQuality[project.id]?.demo.valid}
+                {#if projectQualityResults[project.id]?.demo.valid}
                   ✅
                 {:else}
-                  ❌ {@html formatReasons(data.projectQuality[project.id]?.demo.reason)}
+                  ❌ {@html formatReasons(projectQualityResults[project.id]?.demo.reason)}
                 {/if}
               </td>
             </tr>
             <tr>
               <td>Source Code</td>
               <td>
-                {#if data.projectQuality[project.id]?.source_code.valid}
+                {#if projectQualityResults[project.id]?.source_code.valid}
                   ✅
                 {:else}
-                  ❌ {@html formatReasons(data.projectQuality[project.id]?.source_code.reason)}
+                  ❌ {@html formatReasons(projectQualityResults[project.id]?.source_code.reason)}
                 {/if}
               </td>
             </tr>
             <tr>
               <td>Image URL</td>
               <td>
-                {#if data.projectQuality[project.id]?.image_url.valid}
+                {#if projectQualityResults[project.id]?.image_url.valid}
                   ✅
                 {:else}
-                  ❌ {@html formatReasons(data.projectQuality[project.id]?.image_url.reason)}
+                  ❌ {@html formatReasons(projectQualityResults[project.id]?.image_url.reason)}
                 {/if}
               </td>
             </tr>
@@ -117,5 +145,6 @@
         <button>close</button>
       </form>
     </dialog>
+    {/if}
   {/each}
 </div>
