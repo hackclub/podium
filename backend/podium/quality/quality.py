@@ -212,7 +212,7 @@ async def is_raw_image(url: str) -> Result:
         return Result(
             url=url,
             valid=False,
-            reason="Image url is not a raw image",
+            reason="Image URL is not a raw image",
         )
 
 

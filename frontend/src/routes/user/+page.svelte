@@ -65,16 +65,52 @@
     >
       <div class="modal-box">
         <h2 class="font-bold text-lg">Project quality</h2>
-        <p class="py-4">
-          {@html formatReasons(data.projectQuality[project.id]?.reasons || "")}
-        </p>
+        <table class="table w-full table-zebra">
+          <thead>
+            <tr>
+              <th>Check</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Demo</td>
+              <td>
+                {#if data.projectQuality[project.id]?.demo.valid}
+                  ✅
+                {:else}
+                  ❌ {@html formatReasons(data.projectQuality[project.id]?.demo.reason)}
+                {/if}
+              </td>
+            </tr>
+            <tr>
+              <td>Source Code</td>
+              <td>
+                {#if data.projectQuality[project.id]?.source_code.valid}
+                  ✅
+                {:else}
+                  ❌ {@html formatReasons(data.projectQuality[project.id]?.source_code.reason)}
+                {/if}
+              </td>
+            </tr>
+            <tr>
+              <td>Image URL</td>
+              <td>
+                {#if data.projectQuality[project.id]?.image_url.valid}
+                  ✅
+                {:else}
+                  ❌ {@html formatReasons(data.projectQuality[project.id]?.image_url.reason)}
+                {/if}
+              </td>
+            </tr>
+          </tbody>
+        </table>
         <div class="modal-action">
           <button
             class="btn"
             onclick={() => {
               toggleProjectModal(project.id);
-            }}>Close</button
-          >
+            }}>Close</button>
         </div>
       </div>
       <form method="dialog" class="modal-backdrop">
