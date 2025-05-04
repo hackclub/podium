@@ -22,7 +22,7 @@ from podium.db import (
     ReferralBase,
 )
 from podium.db.project import Project
-from podium.constants import BAD_AUTH, BAD_ACCESS
+from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH, BAD_ACCESS
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -40,7 +40,7 @@ def get_event(
     except HTTPError as e:
         raise (
                 HTTPException(status_code=404, detail="Event not found")
-                if e.response.status_code in [404, 403]
+                if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
                 else e
             )
 
@@ -193,7 +193,7 @@ def vote(votes: CreateVotes, user: Annotated[UserPrivate, Depends(get_current_us
     except HTTPError as e:
         raise (
             HTTPException(status_code=404, detail="Event not found")
-            if e.response.status_code in [404, 403]
+            if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
             else e
         )
 
@@ -210,7 +210,7 @@ def vote(votes: CreateVotes, user: Annotated[UserPrivate, Depends(get_current_us
         try:
             project = db.projects.get(project_id)
         except HTTPError as e:
-            if e.response.status_code in [404, 403]:
+            if e.response.status_code in AIRTABLE_NOT_FOUND_CODES:
                 raise HTTPException(status_code=404, detail="Project not found")
             else:
                 raise e
@@ -266,7 +266,7 @@ def get_leaderboard(event_id: Annotated[str, Path(title="Event ID")]) -> List[Pr
     except HTTPError as e:
         raise (
                 HTTPException(status_code=404, detail="Event not found")
-                if e.response.status_code in [404, 403]
+                if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
                 else e
             )
     event = PrivateEvent.model_validate(event["fields"])
@@ -278,7 +278,7 @@ def get_leaderboard(event_id: Annotated[str, Path(title="Event ID")]) -> List[Pr
             project = db.projects.get(project_id)
             projects.append(project)
         except HTTPError as e:
-            if e.response.status_code in [404, 403]:
+            if e.response.status_code in AIRTABLE_NOT_FOUND_CODES:
                 print(
                     f"WARNING: Project {project_id} not found when getting leaderboard for event {event_id}"
                 )
@@ -307,7 +307,7 @@ def get_event_projects(
     except HTTPError as e:
         raise (
             HTTPException(status_code=404, detail="Event not found")
-            if e.response.status_code in [404, 403]
+            if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
             else e
         )
 

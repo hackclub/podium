@@ -9,7 +9,7 @@ from podium.db.user import (
     get_user_record_id_by_email,
 )
 from podium.routers.auth import get_current_user
-from podium.constants import BAD_AUTH
+from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH
 from requests import HTTPError
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -41,7 +41,7 @@ def get_user_public(user_id: Annotated[str, Path(title="User Airtable ID")]) -> 
     except HTTPError as e:
         raise (
                 HTTPException(status_code=404, detail="User not found")
-                if e.response.status_code in [404, 403]
+                if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
                 else e
             )
             

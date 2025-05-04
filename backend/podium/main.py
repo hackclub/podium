@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import sentry_sdk
 
+
 sentry_sdk.init(
     dsn="" if os.getenv("ENV_FOR_DYNACONF") == "development" else "https://489f4a109d07aeadfd13387bcd3197ab@o4508979744210944.ingest.de.sentry.io/4508979747553360",
     # Add data like request headers and IP for users,

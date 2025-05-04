@@ -11,41 +11,12 @@ from podium import settings
 from string import Template
 import mimetypes
 import httpx
+from podium.db.quality import Result, ResultResponse ,Results
 from pydantic import BaseModel, ValidationError, computed_field
 from steel import Steel
-# from typing import TYPE_CHECKING
-# if TYPE_CHECKING:
 from podium.db.project import Project
 
 USE_STEEL = False
-
-class Result(BaseModel):
-    url: str
-    valid: bool
-    reason: str
-
-class Results(BaseModel):
-    demo: Result
-    source_code: Result
-    image_url: Result
-    # Computed field to compile all the reasons into a single string
-
-    @computed_field
-    @property
-    def reasons(self) -> str:
-        individual_reasons = []
-        for check in [self.demo, self.source_code, self.image_url]:
-            if not check.valid and check.reason:
-                individual_reasons.append(f"{check.url}: {check.reason}")
-        return "\n".join(individual_reasons)
-                
-
-    @computed_field
-    @property
-    def valid(self) -> bool:
-        return self.demo.valid and self.source_code.valid and self.image_url.valid
-
-
 
 os.environ["GEMINI_API_KEY"] = settings.gemini_api_key
 os.environ["OPENAI_API_KEY"] = "..."
@@ -63,7 +34,7 @@ llm = ChatGoogleGenerativeAI(
 )
 # llm=ChatOpenAI(base_url='https://ai.hackclub.com/', model='abcxyz', api_key='abcxyz', verbose=True)
 
-controller = Controller(output_model=Result)
+controller = Controller(output_model=ResultResponse)
 
 if USE_STEEL:
     # https://docs.steel.dev/overview/integrations/browser-use/quickstart
@@ -148,9 +119,18 @@ async def check_project(project: "Project") -> Results:
             )
 
             # Validate results with pydantic
-            demo_result = Result.model_validate_json(demo_result_raw.final_result())
-            source_code_result = Result.model_validate_json(
+            demo_result = ResultResponse.model_validate_json(demo_result_raw.final_result())
+            source_code_result = ResultResponse.model_validate_json(
                 source_result_raw.final_result()
+            )
+            # Add the URL to the results
+            demo_result = Result(
+                **demo_result.model_dump(),
+                url=str(project.demo)
+            )   
+            source_code_result = Result(
+                **source_code_result.model_dump(),
+                url=str(project.repo)
             )
         except ValidationError:
             # Default values are already set in case the URL is inaccessible or something else goes with the agent

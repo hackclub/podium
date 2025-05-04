@@ -1,13 +1,14 @@
 from __future__ import annotations
-from podium.constants import SingleRecordField, MultiRecordField
-from pydantic import BaseModel, Field, HttpUrl, StringConstraints
+from podium.constants import EmptyModel, SingleRecordField, MultiRecordField
+from podium.db.quality import Results
+from pydantic import BaseModel, Field, StringConstraints, field_validator
 from typing import Annotated, Optional
 
 class ProjectBase(BaseModel):
     name: Annotated[str, StringConstraints(min_length=1)]
-    repo: HttpUrl
-    image_url: HttpUrl
-    demo: HttpUrl
+    repo: str
+    image_url: str
+    demo: str
     description: Optional[str] = ""
     # event: Annotated[
     #     List[Annotated[str, StringConstraints(pattern=RECORD_REGEX)]],
@@ -24,9 +25,10 @@ class ProjectBase(BaseModel):
 
     def model_dump(self, *args, **kwargs):
         data = super().model_dump(*args, **kwargs)
-        data["repo"] = str(self.repo)
-        data["image_url"] = str(self.image_url)
-        data["demo"] = str(self.demo)
+        # If they are HttpUrl, they need to be converted to str
+        # data["repo"] = str(self.repo)
+        # data["image_url"] = str(self.image_url)
+        # data["demo"] = str(self.demo)
         return data
 
 
@@ -46,3 +48,16 @@ class Project(ProjectBase):
 
 class PrivateProject(Project):
     join_code: str
+
+class InternalProject(PrivateProject):
+    cached_auto_quality: Results|EmptyModel = EmptyModel()
+    # Allow it to be loaded as JSON
+    @field_validator("cached_auto_quality", mode="before")
+    @classmethod
+    def load_cached_auto_quality(cls, v):
+        if isinstance(v, str):
+            try:
+                return Results.model_validate_json(v)
+            except Exception:
+                return EmptyModel()
+        return v
