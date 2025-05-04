@@ -7,9 +7,7 @@
   import { themeChange } from "theme-change";
   import ThemeSwitcher from "$lib/components/ThemeSwitcher.svelte";
   import { setSystemTheme, returnLoadingText } from "$lib/misc";
-
-  let showModal = $state(false);
-
+  let aboutModal: HTMLDialogElement | null = $state(null);
   let loadingText = $state(returnLoadingText());
   let loadingTextInterval: NodeJS.Timeout = $state() as NodeJS.Timeout; 
   onMount(() => {
@@ -25,6 +23,16 @@
   onDestroy(() => {
     clearInterval(loadingTextInterval);
   });
+
+  function toggleAboutModal(){
+    if (aboutModal) {
+        if (aboutModal.open) {
+          aboutModal.close();
+        } else {
+          aboutModal.showModal();
+        }
+  }
+}
 </script>
 
 <svelte:head>
@@ -66,45 +74,43 @@
   <button
     class="btn btn-info btn-square btn-md font-serif font-light"
     aria-label="Info"
-    onclick={() => {
-      showModal = true;
-    }}
+    onclick={toggleAboutModal}
   >
     ?
   </button>
 </div>
 
-<!-- Modal -->
-<!-- TODO: migrate to backdrop -->
-{#if showModal}
-  <div class="modal modal-open modal-bottom sm:modal-middle">
-    <div class="modal-box">
-      <h2 class="font-bold text-lg">About the Project</h2>
-      <p class="py-4">
-        Podium is <a href="https://hackclub.com" class="hover-link">Hack Club's </a><a
-          href="https://github.com/hackclub/podium" class="hover-link">open-source</a
-        >
-        peer-judging platform for
-        <a href="https://hackathons.hackclub.com/" class="hover-link">hackathons</a>. If you
-        encounter issues, feel free to
-        <a href="https://github.com/hackclub/podium/issues" class="hover-link">report</a> them.
-        Need help? Ask on the <a href="https://hackclub.com/slack" class="hover-link">Slack</a> or
-        email <a href="mailto:angad@hackclub.com" class="hover-link">angad@hackclub.com</a>.
-      </p>
-      <p class="text-right">
-        <a href="https://github.com/slashtechno" class="hover-link">-Angad Behl</a>
-      </p>
-      <div class="modal-action">
-        <button
-          class="btn"
-          onclick={() => {
-            showModal = false;
-          }}>Close</button
-        >
-      </div>
+
+<dialog bind:this={aboutModal} class="modal modal-bottom sm:modal-middle">
+  <div class="modal-box">
+    <h2 class="font-bold text-lg">About the Project</h2>
+    <p class="py-4">
+      Podium is <a href="https://hackclub.com" class="hover-link">Hack Club's </a><a
+        href="https://github.com/hackclub/podium" class="hover-link">open-source</a
+      >
+      peer-judging platform for
+      <a href="https://hackathons.hackclub.com/" class="hover-link">hackathons</a>. If you
+      encounter issues, feel free to
+      <a href="https://github.com/hackclub/podium/issues" class="hover-link">report</a> them.
+      Need help? Ask on the <a href="https://hackclub.com/slack" class="hover-link">Slack</a> or
+      email <a href="mailto:angad@hackclub.com" class="hover-link">angad@hackclub.com</a>.
+    </p>
+    <p class="text-right">
+      <a href="https://github.com/slashtechno" class="hover-link">-Angad Behl</a>
+    </p>
+    <div class="modal-action">
+      <button
+        class="btn"
+        onclick={() => {
+          toggleAboutModal();
+        }}>Close</button>
     </div>
   </div>
-{/if}
+  <form method="dialog" class="modal-backdrop">
+    <button>close</button>
+  </form>
+</dialog>
+
 
 <div class="fixed bottom-4 right-4">
   <ThemeSwitcher />
