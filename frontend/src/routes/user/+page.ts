@@ -45,24 +45,6 @@ export const load: PageLoad = async ({ params, fetch, depends }) => {
     projects = data;
   }
 
-  // for (const project of projects) {
-    // const {
-    //   data,
-    //   response,
-    //   error: err,
-    // } = await ProjectsService.checkProjectProjectsCheckPost({
-    //   body: {
-    //     ...project
-    //   },
-    //   throwOnError: false,
-    // });
-    // if (err || !data) {
-    //   console.error(err, response);
-    //   throw error(response.status, JSON.stringify(err));
-    // }
-    // projectQuality[project.id] = data;
-  // }
-
   return {
     userData,
     projects,
