@@ -8,26 +8,12 @@
   import ProjectCard from "$lib/components/ProjectCard.svelte";
     import { onMount } from "svelte";
     import { ProjectsService, type Results } from "$lib/client";
+    import Modal from "$lib/components/Modal.svelte";
   let { data }: { data: PageData } = $props();
 
 
   // Stuff for project quality
-  const projectModalState = $state(data.projects.reduce((acc, project) => {
-    acc[project.id] = null;
-    return acc;
-  }, {} as Record<string, HTMLDialogElement | null>));
-
-  // Function to toggle the modal state for a specific project ID
-  function toggleProjectModal(projectId: string) {
-    const modal = projectModalState[projectId];
-    if (modal) {
-      if (modal.open) {
-        modal.close();
-      } else {
-        modal.showModal();
-      }
-    }
-  }
+  const projectModalState = $state({} as Record<string, Modal>);
 
   // Function to sanitize reasons and replace newlines with <br> tags
   function formatReasons(reasons: string): string {
@@ -95,7 +81,7 @@
                   class:badge-success={projectQualityResults[project.id]?.valid}
                   class:badge-warning={!projectQualityResults[project.id]?.valid}
                   onclick={() => {
-                    toggleProjectModal(project.id);
+                    projectModalState[project.id].openModal();
                   }}
                 >
                   {#if !projectQualityResults[project.id]}
@@ -106,12 +92,7 @@
                 </button>
                   {#if projectQualityResults[project.id]} 
                   <!-- This is in a conditional to prevent trying to access null properties -->
-                  <dialog
-                    bind:this={projectModalState[project.id]}
-                    class="modal modal-bottom sm:modal-middle"
-                  >
-                    <div class="modal-box">
-                      <h2 class="font-bold text-lg">Project quality</h2>
+                    <Modal title="Project Quality" bind:this={projectModalState[project.id]}>
                       <table class="table w-full table-zebra">
                         <thead>
                           <tr>
@@ -152,18 +133,7 @@
                           </tr>
                         </tbody>
                       </table>
-                      <div class="modal-action">
-                        <button
-                          class="btn"
-                          onclick={() => {
-                            toggleProjectModal(project.id);
-                          }}>Close</button>
-                      </div>
-                    </div>
-                    <form method="dialog" class="modal-backdrop">
-                      <button>close</button>
-                    </form>
-                  </dialog>
+            </Modal> 
                   {/if}
                 </td>
               </tr>

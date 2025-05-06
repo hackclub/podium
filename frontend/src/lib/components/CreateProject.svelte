@@ -3,6 +3,9 @@
   import type { PublicProjectCreationPayload, Event } from "$lib/client";
   import { toast } from "svelte-sonner";
   import { handleError, invalidateProjects } from "$lib/misc";
+  import Modal from "$lib/components/Modal.svelte";
+
+
 
   let project: PublicProjectCreationPayload = $state({
     name: "",
@@ -15,8 +18,6 @@
   });
   let events: Event[] = $state([]);
   let fetchedEvents = false;
-  let showGuidelines = $state(false);
-  let guidelinesModal: HTMLDialogElement | null = $state(null);
   async function fetchEvents() {
     try {
       toast("Fetching events; please wait");
@@ -51,16 +52,7 @@
     }
   }
 
-  function toggleGuidelines() {
-    showGuidelines = !showGuidelines;
-    if (guidelinesModal) {
-    if (showGuidelines) {
-      guidelinesModal.showModal();
-    } else {
-      guidelinesModal.close();
-    }
-  }
-  }
+  let guidelinesModal: Modal = $state() as Modal;
 </script>
 
 <div class="p-4 max-w-md mx-auto">
@@ -114,7 +106,7 @@
       />
       <div class="label">
         <span class="label-text">
-        <button type="button" class="btn-link" onclick={toggleGuidelines}>What's allowed as a demo?</button>
+        <button type="button" class="btn-link" onclick={()=>{guidelinesModal.openModal()}}>What's allowed as a demo?</button>
         </span>
       </div>
     </label>
@@ -173,10 +165,7 @@
 </div>
 
 
-
-<dialog bind:this={guidelinesModal} class="modal modal-bottom sm:modal-middle">
-    <div class="modal-box">
-      <h2 class="font-bold text-lg">Demo guidelines</h2>
+<Modal bind:this={guidelinesModal} title="Demo Guidelines">
       <p class="py-4">
         You should probably check that...
         Your repo doesn't 404
@@ -190,15 +179,4 @@
         <li>You built a discord bot ⚠️ maybe if it's a really good video, but you still have to host it and include a discord bot install link</li>
         <li>You built a physical robot ✅ this is a good reason for a video, but your repo should also include some pics and all the parts & code should be open-source</li>
       </ul>
-        <div class="modal-action">
-        <button
-          class="btn"
-          onclick={() => {
-            toggleGuidelines();
-          }}>Close</button>
-      </div>
-    </div>
-    <form method="dialog" class="modal-backdrop">
-      <button>close</button>
-    </form>   
-  </dialog>
+</Modal>

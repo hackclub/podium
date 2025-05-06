@@ -7,7 +7,8 @@
   import { themeChange } from "theme-change";
   import ThemeSwitcher from "$lib/components/ThemeSwitcher.svelte";
   import { setSystemTheme, returnLoadingText } from "$lib/misc";
-  let aboutModal: HTMLDialogElement | null = $state(null);
+  import Modal from "$lib/components/Modal.svelte";
+  let aboutModal: Modal = $state() as Modal;
   let loadingText = $state(returnLoadingText());
   let loadingTextInterval: NodeJS.Timeout = $state() as NodeJS.Timeout; 
   onMount(() => {
@@ -20,19 +21,10 @@
       loadingText = returnLoadingText();
     }, 4000);
   });
+
   onDestroy(() => {
     clearInterval(loadingTextInterval);
   });
-
-  function toggleAboutModal(){
-    if (aboutModal) {
-        if (aboutModal.open) {
-          aboutModal.close();
-        } else {
-          aboutModal.showModal();
-        }
-  }
-}
 </script>
 
 <svelte:head>
@@ -74,16 +66,16 @@
   <button
     class="btn btn-info btn-square btn-md font-serif font-light"
     aria-label="Info"
-    onclick={toggleAboutModal}
+    onclick={() => {
+      aboutModal.openModal();
+    }}
   >
     ?
   </button>
 </div>
 
 
-<dialog bind:this={aboutModal} class="modal modal-bottom sm:modal-middle">
-  <div class="modal-box">
-    <h2 class="font-bold text-lg">About the Project</h2>
+<Modal bind:this={aboutModal} title="About Podium">
     <p class="py-4">
       Podium is <a href="https://hackclub.com" class="hover-link">Hack Club's </a><a
         href="https://github.com/hackclub/podium" class="hover-link">open-source</a
@@ -98,18 +90,7 @@
     <p class="text-right">
       <a href="https://github.com/slashtechno" class="hover-link">-Angad Behl</a>
     </p>
-    <div class="modal-action">
-      <button
-        class="btn"
-        onclick={() => {
-          toggleAboutModal();
-        }}>Close</button>
-    </div>
-  </div>
-  <form method="dialog" class="modal-backdrop">
-    <button>close</button>
-  </form>
-</dialog>
+  </Modal>
 
 
 <div class="fixed bottom-4 right-4">
