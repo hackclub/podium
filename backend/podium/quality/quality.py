@@ -36,11 +36,14 @@ llm = ChatGoogleGenerativeAI(
 
 controller = Controller(output_model=ResultResponse)
 
+headless = bool()
 if USE_STEEL:
     # https://docs.steel.dev/overview/integrations/browser-use/quickstart
     steel_client = Steel(
         steel_api_key=settings.steel_api_key,
     )
+else:
+    headless = True
 
 # Create a global semaphore to limit concurrent Steel sessions
 steel_session_semaphore = asyncio.Semaphore(2)
@@ -67,7 +70,12 @@ async def check_project(project: "Project") -> Results:
             demo_browser = Browser(config=BrowserConfig(cdp_url=demo_cdp_url))
             source_browser = Browser(config=BrowserConfig(cdp_url=source_cdp_url))
         else:
-            browser = Browser()
+            browser = Browser(
+                config=BrowserConfig(
+                    # From the logs: ⚠️ Headless mode is not recommended. Many sites will detect and block all headless browsers.
+                    headless=headless,
+                )
+            )
             demo_browser = browser
             source_browser = browser
 
