@@ -53,7 +53,7 @@
         type="text"
         bind:value={toSend.query.join_code}
         placeholder="~4 character case-insensitive join code"
-        class="w-full input input-bordered"
+        class="input input-bordered w-full"
       />
 
       <label class="label" for="referral">
@@ -63,7 +63,7 @@
       <input
         id="referral"
         type="text"
-        class="input input-bordered grow"
+        class="input input-bordered w-full"
         placeholder="Friend, social media, etc."
         bind:value={toSend.query.referral}
       />

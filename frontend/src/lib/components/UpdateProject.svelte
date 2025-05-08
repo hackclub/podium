@@ -136,7 +136,7 @@
       <select
         id="project_select"
         bind:value={chosenProject}
-        class="select select-bordered"
+        class="select select-bordered w-full"
         onchange={() => {
           project = { ...chosenProject };
           showDeleteAlert = false;
@@ -155,7 +155,7 @@
           type="text"
           bind:value={project.name}
           placeholder="A really cool project!"
-          class="input input-bordered grow"
+          class="input input-bordered w-full"
         />
 
         <label class="label" for="project_description">Project Description</label>
@@ -163,7 +163,7 @@
           id="project_description"
           bind:value={project.description}
           placeholder="Some cool description"
-          class="textarea textarea-bordered grow"
+          class="textarea textarea-bordered w-full"
         ></textarea>
 
         <label class="label" for="image_url">Image URL</label>
@@ -172,7 +172,7 @@
           type="text"
           bind:value={project.image_url}
           placeholder="Image URL"
-          class="input input-bordered grow"
+          class="input input-bordered w-full"
         />
 
         <label class="label" for="demo_url">Demo URL</label>
@@ -181,7 +181,7 @@
           type="text"
           bind:value={project.demo}
           placeholder="Demo URL"
-          class="input input-bordered grow"
+          class="input input-bordered w-full"
         />
 
         <label class="label" for="repo_url">Repository URL</label>
@@ -190,7 +190,7 @@
           type="text"
           bind:value={project.repo}
           placeholder="Repository URL"
-          class="input input-bordered grow"
+          class="input input-bordered w-full"
         />
 
         <label class="label" for="hours_spent">Hours Spent</label>
@@ -199,7 +199,7 @@
           type="number"
           bind:value={project.hours_spent}
           placeholder="Hours spent"
-          class="input input-bordered grow"
+          class="input input-bordered w-full"
           min="0"
         />
 
@@ -207,7 +207,7 @@
         <select
           id="event"
           bind:value={project.event[0]}
-          class="select select-bordered"
+          class="select select-bordered w-full"
         >
           <option value="" disabled selected>Select an event</option>
           {#each events as event}

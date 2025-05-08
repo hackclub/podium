@@ -206,7 +206,7 @@
       <input
         id="email"
         type="email"
-        class="input input-bordered grow"
+        class="input input-bordered w-full"
         bind:value={userInfo.email}
         placeholder="example@example.com"
         onblur={async () => {
@@ -231,7 +231,7 @@
         <input
           id="first_name"
           type="text"
-          class="input input-bordered grow"
+          class="input input-bordered w-full"
           placeholder="Abc"
           bind:value={userInfo.first_name}
         />
@@ -240,7 +240,7 @@
         <input
           id="last_name"
           type="text"
-          class="input input-bordered grow"
+          class="input input-bordered w-full"
           placeholder="Xyz"
           bind:value={userInfo.last_name}
         />
@@ -252,7 +252,7 @@
         <input
           id="phone"
           type="tel"
-          class="input input-bordered grow"
+          class="input input-bordered w-full"
           placeholder="+15555555555"
           bind:value={userInfo.phone}
         />
@@ -264,7 +264,7 @@
         <input
           id="street_1"
           type="text"
-          class="input input-bordered grow"
+          class="input input-bordered w-full"
           placeholder="123 Main St"
           bind:value={userInfo.street_1}
         />
@@ -276,7 +276,7 @@
         <input
           id="street_2"
           type="text"
-          class="input input-bordered grow"
+          class="input input-bordered w-full"
           placeholder="Apt 4B"
           bind:value={userInfo.street_2}
         />
@@ -285,7 +285,7 @@
         <input
           id="city"
           type="text"
-          class="input input-bordered grow"
+          class="input input-bordered w-full"
           placeholder="New York"
           bind:value={userInfo.city}
         />
@@ -294,7 +294,7 @@
         <input
           id="state"
           type="text"
-          class="input input-bordered grow"
+          class="input input-bordered w-full"
           placeholder="NY"
           bind:value={userInfo.state}
         />
@@ -303,7 +303,7 @@
         <input
           id="zip_code"
           type="text"
-          class="input input-bordered grow"
+          class="input input-bordered w-full"
           placeholder="10001"
           bind:value={userInfo.zip_code}
         />
@@ -311,7 +311,7 @@
         <label class="label" for="country">Country</label>
         <select
           id="country"
-          class="select select-bordered grow"
+          class="select select-bordered w-full"
           bind:value={userInfo.country}
         >
           {#each countryList as { code, name } (code)}
@@ -328,7 +328,7 @@
         <input
           id="dob"
           type="date"
-          class="input input-bordered grow"
+          class="input input-bordered w-full"
           bind:value={userInfo.dob}
         />
       {/if}

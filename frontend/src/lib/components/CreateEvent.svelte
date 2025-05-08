@@ -39,7 +39,7 @@
         type="text"
         bind:value={eventName}
         placeholder="A really cool event"
-        class="input input-bordered grow"
+        class="input input-bordered w-full"
       />
 
       <label class="label" for="event_description">Event Description</label>
@@ -47,7 +47,7 @@
         id="event_description"
         bind:value={eventDescription}
         placeholder="Some cool description"
-        class="textarea textarea-bordered grow"
+        class="textarea textarea-bordered w-full"
       ></textarea>
 
       <button class="btn btn-block btn-primary mt-4" onclick={createEvent}>

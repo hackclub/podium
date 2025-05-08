@@ -90,14 +90,14 @@
     <fieldset class="fieldset">
       <!-- legend removed -->
 
-      <label class="label" for="event_select">
+      <label class="label flex justify-between" for="event_select">
         <span class="text-primary">Select an event to update</span>
         <span>This will only show events you own</span>
       </label>
       <select
         id="event_select"
         bind:value={chosenEvent}
-        class="select select-bordered"
+        class="select select-bordered w-full"
         onchange={() => {
           event = { ...chosenEvent };
           showDeleteAlert = false;
@@ -116,7 +116,7 @@
           type="text"
           bind:value={event.name}
           placeholder="Super cool Hackathon!"
-          class="input input-bordered grow"
+          class="input input-bordered w-full"
         />
 
         <label class="label" for="event_description">Event Description</label>
@@ -124,7 +124,7 @@
           id="event_description"
           bind:value={event.description}
           placeholder="Some cool description"
-          class="textarea textarea-bordered grow"
+          class="textarea textarea-bordered w-full"
         ></textarea>
 
         <label class="label" for="votable">

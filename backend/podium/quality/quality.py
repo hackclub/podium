@@ -43,7 +43,7 @@ if USE_STEEL:
         steel_api_key=settings.steel_api_key,
     )
 else:
-    headless = True
+    headless = False
 
 # Create a global semaphore to limit concurrent Steel sessions
 steel_session_semaphore = asyncio.Semaphore(2)

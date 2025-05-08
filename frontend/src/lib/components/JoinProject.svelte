@@ -49,7 +49,7 @@
       type="text"
       bind:value={toSend.query.join_code}
       placeholder="~4 character case-insensitive join code"
-      class="w-full input input-bordered"
+      class="input input-bordered w-full"
     />
     <button class="btn-block btn btn-primary" onclick={joinProject}>
       Join the development of something great!
