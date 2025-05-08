@@ -115,27 +115,26 @@
 <div class="p-4 max-w-md mx-auto">
   {#if showDeleteAlert}
     <div role="alert" class="alert" in:fade out:fade>
-      <span>Are you <strong>sure</strong> you want to delete this project?</span
-      >
+      <span>Are you <strong>sure</strong> you want to delete this project?</span>
       <div>
-        <button class="btn" onclick={() => (showDeleteAlert = false)}
-          >Cancel</button
-        >
-        <button class="btn btn-error" onclick={() => deleteProject()}
-          >Delete</button
-        >
+        <button class="btn" onclick={() => (showDeleteAlert = false)}>
+          Cancel
+        </button>
+        <button class="btn btn-error" onclick={() => deleteProject()}>
+          Delete
+        </button>
       </div>
     </div>
   {/if}
-  <form onsubmit={updateProject} class="space-y-4">
-    <label class="form-control">
-      <div class="label">
-        <span class="label-text text-primary">Choose a project to update</span>
-        <span class="label-text-alt">
-          This will only show projects you own
-        </span>
-      </div>
+  <!-- <form onsubmit={updateProject} class="space-y-4"> -->
+  <div class="space-y-4">
+    <fieldset class="fieldset">
+      <label class="label" for="project_select">
+        <span class="text-primary">Choose a project to update</span>
+        <span class="text-sm">This will only show projects you own</span>
+      </label>
       <select
+        id="project_select"
         bind:value={chosenProject}
         class="select select-bordered"
         onchange={() => {
@@ -148,107 +147,86 @@
           <option value={project}>{project.name}</option>
         {/each}
       </select>
-    </label>
-    {#if chosenProject.id}
-    <label class="form-control">
-      <div class="label">
-        <span class="label-text">Project Name</span>
-      </div>
-      <input
-        type="text"
-        bind:value={project.name}
-        placeholder="A really cool project!"
-        class="input input-bordered grow"
-      />
-    </label>
-    <label class="form-control">
-      <div class="label">
-        <span class="label-text">Project Description</span>
-      </div>
-      <textarea
-        bind:value={project.description}
-        placeholder="Some cool description"
-        class="textarea textarea-bordered grow"
-      ></textarea>
-    </label>
-    <label class="form-control">
-      <div class="label">
-        <span class="label-text">Image URL</span>
-        <span class="label-text-alt">
-          (such as a raw GitHub link or a #cdn link)</span
+
+      {#if chosenProject.id}
+        <label class="label" for="project_name">Project Name</label>
+        <input
+          id="project_name"
+          type="text"
+          bind:value={project.name}
+          placeholder="A really cool project!"
+          class="input input-bordered grow"
+        />
+
+        <label class="label" for="project_description">Project Description</label>
+        <textarea
+          id="project_description"
+          bind:value={project.description}
+          placeholder="Some cool description"
+          class="textarea textarea-bordered grow"
+        ></textarea>
+
+        <label class="label" for="image_url">Image URL</label>
+        <input
+          id="image_url"
+          type="text"
+          bind:value={project.image_url}
+          placeholder="Image URL"
+          class="input input-bordered grow"
+        />
+
+        <label class="label" for="demo_url">Demo URL</label>
+        <input
+          id="demo_url"
+          type="text"
+          bind:value={project.demo}
+          placeholder="Demo URL"
+          class="input input-bordered grow"
+        />
+
+        <label class="label" for="repo_url">Repository URL</label>
+        <input
+          id="repo_url"
+          type="text"
+          bind:value={project.repo}
+          placeholder="Repository URL"
+          class="input input-bordered grow"
+        />
+
+        <label class="label" for="hours_spent">Hours Spent</label>
+        <input
+          id="hours_spent"
+          type="number"
+          bind:value={project.hours_spent}
+          placeholder="Hours spent"
+          class="input input-bordered grow"
+          min="0"
+        />
+
+        <label class="label" for="event">Event</label>
+        <select
+          id="event"
+          bind:value={project.event[0]}
+          class="select select-bordered"
         >
-      </div>
-      <input
-        type="text"
-        bind:value={project.image_url}
-        placeholder="Image URL"
-        class="input input-bordered grow"
-      />
-    </label>
-    <label class="form-control">
-      <div class="label">
-        <span class="label-text">Demo URL</span>
-        <span class="label-text-alt"> (a link to an interactive demo)</span>
-      </div>
-      <input
-        type="text"
-        bind:value={project.demo}
-        placeholder="Demo URL"
-        class="input input-bordered grow"
-      />
-    </label>
-    <label class="form-control">
-      <div class="label">
-        <span class="label-text">Repository URL</span>
-        <span class="label-text-alt"> (such as a GitHub link)</span>
-      </div>
-      <input
-        type="text"
-        bind:value={project.repo}
-        placeholder="Repository URL"
-        class="input input-bordered grow"
-      />
-    </label>
-    <label class="form-control">
-      <div class="label">
-        <span class="label-text"
-          >Rough estimate of how many hours your team spent on this project</span
+          <option value="" disabled selected>Select an event</option>
+          {#each events as event}
+            <option value={event.id}>{event.name}</option>
+          {/each}
+        </select>
+
+        <button class="btn btn-block mt-4 btn-primary" onclick={updateProject}>
+          Update Project
+        </button>
+        <button
+          class="btn btn-block mt-4 btn-warning"
+          type="button"
+          onclick={() => confirmDeleteProject()}
         >
-      </div>
-      <input
-        type="number"
-        bind:value={project.hours_spent}
-        placeholder="Hours spent"
-        class="input input-bordered grow"
-        min="0"
-      />
-      <div class="label">
-        <span class="label-text-alt">
-          This is only used for statistics, so please be honest!</span
-        >
-      </div>
-    </label>
-    <label class="form-control">
-      <div class="label">
-        <span class="label-text">Event</span>
-      </div>
-      <select bind:value={project.event[0]} class="select select-bordered">
-        <option value="" disabled selected>Select an event</option>
-        {#each events as event}
-          <option value={event.id}>{event.name}</option>
-        {/each}
-      </select>
-    </label>
-      <button type="submit" class="btn btn-block mt-4 btn-primary">
-        Update Project
-      </button>
-      <button
-        class="btn btn-block mt-4 btn-warning"
-        type="button"
-        onclick={() => confirmDeleteProject()}
-      >
-        Delete Project
-      </button>
-    {/if}
-  </form>
+          Delete Project
+        </button>
+      {/if}
+    </fieldset>
+  </div>
+  <!-- </form> -->
 </div>

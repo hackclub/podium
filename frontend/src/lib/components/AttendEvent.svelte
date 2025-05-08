@@ -42,30 +42,36 @@
 </script>
 
 <div class="p-4 max-w-md mx-auto">
-  <form onsubmit={attendEvent} class="space-y-4">
-    <label class="form-control">
-      <div class="label">Join Code</div>
+  <!-- <form onsubmit={attendEvent} class="space-y-4"> -->
+  <div class="space-y-4">
+    <fieldset class="fieldset">
+      <!-- legend removed -->
+
+      <label class="label" for="join_code">Join Code</label>
       <input
+        id="join_code"
         type="text"
         bind:value={toSend.query.join_code}
         placeholder="~4 character case-insensitive join code"
         class="w-full input input-bordered"
       />
-    </label>
-    <label class="form-control">
-      <div class="label">
-        <span class="label-text">How did you hear about this event?</span>
-        <span class="label-text-alt">Optional</span>
-      </div>
+
+      <label class="label" for="referral">
+        <span>How did you hear about this event?</span>
+        <span class="text-sm">Optional</span>
+      </label>
       <input
+        id="referral"
         type="text"
         class="input input-bordered grow"
         placeholder="Friend, social media, etc."
         bind:value={toSend.query.referral}
       />
-    </label>
-    <button type="submit" class="btn-block btn btn-primary">
-      Join the adventure!
-    </button>
-  </form>
+
+      <button class="btn-block btn btn-primary" onclick={attendEvent}>
+        Join the adventure!
+      </button>
+    </fieldset>
+  </div>
+  <!-- </form> -->
 </div>

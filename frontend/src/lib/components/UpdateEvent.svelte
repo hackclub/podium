@@ -74,27 +74,28 @@
 <div class="p-4 max-w-md mx-auto">
   {#if showDeleteAlert}
     <div role="alert" class="alert" in:fade out:fade>
-      <span>Are you <strong>sure</strong> you want to delete this event?</span
-      >
+      <span>Are you <strong>sure</strong> you want to delete this event?</span>
       <div>
-        <button class="btn" onclick={() => (showDeleteAlert = false)}
-          >Cancel</button
-        >
-        <button class="btn btn-error" onclick={() => deleteEvent()}
-          >Delete</button
-        >
+        <button class="btn" onclick={() => (showDeleteAlert = false)}>
+          Cancel
+        </button>
+        <button class="btn btn-error" onclick={() => deleteEvent()}>
+          Delete
+        </button>
       </div>
     </div>
   {/if}
-  <form onsubmit={updateEvent} class="space-y-4">
-    <label class="form-control">
-      <div class="label">
-        <span class="label-text text-primary">Select an event to update</span>
-        <span class="label-text-alt">
-          This will only show events you own
-        </span>
-      </div>
+  <!-- <form onsubmit={updateEvent} class="space-y-4"> -->
+  <div class="space-y-4">
+    <fieldset class="fieldset">
+      <!-- legend removed -->
+
+      <label class="label" for="event_select">
+        <span class="text-primary">Select an event to update</span>
+        <span>This will only show events you own</span>
+      </label>
       <select
+        id="event_select"
         bind:value={chosenEvent}
         class="select select-bordered"
         onchange={() => {
@@ -107,62 +108,57 @@
           <option value={event}>{event.name}</option>
         {/each}
       </select>
-    </label>
-    {#if chosenEvent.id}
-    <label class="form-control">
-      <div class="label">
-        <span class="label-text">Event Name</span>
-      </div>
-      <input
-        type="text"
-        bind:value={event.name}
-        placeholder="Super cool Hackathon!"
-        class="input input-bordered grow"
-      />
-    </label>
 
-    <!-- Event description field -->
-    <label class="form-control">
-      <div class="label">
-        <span class="label-text">Event Description</span>
-      </div>
-      <textarea
-        bind:value={event.description}
-        placeholder="Some cool description"
-        class="textarea textarea-bordered grow"
-      ></textarea>
-    </label>
+      {#if chosenEvent.id}
+        <label class="label" for="event_name">Event Name</label>
+        <input
+          id="event_name"
+          type="text"
+          bind:value={event.name}
+          placeholder="Super cool Hackathon!"
+          class="input input-bordered grow"
+        />
 
-    <label class="form-control">
-      <div class="label">
-        <span class="label-text">Votable</span>
-      </div>
-      <input
-        type="checkbox"
-        class="checkbox"
-        bind:checked={event.votable}
-      />
-    </label>
-    <label class="form-control">
-      <div class="label">
-        <span class="label-text">Leaderboard Enabled</span>
-      </div>
-      <input
-        type="checkbox"
-        class="checkbox"
-        bind:checked={event.leaderboard_enabled}
-      />
-    </label>
-      <button type="submit" class="btn btn-block mt-4 btn-primary">
-        Update Event
-      </button>
-      <button
-        class="btn btn-block mt-4 btn-warning"
-        type="button"
-        onclick={() => confirmDeleteEvent()}
-      >
-        Delete Event
-      </button>
-    {/if}
-  </form>
+        <label class="label" for="event_description">Event Description</label>
+        <textarea
+          id="event_description"
+          bind:value={event.description}
+          placeholder="Some cool description"
+          class="textarea textarea-bordered grow"
+        ></textarea>
+
+        <label class="label" for="votable">
+          <span>Votable</span>
+        </label>
+        <input
+          id="votable"
+          type="checkbox"
+          class="checkbox"
+          bind:checked={event.votable}
+        />
+
+        <label class="label" for="leaderboard_enabled">
+          <span>Leaderboard Enabled</span>
+        </label>
+        <input
+          id="leaderboard_enabled"
+          type="checkbox"
+          class="checkbox"
+          bind:checked={event.leaderboard_enabled}
+        />
+
+        <button class="btn btn-block mt-4 btn-primary" onclick={updateEvent}>
+          Update Event
+        </button>
+        <button
+          class="btn btn-block mt-4 btn-warning"
+          type="button"
+          onclick={() => confirmDeleteEvent()}
+        >
+          Delete Event
+        </button>
+      {/if}
+    </fieldset>
+  </div>
+  <!-- </form> -->
 </div>
