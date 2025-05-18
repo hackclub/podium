@@ -1,6 +1,6 @@
 from secrets import token_urlsafe
 from typing import Annotated
-from podium.quality import quality
+from quality import quality
 from requests import HTTPError
 from podium import db
 from fastapi import APIRouter, Depends, HTTPException, Path, Query

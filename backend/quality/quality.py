@@ -1,5 +1,6 @@
 # from __future__ import annotations
 from enum import Enum
+from typing import Type
 # import logging
 from langchain_google_genai import ChatGoogleGenerativeAI
 from browser_use import Agent, Browser, BrowserConfig, Controller
@@ -11,12 +12,12 @@ from podium import settings
 from string import Template
 import mimetypes
 import httpx
-from podium.db.quality import Result, ResultResponse ,Results
-from pydantic import BaseModel, ValidationError, computed_field
+from quality.models import Result, ResultResponse ,Results
+from pydantic import ValidationError
 from steel import Steel
 from podium.db.project import Project
 
-USE_STEEL = False
+USE_STEEL = False    
 
 os.environ["GEMINI_API_KEY"] = settings.gemini_api_key
 os.environ["OPENAI_API_KEY"] = "..."
@@ -29,7 +30,7 @@ os.environ["OPENAI_API_KEY"] = "..."
 use_vision = True
 model="gemini-2.0-flash-lite"
 llm = ChatGoogleGenerativeAI(
-    api_key=settings.gemini_api_key,
+    api_key=settings.gemini_api_key, # even with this specified, unless the env var is also set, `WARNING  [agent] ❌ LLM API Key environment variables not set up for ChatGoogleGenerativeAI, missing: ['GEMINI_API_KEY']` will occur and it won't work. At the same time, this still seems to be needed. So just specify both.
     model=model,
 )
 # llm=ChatOpenAI(base_url='https://ai.hackclub.com/', model='abcxyz', api_key='abcxyz', verbose=True)
@@ -47,14 +48,14 @@ else:
 
 # Create a global semaphore to limit concurrent Steel sessions
 steel_session_semaphore = asyncio.Semaphore(2)
-# TODO: https://fastapi.tiangolo.com/tutorial/background-tasks/
+# https://fastapi.tiangolo.com/tutorial/background-tasks/
 
 class CheckType(Enum):
     source_code = "Check if $url is a source code repository"
-    demo = "Check if $url looks like an experienceable project, which is to say that someone at a hackathon could easily use it. If it's a web app, perfect! If it's something else, as long as it looked like it would be relatively easy to run locally, like a PyPi package or itch.io game, that's fine too. If it's a video or something like that, that's not a real project. If you can't validate it due to something like a login wall but it looks like a real project and not just 'hello world' on a page, then it's valid."
+    demo = "Check if $url looks like an experienceable project, which is to say that someone at a hackathon could easily use it. If it's a web app, perfect! If it's something else, as long as it looked like it would be relatively easy to run locally, like a PyPi package or itch.io game, that's fine too. If it's a video or something like that, that's not a real project. If you can't validate it due to something like a login wall but it looks like a real project and not just 'hello world' on a page, then it's valid. Raw code is not an experiencable demo."
 
 
-async def check_project(project: "Project") -> Results:
+async def check_project(project: "Project", check_type: Type[CheckType] = CheckType) -> Results:
     # Acquire the semaphore to ensure no more than 2 concurrent sessions
     async with steel_session_semaphore:
         if USE_STEEL:
@@ -106,7 +107,7 @@ async def check_project(project: "Project") -> Results:
             demo_task = asyncio.create_task(
                 Agent(
                     **options,
-                    task=Template(CheckType.demo.value).substitute(url=project.demo),
+                    task=Template(check_type.demo.value).substitute(url=project.demo),
                     browser_context=demo_context,
                 ).run(max_steps=10)
             )
@@ -114,7 +115,7 @@ async def check_project(project: "Project") -> Results:
             source_task = asyncio.create_task(
                 Agent(
                     **options,
-                    task=Template(CheckType.source_code.value).substitute(
+                    task=Template(check_type.source_code.value).substitute(
                         url=project.repo
                     ),
                     browser_context=source_context,

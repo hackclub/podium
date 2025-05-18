@@ -1,6 +1,6 @@
 from __future__ import annotations
 from podium.constants import EmptyModel, SingleRecordField, MultiRecordField
-from podium.db.quality import Results
+from quality.models import Results
 from pydantic import BaseModel, Field, StringConstraints, field_validator
 from typing import Annotated, Optional
 

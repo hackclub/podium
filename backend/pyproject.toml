@@ -33,5 +33,18 @@ dev = [
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+[project.scripts]
+podium = "podium.__main__:main"
+quality = "quality.__main__:cmd"
+
+[tool.poetry]
+# Needed for Poetry to find both packages
+packages = [
+    { include = "podium" },
+    { include = "quality" }
+]
+
+
+
 [tool.ruff]
 lint.extend-select= ["FIX002"]
