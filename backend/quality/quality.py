@@ -17,7 +17,7 @@ from pydantic import ValidationError
 from steel import Steel
 from podium.db.project import Project
 
-USE_STEEL = False    
+USE_STEEL = False 
 
 os.environ["GEMINI_API_KEY"] = settings.gemini_api_key
 os.environ["OPENAI_API_KEY"] = "..."
@@ -71,14 +71,17 @@ async def check_project(project: "Project", check_type: Type[CheckType] = CheckT
             demo_browser = Browser(config=BrowserConfig(cdp_url=demo_cdp_url))
             source_browser = Browser(config=BrowserConfig(cdp_url=source_cdp_url))
         else:
-            browser = Browser(
+            demo_browser = Browser(
                 config=BrowserConfig(
-                    # From the logs: ⚠️ Headless mode is not recommended. Many sites will detect and block all headless browsers.
                     headless=headless,
                 )
             )
-            demo_browser = browser
-            source_browser = browser
+            source_browser = Browser(
+                config=BrowserConfig(
+                    headless=headless,
+                )
+            )
+        
 
         demo_context = BrowserContext(browser=demo_browser)
         source_context = BrowserContext(browser=source_browser)
