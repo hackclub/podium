@@ -108,7 +108,7 @@ async def check_project(project: "Project", config: QualitySettings) -> Results:
                 **source_code_result.model_dump(),
                 url=str(project.repo)
             )
-        except ValidationError:
+        except ValidationError as e:
             # Default values are already set in case the URL is inaccessible or something else goes with the agent
             print(f"Validation error occurred: {e}")
         finally:
