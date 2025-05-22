@@ -9,6 +9,7 @@ from podium.routers.auth import get_current_user
 from podium.db.user import UserPrivate
 from podium.db.project import InternalProject, PrivateProject, Project, PublicProjectCreationPayload
 from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH, BAD_ACCESS, EmptyModel
+from podium.config import quality_settings
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -159,7 +160,7 @@ async def check_project(project: Project) -> quality.Results:
     except HTTPError as e:
         if e.response.status_code not in AIRTABLE_NOT_FOUND_CODES:
             raise e
-        return await quality.check_project(project)
+        return await quality.check_project(project, config=quality_settings)
     
     # Skip whatever checks have the same cached url as the current project
     if not isinstance(project.cached_auto_quality, EmptyModel):
@@ -169,7 +170,7 @@ async def check_project(project: Project) -> quality.Results:
             return project.cached_auto_quality
         
     # Recheck the project and update cached data
-    project.cached_auto_quality = await quality.check_project(project)
+    project.cached_auto_quality = await quality.check_project(project, config=quality_settings)
     db.projects.update(
         project.id,
         {"cached_auto_quality": project.cached_auto_quality.model_dump_json()},

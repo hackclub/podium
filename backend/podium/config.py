@@ -1,5 +1,8 @@
+import os
 from dynaconf import Dynaconf, Validator
-
+from langchain_google_genai import ChatGoogleGenerativeAI
+from quality.models import QualitySettings
+from steel import Steel
 settings = Dynaconf(
     envvar_prefix="PODIUM",
     load_dotenv=True,
@@ -62,3 +65,18 @@ settings.validators.register(
 )
 
 settings.validators.validate()
+
+quality_settings = QualitySettings( 
+    use_vision=True,
+    headless=False,
+    # steel_client = Steel(
+        # steel_api_key=settings.steel_api_key,
+    # ),
+    llm=ChatGoogleGenerativeAI(
+    # https://ai.google.dev/gemini-api/docs/rate-limits
+    # model="gemini-2.0-flash-exp",
+    api_key=settings.gemini_api_key, # even with this specified, unless the env var is also set, `WARNING  [agent] ❌ LLM API Key environment variables not set up for ChatGoogleGenerativeAI, missing: ['GEMINI_API_KEY']` will occur and it won't work. At the same time, this still seems to be needed. So just specify both.
+    model="gemini-2.0-flash-lite",
+)
+)
+os.environ["GEMINI_API_KEY"] = settings.gemini_api_key
