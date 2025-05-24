@@ -5,6 +5,7 @@
       "name": "quality",
       "type": "debugpy",
       "request": "launch",
+      // Can sometimes cause a threading error when exiting, although this can be ignored. 
       "module": "quality.quality",
       "cwd": "${workspaceFolder}/backend",
       "env": {
@@ -30,6 +31,7 @@
       "type": "debugpy",
       "request": "launch",
       "module": "uvicorn",
+      // --reload seems to cause issues with browser-use
       // "args": ["podium.main:app", "--reload"],
       "args": ["podium.main:app"],
       "env": {

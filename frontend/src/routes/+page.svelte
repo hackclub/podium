@@ -47,14 +47,14 @@
       </div>
     </section>
 
-    <section>
+    <!-- <section>
       <h2 class="text-xl font-semibold mb-4">Your profile</h2>
       <div class="flex justify-center">
         <a href="/user" class="btn btn-wide btn-primary">
           Profile
         </a>
       </div>
-    </section>
+    </section> -->
   {/if}
 </div>
 

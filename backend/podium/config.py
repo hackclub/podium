@@ -75,8 +75,7 @@ quality_settings = QualitySettings(
     llm=ChatGoogleGenerativeAI(
     # https://ai.google.dev/gemini-api/docs/rate-limits
     # model="gemini-2.0-flash-exp",
-    api_key=settings.gemini_api_key, # even with this specified, unless the env var is also set, `WARNING  [agent] ❌ LLM API Key environment variables not set up for ChatGoogleGenerativeAI, missing: ['GEMINI_API_KEY']` will occur and it won't work. At the same time, this still seems to be needed. So just specify both.
+    api_key=settings.gemini_api_key,
     model="gemini-2.0-flash-lite",
 )
 )
-os.environ["GEMINI_API_KEY"] = settings.gemini_api_key
