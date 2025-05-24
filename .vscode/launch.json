@@ -1,44 +1,51 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "command": "npm run dev",
-            "name": "frontend",
-            "request": "launch",
-            "type": "node-terminal",
-            "cwd": "${workspaceFolder}/frontend",
-        }, 
-        // {
-        //     "command": "npm run build",
-        //     "name": "Run build",
-        //     "request": "launch",
-        //     "type": "node-terminal",
-        //     "cwd": "${workspaceFolder}/frontend"
-        // },
-        {
-            "name": "FastAPI",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "uvicorn",
-            "args": [
-                "podium.main:app",
-                "--reload"
-            ],
-            "env": {
-                "ENV_FOR_DYNACONF": "development",
-            },
-            "cwd": "${workspaceFolder}/backend",
-            "justMyCode": true
-            // "jinja": true
-        }
-    ],
-    "compounds": [
-        {
-            "name": "dev",
-            "configurations": [
-                "frontend",
-                "FastAPI"
-            ]
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "quality",
+      "type": "debugpy",
+      "request": "launch",
+      // Can sometimes cause a threading error when exiting, although this can be ignored. 
+      "module": "quality.quality",
+      "cwd": "${workspaceFolder}/backend",
+      "env": {
+        "ENV_FOR_DYNACONF": "development"
+      },
+    },
+    {
+      "command": "npm run dev",
+      "name": "frontend",
+      "request": "launch",
+      "type": "node-terminal",
+      "cwd": "${workspaceFolder}/frontend"
+    },
+    // {
+    //     "command": "npm run build",
+    //     "name": "Run build",
+    //     "request": "launch",
+    //     "type": "node-terminal",
+    //     "cwd": "${workspaceFolder}/frontend"
+    // },
+    {
+      "name": "FastAPI",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      // --reload seems to cause issues with browser-use
+      // "args": ["podium.main:app", "--reload"],
+      "args": ["podium.main:app"],
+      "env": {
+        "ENV_FOR_DYNACONF": "development"
+      },
+      "cwd": "${workspaceFolder}/backend",
+      "justMyCode": true
+      // "jinja": true
+    }
+  ],
+  "compounds": [
+    {
+      "name": "dev",
+      "configurations": ["frontend", "FastAPI"]
+    }
+  ]
 }

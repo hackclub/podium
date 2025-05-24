@@ -128,6 +128,7 @@ async def verify_token(token: Annotated[str, Query()]) -> MagicLinkVerificationR
 security = HTTPBearer()
 
 
+# It seems this being depended upon by a method can make openapi-ts think that even if an error isn't raised, the response could still be None. Without this, it seems to assume that the response, if not having an error, would contain whatever the expected (typed) response is. Could just be a result of Depends() in general though
 async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
 ) -> UserPrivate:

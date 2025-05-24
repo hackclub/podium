@@ -3,20 +3,28 @@
   import { Toaster } from "svelte-sonner";
   import { navigating, page } from "$app/state";
   let { children } = $props();
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { themeChange } from "theme-change";
   import ThemeSwitcher from "$lib/components/ThemeSwitcher.svelte";
   import { setSystemTheme, returnLoadingText } from "$lib/misc";
-  // import CheckAuth from '$lib/components/CheckAuth.svelte';
-
+  import Modal from "$lib/components/Modal.svelte";
+  let aboutModal: Modal = $state() as Modal;
+  let loadingText = $state(returnLoadingText());
+  let loadingTextInterval: NodeJS.Timeout = $state() as NodeJS.Timeout; 
   onMount(() => {
     console.debug("Page data:", page.data);
     themeChange(false);
-
     setSystemTheme();
+
+    // Update loading text every 4 seconds
+    loadingTextInterval = setInterval(() => {
+      loadingText = returnLoadingText();
+    }, 4000);
   });
 
-  let showModal = $state(false);
+  onDestroy(() => {
+    clearInterval(loadingTextInterval);
+  });
 </script>
 
 <svelte:head>
@@ -33,8 +41,8 @@
 <nav class="p-1 text-center rounded-b-full w-1/2  mx-auto bg-neutral relative max-h-30">
   <a href="/" class="text-2xl font-bold text-neutral-content">Podium</a>
   <div class="grid grid-cols-2 items-center p-2 w-7/12 mx-auto max-h-40 my-auto space-x-2">
-   <a href="/projects" class="btn btn-xs ring-1 ring-opacity-45 ring-accent">Projects</a>
-   <a href="/events" class="btn btn-xs ring-1 ring-opacity-45 ring-accent">Events</a>
+   <a href="/projects" class="btn btn-xs ring-1 ring-accent/45">Projects</a>
+   <a href="/events" class="btn btn-xs ring-1 ring-accent/45">Events</a>
   </div>
 </nav>
 
@@ -47,7 +55,7 @@
 {#if navigating.to && navigating.type != "form"}
   <div class="flex items-center justify-center min-h-screen flex-col">
     <span class="loading loading-ball loading-lg mb-2"></span>
-    {returnLoadingText()}
+    <p>{loadingText}</p>
   </div>
 {:else}
   {@render children()}
@@ -59,43 +67,31 @@
     class="btn btn-info btn-square btn-md font-serif font-light"
     aria-label="Info"
     onclick={() => {
-      showModal = true;
+      aboutModal.openModal();
     }}
   >
     ?
   </button>
 </div>
 
-<!-- Modal -->
-{#if showModal}
-  <div class="modal modal-open modal-bottom sm:modal-middle">
-    <div class="modal-box">
-      <h2 class="font-bold text-lg">About the Project</h2>
-      <p class="py-4">
-        Podium is <a href="https://hackclub.com" class="hover-link">Hack Club's </a><a
-          href="https://github.com/hackclub/podium" class="hover-link">open-source</a
-        >
-        peer-judging platform for
-        <a href="https://hackathons.hackclub.com/" class="hover-link">hackathons</a>. If you
-        encounter issues, feel free to
-        <a href="https://github.com/hackclub/podium/issues" class="hover-link">report</a> them.
-        Need help? Ask on the <a href="https://hackclub.com/slack" class="hover-link">Slack</a> or
-        email <a href="mailto:angad@hackclub.com" class="hover-link">angad@hackclub.com</a>.
-      </p>
-      <p class="text-right">
-        <a href="https://github.com/slashtechno" class="hover-link">-Angad Behl</a>
-      </p>
-      <div class="modal-action">
-        <button
-          class="btn"
-          onclick={() => {
-            showModal = false;
-          }}>Close</button
-        >
-      </div>
-    </div>
-  </div>
-{/if}
+
+<Modal bind:this={aboutModal} title="About Podium">
+    <p class="py-4">
+      Podium is <a href="https://hackclub.com" class="hover-link">Hack Club's </a><a
+        href="https://github.com/hackclub/podium" class="hover-link">open-source</a
+      >
+      peer-judging platform for
+      <a href="https://hackathons.hackclub.com/" class="hover-link">hackathons</a>. If you
+      encounter issues, feel free to
+      <a href="https://github.com/hackclub/podium/issues" class="hover-link">report</a> them.
+      Need help? Ask on the <a href="https://hackclub.com/slack" class="hover-link">Slack</a> or
+      email <a href="mailto:angad@hackclub.com" class="hover-link">angad@hackclub.com</a>.
+    </p>
+    <p class="text-right">
+      <a href="https://github.com/slashtechno" class="hover-link">-Angad Behl</a>
+    </p>
+  </Modal>
+
 
 <div class="fixed bottom-4 right-4">
   <ThemeSwitcher />

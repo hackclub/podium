@@ -9,7 +9,7 @@ from podium.db.user import (
     get_user_record_id_by_email,
 )
 from podium.routers.auth import get_current_user
-from podium.constants import BAD_AUTH
+from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH
 from requests import HTTPError
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -24,18 +24,6 @@ def user_exists(email: Annotated[EmailStr, Query(...)]) -> UserExistsResponse:
     exists = True if db.user.get_user_record_id_by_email(email) else False
     return UserExistsResponse(exists=exists)
 
-@router.get("/{user_id}")
-def get_user_public(user_id: Annotated[str, Path(title="User Airtable ID")]) -> UserPublic:
-    try:
-        user = db.users.get(user_id)
-    except HTTPError as e:
-        raise (
-                HTTPException(status_code=404, detail="User not found")
-                if e.response.status_code in [404, 403]
-                else e
-            )
-            
-    return UserPublic.model_validate(user["fields"])
 
 @router.get("/current")
 def get_current_user(
@@ -45,6 +33,19 @@ def get_current_user(
         return current_user
     raise BAD_AUTH
 
+# It's important that this is under /current since otherwise /users/current will be be passed to this and `current` will be interpreted as a user_id
+@router.get("/{user_id}")
+def get_user_public(user_id: Annotated[str, Path(title="User Airtable ID")]) -> UserPublic:
+    try:
+        user = db.users.get(user_id)
+    except HTTPError as e:
+        raise (
+                HTTPException(status_code=404, detail="User not found")
+                if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
+                else e
+            )
+            
+    return UserPublic.model_validate(user["fields"])
 
 # Eventually, this should probably be rate-limited
 @router.post("/")

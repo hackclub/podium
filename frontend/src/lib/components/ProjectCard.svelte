@@ -63,22 +63,23 @@
   class="m-4"
 >
   <div
-    class="card bg-base-100 card-compact rounded transition-transform duration-200 border-solid border-base {isSelected
+    class="card card-sm bg-base-100 rounded transition-transform duration-200 border-solid border-base {isSelected
       ? 'border-info scale-110 border-2'
       : ''}"
   >
-    <figure class="relative w-full aspect-video">
+    <figure class="w-full">
       <img
         src={project.image_url}
         alt="Project"
-        class="absolute inset-0 w-full h-full object-cover"
+        class="object-contain  w-full h-auth max-h-48"
         loading="lazy"
       />
     </figure>
     <div class="card-body">
-      <h2 class="card-title break-words overflow-x-auto whitespace-nowrap">
+      <h2 class="card-title break-words overflow-x-auto">
         {project.name}
       </h2>
+      <div class="divider my-0"></div>
       <p class="break-words text-sm">{project.description}</p>
       <p class="break-words text-xs">{credits}</p>
       <div class="card-actions justify-end mt-2">

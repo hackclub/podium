@@ -1,4 +1,3 @@
-<!-- TODO: Migrate to new API -->
 <script lang="ts">
   import { toast, Toaster } from "svelte-sonner";
   import { onMount } from "svelte";
@@ -8,7 +7,7 @@
   import type { HTTPValidationError } from "$lib/client/types.gen";
   import { handleError } from "$lib/misc";
   import type { UserSignupPayload } from "$lib/client/types.gen";
-  import { countries, } from 'countries-list'
+  import { countries } from "countries-list";
   // rest is the extra props passed to the component
   let { ...rest } = $props();
 
@@ -31,12 +30,14 @@
   });
   $inspect(userInfo);
   let redirectUrl: string;
-  
+
   // Convert countries to a list of objects with name and code
-  const countryList = Object.entries(countries).map(([code, data]) => ({
-    code,
-    name: data.name,
-  })).sort((a, b) => a.name.localeCompare(b.name));
+  const countryList = Object.entries(countries)
+    .map(([code, data]) => ({
+      code,
+      name: data.name,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   async function eitherLoginOrSignUp() {
     // If showSignupFields is true, the user is signing up and signupAndLogin should be called. Otherwise, the user is logging in and login should be called.
@@ -196,195 +197,154 @@
       </button>
     </div>
   {:else}
-    <!-- space-y-n adds space (margin) between the children -->
-    <form onsubmit={eitherLoginOrSignUp} class="space-y-2">
-      <label class="form-control">
-        <div class="label">
-          <span class="label-text">Email</span>
-        </div>
-        <input
-          id="email"
-          type="email"
-          class="input input-bordered grow"
-          bind:value={userInfo.email}
-          placeholder="example@example.com"
-          onblur={async () => {
-            // If the signup field is expanded and the email currently entered into the field may be valid, check if the signup fields should be hidden since the user already exists
-            if (
-              expandedDueTo != userInfo.email &&
-              userInfo.email &&
-              showSignupFields
-            ) {
-              const userExists = await checkUserExists();
-              if (userExists) {
-                showSignupFields = false;
-              } else {
-                // If the user still doesn't exist, keep the signup fields open
-              }
+    <fieldset
+      class="fieldset bg-base-200 border-base-300 rounded-box border p-4"
+    >
+      <label class="label flex justify-between" for="email">
+        <span>Email</span>
+      </label>
+      <input
+        id="email"
+        type="email"
+        class="input input-bordered w-full"
+        bind:value={userInfo.email}
+        placeholder="example@example.com"
+        onblur={async () => {
+          if (
+            expandedDueTo != userInfo.email &&
+            userInfo.email &&
+            showSignupFields
+          ) {
+            const userExists = await checkUserExists();
+            if (userExists) {
+              showSignupFields = false;
             }
-          }}
-        />
-        <div class="label">
-          <span class="label-text-alt"> We'll send you a magic link </span>
-        </div>
+          }
+        }}
+      />
+      <label class="label flex justify-between" for="email">
+        <span>We'll send you an email</span>
       </label>
 
       {#if showSignupFields}
-        <label class="form-control">
-          <div class="label">
-            <span class="label-text">First Name</span>
-          </div>
-          <input
-            id="first_name"
-            type="text"
-            class="input input-bordered grow"
-            placeholder="Abc"
-            bind:value={userInfo.first_name}
-          />
+        <label class="label" for="first_name">First Name</label>
+        <input
+          id="first_name"
+          type="text"
+          class="input input-bordered w-full"
+          placeholder="Abc"
+          bind:value={userInfo.first_name}
+        />
+
+        <label class="label" for="last_name">Last Name</label>
+        <input
+          id="last_name"
+          type="text"
+          class="input input-bordered w-full"
+          placeholder="Xyz"
+          bind:value={userInfo.last_name}
+        />
+
+        <label class="label flex justify-between" for="phone">
+          <span>Phone</span>
+          <span>Optional, but recommended</span>
+        </label>
+        <input
+          id="phone"
+          type="tel"
+          class="input input-bordered w-full"
+          placeholder="+15555555555"
+          bind:value={userInfo.phone}
+        />
+        <label class="label flex justify-between" for="phone">
+          <span>International format without spaces or special characters</span>
         </label>
 
-        <label class="form-control">
-          <div class="label">
-            <span class="label-text">Last Name</span>
-          </div>
-          <input
-            id="last_name"
-            type="text"
-            class="input input-bordered grow"
-            placeholder="Xyz"
-            bind:value={userInfo.last_name}
-          />
+        <label class="label" for="street_1">Address line 1</label>
+        <input
+          id="street_1"
+          type="text"
+          class="input input-bordered w-full"
+          placeholder="123 Main St"
+          bind:value={userInfo.street_1}
+        />
+
+        <label class="label flex justify-between" for="street_2">
+          <span>Address line 2</span>
+          <span>Optional</span>
         </label>
-        <label class="form-control">
-          <div class="label">
-            <span class="label-text">Phone</span>
-            <span class="label-text-alt">
-              Optional, but recommended
-            </span>
-          </div>
-          <input
-            id="phone"
-            type="tel"
-            class="input input-bordered grow"
-            placeholder="+15555555555"
-            bind:value={userInfo.phone}
-          />
-          <div class="label">
-            <span class="label-text-alt">
-              International format without spaces or special characters
-            </span>
-          </div>
+        <input
+          id="street_2"
+          type="text"
+          class="input input-bordered w-full"
+          placeholder="Apt 4B"
+          bind:value={userInfo.street_2}
+        />
+
+        <label class="label" for="city">City</label>
+        <input
+          id="city"
+          type="text"
+          class="input input-bordered w-full"
+          placeholder="New York"
+          bind:value={userInfo.city}
+        />
+
+        <label class="label" for="state">State/Province</label>
+        <input
+          id="state"
+          type="text"
+          class="input input-bordered w-full"
+          placeholder="NY"
+          bind:value={userInfo.state}
+        />
+
+        <label class="label" for="zip_code">Zip/Postal Code</label>
+        <input
+          id="zip_code"
+          type="text"
+          class="input input-bordered w-full"
+          placeholder="10001"
+          bind:value={userInfo.zip_code}
+        />
+
+        <label class="label" for="country">Country</label>
+        <select
+          id="country"
+          class="select select-bordered w-full"
+          bind:value={userInfo.country}
+        >
+          {#each countryList as { code, name } (code)}
+            <option value={code} selected={userInfo.country == code}>
+              {name}
+            </option>
+          {/each}
+        </select>
+
+        <label class="label flex justify-between" for="dob">
+          <span>Date of Birth</span>
+          <span>Hack Club is only for students {"<="}18</span>
         </label>
-        <label class="form-control">
-          <div class="label">
-            <span class="label-text">Address line 1</span>
-          </div>
-          <input
-            id="street_1"
-            type="text"
-            class="input input-bordered grow"
-            placeholder="123 Main St"
-            bind:value={userInfo.street_1}
-          />
-        </label>
-        <label class="form-control">
-          <div class="label">
-            <span class="label-text">Address line 2</span>
-            <span class="label-text-alt">Optional</span>
-          </div>
-          <input
-            id="street_2"
-            type="text"
-            class="input input-bordered grow"
-            placeholder="Apt 4B"
-            bind:value={userInfo.street_2}
-          />
-        </label>
-        <label class="form-control">
-          <div class="label">
-            <span
-              class="label-text
-">City</span
-            >
-          </div>
-          <input
-            id="city"
-            type="text"
-            class="input input-bordered grow"
-            placeholder="New York"
-            bind:value={userInfo.city}
-          />
-        </label>
-        <label class="form-control">
-          <div class="label">
-            <span class="label-text">State/Province</span>
-          </div>
-          <input
-            id="state"
-            type="text"
-            class="input input-bordered grow"
-            placeholder="NY"
-            bind:value={userInfo.state}
-          />
-        </label>
-        <label class="form-control">
-          <div class="label">
-            <span class="label-text">Zip/Postal Code</span>
-          </div>
-          <input
-            id="zip_code"
-            type="text"
-            class="input input-bordered grow"
-            placeholder="10001"
-            bind:value={userInfo.zip_code}
-          />
-        </label>
-        <label class="form-control">
-          <div class="label">
-            <span class="label-text">Country</span>
-            <!-- <span class="label-text-alt">
-              <a
-                href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2"
-                class="underline">ISO 3166-1 alpha-2</a
-              >
-            </span> -->
-          </div>
-          <select
-            id="country"
-            class="select select-bordered grow"
-            bind:value={userInfo.country}
-          >
-            {#each countryList as { code, name } (code)}
-              <option value={code} selected={userInfo.country == code}>
-                {name}
-              </option>
-            {/each}
-          </select>
-        </label>
-        <label class="form-control">
-          <div class="label">
-            <span class="label-text">Date of Birth</span>
-            <span class="label-text-alt"
-              >Hack Club is only for students {"<="}18</span
-            >
-          </div>
-          <input
-            id="dob"
-            type="date"
-            class="input input-bordered grow"
-            bind:value={userInfo.dob}
-          />
-        </label>
+        <input
+          id="dob"
+          type="date"
+          class="input input-bordered w-full"
+          bind:value={userInfo.dob}
+        />
       {/if}
+
       <div class="flex justify-center">
-        <button type="submit" class="btn btn-primary mt-4" disabled={isLoading}>
+        <button
+          class="btn btn-primary mt-4"
+          disabled={isLoading}
+          onclick={eitherLoginOrSignUp}
+        >
           Login / Sign Up
         </button>
       </div>
-    </form>
+    </fieldset>
   {/if}
-  <!-- TODO: Make this use a var -->
   <div class="text-center mt-4">
-    <a href="/" class="btn-sm btn-secondary btn">← Back to Home</a>
+    <a href="/" class="btn-sm btn-secondary btn">← Back Home</a>
   </div>
 </div>

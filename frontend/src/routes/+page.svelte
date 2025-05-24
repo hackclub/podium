@@ -15,7 +15,11 @@
         <p>
           You're signed in as <strong>{user.email}</strong>.
         </p>
-        <button class="btn mt-2 btn-primary" onclick={signOut}>Sign out</button>
+        <!--  Div that stacks the buttons below -->
+        <!-- <div class="flex flex-col items-center space-y-2"> -->
+        <button class="btn btn-primary mt-2" onclick={signOut}>Sign out</button>
+        <!-- <a href="/user" class="btn btn-primary">Profile</a> -->
+        <!-- </div>   -->
       </div>
     {:else}
       <div class="flex justify-center my-4">
@@ -44,16 +48,22 @@
     </section>
 
     <!-- <section>
-      <h2 class="text-xl font-semibold mb-4">Attend Event</h2>
-      <AttendEvent />
+      <h2 class="text-xl font-semibold mb-4">Your profile</h2>
+      <div class="flex justify-center">
+        <a href="/user" class="btn btn-wide btn-primary">
+          Profile
+        </a>
+      </div>
     </section> -->
   {/if}
 </div>
 
 <style>
+  @reference "../app.css";
+
   section {
-    /* @apply p-6 rounded-lg shadow-sm border-accent border-2 border-dotted border-opacity-50; */
-    @apply p-6 rounded-3xl shadow-2xl ring-2 ring-accent border-accent border-2 border-dotted border-opacity-10 bg-neutral;
+    /* @apply p-6 rounded-lg shadow-xs border-accent/50 border-2 border-dotted; */
+    @apply p-6 rounded-3xl shadow-2xl ring-2 ring-accent border-accent/10 border-2 border-dotted bg-neutral;
   }
 
   * {

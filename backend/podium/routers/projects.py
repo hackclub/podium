@@ -1,13 +1,15 @@
 from secrets import token_urlsafe
 from typing import Annotated
+from quality import quality
 from requests import HTTPError
 from podium import db
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pyairtable.formulas import EQ, RECORD_ID, match
 from podium.routers.auth import get_current_user
 from podium.db.user import UserPrivate
-from podium.db.project import PrivateProject, Project, PublicProjectCreationPayload
-from podium.constants import BAD_AUTH, BAD_ACCESS
+from podium.db.project import InternalProject, PrivateProject, Project, PublicProjectCreationPayload
+from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH, BAD_ACCESS, EmptyModel
+from podium.config import quality_settings
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -25,7 +27,7 @@ def get_projects(
         raise BAD_AUTH
 
     projects = [
-        PrivateProject.model_validate(project["fields"])
+        InternalProject.model_validate(project["fields"])
         for project in [
             db.projects.get(project_id)
             for project_id in user.projects
@@ -67,13 +69,13 @@ def create_project(
             break
 
     # https://docs.pydantic.dev/latest/concepts/serialization/#model_copy
-    full_project = PrivateProject(
+    full_project = InternalProject(
         **project.model_dump(),
         join_code=join_code,
         owner=owner,
         id="",  # Placeholder to prevent an unnecessary class
     )
-    db.projects.create(full_project.model_dump(exclude={"id", "points"}))["fields"]
+    db.projects.create(full_project.model_dump(exclude={"id", "points","cached_auto_quality"}))["fields"]
 
 
 @router.post("/join")
@@ -145,7 +147,33 @@ def get_project(project_id: Annotated[str, Path(pattern=r"^rec\w*$")]):
     except HTTPError as e:
         raise (
             HTTPException(status_code=404, detail="Project not found")
-            if e.response.status_code in [404, 403]
+            if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
             else e
         )
     return Project.model_validate(project["fields"])
+
+@router.post("/check")
+async def check_project(project: Project) -> quality.Results:
+    # TODO: add a parameter to force a recheck or request human review. This could just trigger a Slack webhook
+    try:
+        # Don't trust the user to provide accurate cached_auto_quality data
+        project = InternalProject.model_validate(db.projects.get(project.id)["fields"])
+    except HTTPError as e:
+        if e.response.status_code not in AIRTABLE_NOT_FOUND_CODES:
+            raise e
+        return await quality.check_project(project, config=quality_settings)
+    
+    # Skip whatever checks have the same cached url as the current project
+    if not isinstance(project.cached_auto_quality, EmptyModel):
+        if (project.cached_auto_quality.source_code.url == project.repo) and (
+            project.cached_auto_quality.demo.url == project.demo
+        ) and (project.cached_auto_quality.image_url.url == project.image_url):
+            return project.cached_auto_quality
+        
+    # Recheck the project and update cached data
+    project.cached_auto_quality = await quality.check_project(project, config=quality_settings)
+    db.projects.update(
+        project.id,
+        {"cached_auto_quality": project.cached_auto_quality.model_dump_json()},
+    )
+    return project.cached_auto_quality

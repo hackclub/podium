@@ -87,6 +87,11 @@ export type PrivateProject = {
         string
     ];
     join_code: string;
+    /**
+     * Check the quality of the project.
+     * This is done by checking the demo URL, source code URL, and image URL.
+     */
+    readonly quality: Results;
 };
 
 export type Project = {
@@ -139,6 +144,20 @@ export type PublicProjectCreationPayload = {
      * A lower-bound estimate of the number of hours spent on the project. Only used for general statistics.
      */
     hours_spent?: number;
+};
+
+export type Result = {
+    url: string;
+    valid: boolean;
+    reason: string;
+};
+
+export type Results = {
+    demo: Result;
+    source_code: Result;
+    image_url: Result;
+    readonly reasons: string;
+    readonly valid: boolean;
 };
 
 /**
@@ -372,6 +391,14 @@ export type GetProjectProjectsProjectIdGetResponse = (unknown);
 
 export type GetProjectProjectsProjectIdGetError = (HTTPValidationError);
 
+export type CheckProjectProjectsCheckPostData = {
+    body: Project;
+};
+
+export type CheckProjectProjectsCheckPostResponse = (Results);
+
+export type CheckProjectProjectsCheckPostError = (HTTPValidationError);
+
 export type UserExistsUsersExistsGetData = {
     query: {
         email: string;
@@ -382,6 +409,10 @@ export type UserExistsUsersExistsGetResponse = (UserExistsResponse);
 
 export type UserExistsUsersExistsGetError = (HTTPValidationError);
 
+export type GetCurrentUserUsersCurrentGetResponse = (UserPrivate);
+
+export type GetCurrentUserUsersCurrentGetError = unknown;
+
 export type GetUserPublicUsersUserIdGetData = {
     path: {
         user_id: string;
@@ -391,10 +422,6 @@ export type GetUserPublicUsersUserIdGetData = {
 export type GetUserPublicUsersUserIdGetResponse = (UserPublic);
 
 export type GetUserPublicUsersUserIdGetError = (HTTPValidationError);
-
-export type GetCurrentUserUsersCurrentGetResponse = (UserPrivate);
-
-export type GetCurrentUserUsersCurrentGetError = unknown;
 
 export type CreateUserUsersPostData = {
     body: UserSignupPayload;

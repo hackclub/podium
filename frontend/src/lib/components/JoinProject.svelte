@@ -41,18 +41,19 @@
 </script>
 
 <div class="p-4 max-w-md mx-auto">
-  <form onsubmit={joinProject} class="space-y-4">
-    <label class="form-control">
-      <div class="label">Join Code</div>
-      <input
-        type="text"
-        bind:value={toSend.query.join_code}
-        placeholder="~4 character case-insensitive join code"
-        class="w-full input input-bordered"
-      />
-    </label>
-    <button type="submit" class="btn-block btn btn-primary">
+  <!-- <form onsubmit={joinProject} class="space-y-4"> -->
+  <div class="space-y-4">
+    <label class="label" for="join_code">Join Code</label>
+    <input
+      id="join_code"
+      type="text"
+      bind:value={toSend.query.join_code}
+      placeholder="~4 character case-insensitive join code"
+      class="input input-bordered w-full"
+    />
+    <button class="btn-block btn btn-primary" onclick={joinProject}>
       Join the development of something great!
     </button>
-  </form>
+  </div>
+  <!-- </form> -->
 </div>
