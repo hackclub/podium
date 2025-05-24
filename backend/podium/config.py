@@ -69,9 +69,9 @@ settings.validators.validate()
 quality_settings = QualitySettings( 
     use_vision=True,
     headless=False,
-    # steel_client = Steel(
-        # steel_api_key=settings.steel_api_key,
-    # ),
+    steel_client = Steel(
+        steel_api_key=settings.steel_api_key,
+    ),
     llm=ChatGoogleGenerativeAI(
     # https://ai.google.dev/gemini-api/docs/rate-limits
     # model="gemini-2.0-flash-exp",
