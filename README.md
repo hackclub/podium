@@ -105,6 +105,8 @@ quality --demo "https://podium.hackclub.com" --repo "https://github.com/hackclub
 from langchain_google_genai import ChatGoogleGenerativeAI
 from podium.db.project import Project
 from quality.models import QualitySettings
+from quality.quality import check_project
+import rich
 
 GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"
 
