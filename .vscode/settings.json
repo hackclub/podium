@@ -4,7 +4,7 @@
       "editor.defaultFormatter": "svelte.svelte-vscode"
     },
     "ty.interpreter": [
-      "./venv/bin/python", // Probably will evenutally no longer be needed. I imagine that part of the reason for the current import errors is because uv isn't being used but rather, Poetry
+      "./venv/bin/python", // Probably will eventually no longer be needed. I imagine that part of the reason for the current import errors is because uv isn't being used but rather, Poetry
     ],
     "python.languageServer": "None",
     "debugpy.showPythonInlineValues": false,
