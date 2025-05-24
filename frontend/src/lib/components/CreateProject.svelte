@@ -138,10 +138,7 @@
       {/each}
     </select>
 
-    <button
-      class="btn btn-block btn-primary mt-4"
-      onclick={createProject}
-    >
+    <button class="btn btn-block btn-primary mt-4" onclick={createProject}>
       Create Project
     </button>
   </fieldset>

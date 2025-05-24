@@ -1,13 +1,15 @@
 # from __future__ import annotations
 import asyncio
+
 # import logging
 from browser_use import Agent, Browser, BrowserConfig, Controller
 from browser_use.browser.context import BrowserContext
+
 # from langchain_openai import ChatOpenAI
 from string import Template
 import mimetypes
 import httpx
-from quality.models import QualitySettings, Result, ResultResponse ,Results
+from quality.models import QualitySettings, Result, ResultResponse, Results
 from pydantic import ValidationError
 from podium.db.project import Project
 
@@ -16,6 +18,7 @@ from podium.db.project import Project
 # logging.basicConfig(level=logging.DEBUG)
 
 controller = Controller(output_model=ResultResponse)
+
 
 async def check_project(project: "Project", config: QualitySettings) -> Results:
     # Acquire the semaphore to ensure no more than 2 concurrent sessions
@@ -45,7 +48,6 @@ async def check_project(project: "Project", config: QualitySettings) -> Results:
                     headless=config.headless,
                 )
             )
-        
 
         demo_context = BrowserContext(browser=demo_browser)
         source_context = BrowserContext(browser=source_browser)
@@ -95,18 +97,16 @@ async def check_project(project: "Project", config: QualitySettings) -> Results:
             )
 
             # Validate results with pydantic
-            demo_result = ResultResponse.model_validate_json(demo_result_raw.final_result())
+            demo_result = ResultResponse.model_validate_json(
+                demo_result_raw.final_result()
+            )
             source_code_result = ResultResponse.model_validate_json(
                 source_result_raw.final_result()
             )
             # Add the URL to the results
-            demo_result = Result(
-                **demo_result.model_dump(),
-                url=str(project.demo)
-            )   
+            demo_result = Result(**demo_result.model_dump(), url=str(project.demo))
             source_code_result = Result(
-                **source_code_result.model_dump(),
-                url=str(project.repo)
+                **source_code_result.model_dump(), url=str(project.repo)
             )
         except ValidationError as e:
             # Default values are already set in case the URL is inaccessible or something else goes with the agent
@@ -145,7 +145,7 @@ async def is_raw_image(url: str) -> Result:
     """
     # Check file extension
     mime_type, _ = mimetypes.guess_type(url)
-    if (mime_type and mime_type.startswith("image/")):
+    if mime_type and mime_type.startswith("image/"):
         return Result(
             url=url,
             valid=True,
@@ -174,6 +174,7 @@ async def is_raw_image(url: str) -> Result:
 
 async def main():
     from podium.config import quality_settings
+
     test_run = await check_project(
         Project(
             id="123",
@@ -185,7 +186,7 @@ async def main():
             event=["recj2PpwaPPxGsAbk"],
             owner=["recj2PpwaPPxGsAbk"],
         ),
-        config=quality_settings
+        config=quality_settings,
     )
     # {
     #     "id": "123",
@@ -207,6 +208,4 @@ if __name__ == "__main__":
     # Original exception was:
     # Seems to have no impact on the program
 
-
-
-        # If running with vs code, this will often result, even if the program runs successfully:
+    # If running with vs code, this will often result, even if the program runs successfully:

@@ -29,14 +29,14 @@
     setTimeout(() => {
       try {
         // If the div does not contain the active element (isn't focused),
-      if (!collapseDiv.contains(document.activeElement)) {
+        if (!collapseDiv.contains(document.activeElement)) {
+          isOpen = false;
+        }
+      } catch (error) {
+        // If we the active element doesn't exist stare into space and ponder why
+        // (realistically this is probably because the user is navigating away from the page, so close the collapse)
         isOpen = false;
       }
-    } catch (error) {
-      // If we the active element doesn't exist stare into space and ponder why
-      // (realistically this is probably because the user is navigating away from the page, so close the collapse)
-      isOpen = false;
-    }
     }, 10); // Small delay to allow new focus to be set
   }
 </script>

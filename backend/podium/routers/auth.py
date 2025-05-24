@@ -27,9 +27,6 @@ MAGIC_LINK_EXPIRE_MINUTES = 15
 DEBUG_EMAIL = "angad+debug@hackclub.com"
 
 
-
-
-
 def create_access_token(
     data: dict, expires_delta: timedelta | None = None, token_type: str = "access"
 ):
@@ -133,7 +130,7 @@ async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
 ) -> UserPrivate:
     """
-    Create a user object from a JWT access token. If the email that's encoded in the token isn't associated with a record, return None. 
+    Create a user object from a JWT access token. If the email that's encoded in the token isn't associated with a record, return None.
     """
     token = credentials.credentials
     try:
@@ -141,7 +138,7 @@ async def get_current_user(
         email: str = payload.get("sub")
         token_type: str = payload.get("token_type")
         if email is None or token_type != "access":
-            raise HTTPException(status_code=400, detail="Bad JWT")            
+            raise HTTPException(status_code=400, detail="Bad JWT")
     except PyJWTError:
         # raise credentials_exception
         return None
@@ -164,10 +161,14 @@ async def protected_route(
 ) -> CheckAuthResponse:
     # Check if null user was sent
     if current_user is None:
-        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+        raise HTTPException(
+            status_code=401, detail="Invalid authentication credentials"
+        )
     # Check if the user exists
     if db.user.get_user_record_id_by_email(current_user.email) is None:
-        raise HTTPException(status_code=403, detail="Invalid authentication credentials")
+        raise HTTPException(
+            status_code=403, detail="Invalid authentication credentials"
+        )
     return CheckAuthResponse(email=current_user.email)
 
 

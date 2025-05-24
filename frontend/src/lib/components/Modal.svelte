@@ -1,5 +1,5 @@
 <script lang="ts">
-/* How to use:
+  /* How to use:
     import Modal from "$lib/components/Modal.svelte";
     let variableToHoldModal: Modal = $state() as Modal;  
     <Modal bind:this={variableToHoldModal} title="abxyz">
@@ -12,7 +12,7 @@
     </Modal>
     */
 
-import type { Snippet } from "svelte";
+  import type { Snippet } from "svelte";
 
   let { title, children }: { title: string; children: Snippet } = $props();
 

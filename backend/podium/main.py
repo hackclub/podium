@@ -8,7 +8,9 @@ import sentry_sdk
 
 
 sentry_sdk.init(
-    dsn="" if os.getenv("ENV_FOR_DYNACONF") == "development" else "https://489f4a109d07aeadfd13387bcd3197ab@o4508979744210944.ingest.de.sentry.io/4508979747553360",
+    dsn=""
+    if os.getenv("ENV_FOR_DYNACONF") == "development"
+    else "https://489f4a109d07aeadfd13387bcd3197ab@o4508979744210944.ingest.de.sentry.io/4508979747553360",
     # Add data like request headers and IP for users,
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,
@@ -46,10 +48,12 @@ for path in routers_dir.glob("*.py"):
 # async def trigger_error():
 #     division_by_zero = 1 / 0
 
+
 def main():
     # Go to http://localhost:8000/docs to see the Swagger UI
     # or http://localhost:8000/redoc to see the specification
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
 
 if __name__ == "__main__":
     main()

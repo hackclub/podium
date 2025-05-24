@@ -6,11 +6,10 @@
   import type { PageData } from "./$types";
   import Collapse from "$lib/components/Collapse.svelte";
   import ProjectCard from "$lib/components/ProjectCard.svelte";
-    import { onMount } from "svelte";
-    import { ProjectsService, type Results } from "$lib/client";
-    import Modal from "$lib/components/Modal.svelte";
+  import { onMount } from "svelte";
+  import { ProjectsService, type Results } from "$lib/client";
+  import Modal from "$lib/components/Modal.svelte";
   let { data }: { data: PageData } = $props();
-
 
   // Stuff for project quality
   const projectModalState = $state({} as Record<string, Modal>);
@@ -77,22 +76,29 @@
                 </td>
                 <td>
                   <button
-                  class="badge badge-lg underline"
-                  class:badge-success={projectQualityResults[project.id]?.valid}
-                  class:badge-warning={!projectQualityResults[project.id]?.valid}
-                  onclick={() => {
-                    projectModalState[project.id].openModal();
-                  }}
-                >
-                  {#if !projectQualityResults[project.id]}
-                    <span class="loading loading-dots loading-xs"></span>
-                  {:else}
-                    {projectQualityResults[project.id]?.valid ? "Valid" : "Invalid"}
-                  {/if}
-                </button>
-                  {#if projectQualityResults[project.id]} 
-                  <!-- This is in a conditional to prevent trying to access null properties -->
-                    <Modal title="Project Quality" bind:this={projectModalState[project.id]}>
+                    class="badge badge-lg underline"
+                    class:badge-success={projectQualityResults[project.id]
+                      ?.valid}
+                    class:badge-warning={!projectQualityResults[project.id]
+                      ?.valid}
+                    onclick={() => {
+                      projectModalState[project.id].openModal();
+                    }}
+                  >
+                    {#if !projectQualityResults[project.id]}
+                      <span class="loading loading-dots loading-xs"></span>
+                    {:else}
+                      {projectQualityResults[project.id]?.valid
+                        ? "Valid"
+                        : "Invalid"}
+                    {/if}
+                  </button>
+                  {#if projectQualityResults[project.id]}
+                    <!-- This is in a conditional to prevent trying to access null properties -->
+                    <Modal
+                      title="Project Quality"
+                      bind:this={projectModalState[project.id]}
+                    >
                       <table class="table w-full table-zebra">
                         <thead>
                           <tr>
@@ -107,7 +113,10 @@
                               {#if projectQualityResults[project.id]?.demo.valid}
                                 ✅
                               {:else}
-                                ❌ {@html formatReasons(projectQualityResults[project.id]?.demo.reason)}
+                                ❌ {@html formatReasons(
+                                  projectQualityResults[project.id]?.demo
+                                    .reason,
+                                )}
                               {/if}
                             </td>
                           </tr>
@@ -117,7 +126,10 @@
                               {#if projectQualityResults[project.id]?.source_code.valid}
                                 ✅
                               {:else}
-                                ❌ {@html formatReasons(projectQualityResults[project.id]?.source_code.reason)}
+                                ❌ {@html formatReasons(
+                                  projectQualityResults[project.id]?.source_code
+                                    .reason,
+                                )}
                               {/if}
                             </td>
                           </tr>
@@ -127,13 +139,16 @@
                               {#if projectQualityResults[project.id]?.image_url.valid}
                                 ✅
                               {:else}
-                                ❌ {@html formatReasons(projectQualityResults[project.id]?.image_url.reason)}
+                                ❌ {@html formatReasons(
+                                  projectQualityResults[project.id]?.image_url
+                                    .reason,
+                                )}
                               {/if}
                             </td>
                           </tr>
                         </tbody>
                       </table>
-            </Modal> 
+                    </Modal>
                   {/if}
                 </td>
               </tr>

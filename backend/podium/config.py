@@ -3,6 +3,7 @@ from dynaconf import Dynaconf, Validator
 from langchain_google_genai import ChatGoogleGenerativeAI
 from quality.models import QualitySettings
 from steel import Steel
+
 settings = Dynaconf(
     envvar_prefix="PODIUM",
     load_dotenv=True,
@@ -66,16 +67,16 @@ settings.validators.register(
 
 settings.validators.validate()
 
-quality_settings = QualitySettings( 
+quality_settings = QualitySettings(
     use_vision=True,
     headless=False,
-    steel_client = Steel(
+    steel_client=Steel(
         steel_api_key=settings.steel_api_key,
     ),
     llm=ChatGoogleGenerativeAI(
-    # https://ai.google.dev/gemini-api/docs/rate-limits
-    # model="gemini-2.0-flash-exp",
-    api_key=settings.gemini_api_key,
-    model="gemini-2.0-flash-lite",
-)
+        # https://ai.google.dev/gemini-api/docs/rate-limits
+        # model="gemini-2.0-flash-exp",
+        api_key=settings.gemini_api_key,
+        model="gemini-2.0-flash-lite",
+    ),
 )

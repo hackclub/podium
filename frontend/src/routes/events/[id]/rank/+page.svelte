@@ -50,7 +50,8 @@
 <!-- Basic information about voting -->
 <div class="p-4 bg-info text-center rounded-xl max-w-2xl mx-auto">
   <p class="text-info-content">
-    Select your top {toSelect} projects in no particular order. If you've voted for less than {toSelect} projects, you can still vote.
+    Select your top {toSelect} projects in no particular order. If you've voted for
+    less than {toSelect} projects, you can still vote.
   </p>
 </div>
 

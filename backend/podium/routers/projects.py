@@ -7,7 +7,12 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pyairtable.formulas import EQ, RECORD_ID, match
 from podium.routers.auth import get_current_user
 from podium.db.user import UserPrivate
-from podium.db.project import InternalProject, PrivateProject, Project, PublicProjectCreationPayload
+from podium.db.project import (
+    InternalProject,
+    PrivateProject,
+    Project,
+    PublicProjectCreationPayload,
+)
 from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH, BAD_ACCESS, EmptyModel
 from podium.config import quality_settings
 
@@ -28,12 +33,8 @@ def get_projects(
 
     projects = [
         InternalProject.model_validate(project["fields"])
-        for project in [
-            db.projects.get(project_id)
-            for project_id in user.projects
-        ] + 
-            [db.projects.get(project_id)
-            for project_id in user.collaborations]
+        for project in [db.projects.get(project_id) for project_id in user.projects]
+        + [db.projects.get(project_id) for project_id in user.collaborations]
     ]
     return projects
 
@@ -75,7 +76,9 @@ def create_project(
         owner=owner,
         id="",  # Placeholder to prevent an unnecessary class
     )
-    db.projects.create(full_project.model_dump(exclude={"id", "points","cached_auto_quality"}))["fields"]
+    db.projects.create(
+        full_project.model_dump(exclude={"id", "points", "cached_auto_quality"})
+    )["fields"]
 
 
 @router.post("/join")
@@ -120,7 +123,9 @@ def update_project(
     Update a project by replacing it
     """
     # Check if the user is an owner of the project or if they even exist
-    if user is None or user.id not in db.projects.get(project_id)["fields"].get("owner", []):
+    if user is None or user.id not in db.projects.get(project_id)["fields"].get(
+        "owner", []
+    ):
         raise BAD_ACCESS
 
     return db.projects.update(project_id, project.model_dump())["fields"]
@@ -133,7 +138,9 @@ def delete_project(
     user: Annotated[UserPrivate, Depends(get_current_user)],
 ):
     # Check if the user is an owner of the project or if they even exist
-    if user is None or user.id not in db.projects.get(project_id)["fields"].get("owner", []):
+    if user is None or user.id not in db.projects.get(project_id)["fields"].get(
+        "owner", []
+    ):
         raise BAD_ACCESS
 
     return db.projects.delete(project_id)
@@ -152,6 +159,7 @@ def get_project(project_id: Annotated[str, Path(pattern=r"^rec\w*$")]):
         )
     return Project.model_validate(project["fields"])
 
+
 @router.post("/check")
 async def check_project(project: Project) -> quality.Results:
     # TODO: add a parameter to force a recheck or request human review. This could just trigger a Slack webhook
@@ -162,16 +170,20 @@ async def check_project(project: Project) -> quality.Results:
         if e.response.status_code not in AIRTABLE_NOT_FOUND_CODES:
             raise e
         return await quality.check_project(project, config=quality_settings)
-    
+
     # Skip whatever checks have the same cached url as the current project
     if not isinstance(project.cached_auto_quality, EmptyModel):
-        if (project.cached_auto_quality.source_code.url == project.repo) and (
-            project.cached_auto_quality.demo.url == project.demo
-        ) and (project.cached_auto_quality.image_url.url == project.image_url):
+        if (
+            (project.cached_auto_quality.source_code.url == project.repo)
+            and (project.cached_auto_quality.demo.url == project.demo)
+            and (project.cached_auto_quality.image_url.url == project.image_url)
+        ):
             return project.cached_auto_quality
-        
+
     # Recheck the project and update cached data
-    project.cached_auto_quality = await quality.check_project(project, config=quality_settings)
+    project.cached_auto_quality = await quality.check_project(
+        project, config=quality_settings
+    )
     db.projects.update(
         project.id,
         {"cached_auto_quality": project.cached_auto_quality.model_dump_json()},

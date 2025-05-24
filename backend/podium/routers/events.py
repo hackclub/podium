@@ -30,7 +30,7 @@ router = APIRouter(prefix="/events", tags=["events"])
 @router.get("/{event_id}")
 def get_event(
     event_id: Annotated[str, Path(title="Event Airtable ID")],
-    user: Annotated[UserPrivate, Depends(get_current_user)]
+    user: Annotated[UserPrivate, Depends(get_current_user)],
 ) -> Union[PrivateEvent, Event]:
     """
     Get an event by its ID. If the user owns it, return a PrivateEvent. Otherwise, return a regular event. Can be called with invalid auth credentials if needed, but will need something in the bearer token for the code to work
@@ -39,10 +39,10 @@ def get_event(
         event = db.events.get(event_id)
     except HTTPError as e:
         raise (
-                HTTPException(status_code=404, detail="Event not found")
-                if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
-                else e
-            )
+            HTTPException(status_code=404, detail="Event not found")
+            if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
+            else e
+        )
 
     if user and user.id in event["fields"].get("owner", []):
         event = PrivateEvent.model_validate(event["fields"])
@@ -59,25 +59,19 @@ def get_attending_events(
 ) -> UserEvents:
     """
     Get a list of all events that the current user is attending.
-    """    
+    """
     if user is None:
         raise BAD_AUTH
 
     # Eventually it might be better to return a user object. Otherwise, the client that the event owner is using would need to fetch the user. Since user emails probably shouldn't be public with just a record ID as a parameter, we would need to check if the person calling GET /users?user=ID has an event wherein that user ID is present. To avoid all this, the user object could be returned.
-    
+
     owned_events = [
         PrivateEvent.model_validate(event["fields"])
-        for event in [
-            db.events.get(event_id)
-            for event_id in user.owned_events
-        ]
+        for event in [db.events.get(event_id) for event_id in user.owned_events]
     ]
     attending_events = [
         Event.model_validate(event["fields"])
-        for event in [
-            db.events.get(event_id)
-            for event_id in user.attending_events
-        ]
+        for event in [db.events.get(event_id) for event_id in user.attending_events]
     ]
 
     return UserEvents(owned_events=owned_events, attending_events=attending_events)
@@ -95,7 +89,6 @@ def create_event(
         raise BAD_AUTH
     owner = [user.id]
 
-
     # Generate a unique join code by continuously generating a new one until it doesn't match any existing join codes
     while True:
         join_code = token_urlsafe(3).upper()
@@ -110,7 +103,10 @@ def create_event(
         owner=owner,
         id="",  # Placeholder to prevent an unnecessary class
     )
-    db.events.create(full_event.model_dump(exclude={"id", "max_votes_per_user"}))["fields"]
+    db.events.create(full_event.model_dump(exclude={"id", "max_votes_per_user"}))[
+        "fields"
+    ]
+
 
 @router.post("/attend")
 def attend_event(
@@ -149,8 +145,6 @@ def attend_event(
         )
 
 
-
-
 @router.put("/{event_id}")
 def update_event(
     event_id: Annotated[str, Path(title="Event ID")],
@@ -164,7 +158,7 @@ def update_event(
     if user is None or event_id not in user.owned_events:
         # This also ensures the event exists since it has to exist to be in the user's owned events
         raise BAD_ACCESS
-    
+
     db.events.update(event_id, event.model_dump())["fields"]
 
 
@@ -218,15 +212,11 @@ def vote(votes: CreateVotes, user: Annotated[UserPrivate, Depends(get_current_us
 
         # Check if the project is in the event
         if project.event != [event.id]:
-            raise HTTPException(
-                status_code=400, detail="Project is not in the event"
-            )
+            raise HTTPException(status_code=400, detail="Project is not in the event")
 
         # fetch votes wherein the user is the voter and the event is the event_id. These need to be lookup fields, it seems
-        formula = match(
-            {"user_id": user.id, "event_id": event.id}
-        )
-            
+        formula = match({"user_id": user.id, "event_id": event.id})
+
         existing_votes = db.votes.all(formula=formula)
         # Check if the user has already met the required number of votes
         if len(existing_votes) >= event.max_votes_per_user:
@@ -234,7 +224,7 @@ def vote(votes: CreateVotes, user: Annotated[UserPrivate, Depends(get_current_us
                 status_code=400,
                 detail=f"User has already voted for {event.max_votes_per_user} projects",
             )
-        
+
         # Check if the user has already voted for this project
         if db.votes.all(
             formula=match(
@@ -245,16 +235,16 @@ def vote(votes: CreateVotes, user: Annotated[UserPrivate, Depends(get_current_us
                 status_code=400,
                 detail="User has already voted for this project",
             )
-        
+
         if user.id in project.collaborators or user.id in project.owner:
             raise HTTPException(
                 status_code=403,
                 detail="User cannot vote for their own project",
             )
-        
+
         # Create vote record
         db.votes.create(vote.model_dump())
-            
+
 
 @router.get("/{event_id}/leaderboard")
 def get_leaderboard(event_id: Annotated[str, Path(title="Event ID")]) -> List[Project]:
@@ -265,13 +255,15 @@ def get_leaderboard(event_id: Annotated[str, Path(title="Event ID")]) -> List[Pr
         event = db.events.get(event_id)
     except HTTPError as e:
         raise (
-                HTTPException(status_code=404, detail="Event not found")
-                if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
-                else e
-            )
+            HTTPException(status_code=404, detail="Event not found")
+            if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
+            else e
+        )
     event = PrivateEvent.model_validate(event["fields"])
     if not event.leaderboard_enabled:
-        raise HTTPException(status_code=403, detail="Leaderboard is not enabled for this event")
+        raise HTTPException(
+            status_code=403, detail="Leaderboard is not enabled for this event"
+        )
     projects = []
     for project_id in event.projects:
         try:
@@ -288,10 +280,7 @@ def get_leaderboard(event_id: Annotated[str, Path(title="Event ID")]) -> List[Pr
     # Sort the projects by the number of votes they have received
     projects.sort(key=lambda project: project["fields"].get("points", 0), reverse=True)
 
-    projects = [
-        Project.model_validate(project["fields"])
-        for project in projects
-    ]
+    projects = [Project.model_validate(project["fields"]) for project in projects]
     return projects
 
 

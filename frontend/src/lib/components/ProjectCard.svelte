@@ -1,7 +1,7 @@
 <script lang="ts">
   import { UsersService } from "$lib/client";
   import type { Project } from "$lib/client/types.gen";
-    import { handleError } from "$lib/misc";
+  import { handleError } from "$lib/misc";
   import { onMount } from "svelte";
   interface Props {
     project: Project;
@@ -40,7 +40,10 @@
           names.push(data.first_name);
         }
         // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/ListFormat/ListFormat#parameters
-        const formatter = new Intl.ListFormat("en", { style: "short", type: "conjunction" });
+        const formatter = new Intl.ListFormat("en", {
+          style: "short",
+          type: "conjunction",
+        });
         credits = formatter.format(names);
       }
     }
@@ -71,7 +74,7 @@
       <img
         src={project.image_url}
         alt="Project"
-        class="object-contain  w-full h-auth max-h-48"
+        class="object-contain w-full h-auth max-h-48"
         loading="lazy"
       />
     </figure>

@@ -24,6 +24,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# poetry install --extras "dev"
 dev = [
     "aiosmtpd (>=1.4.6,<2.0.0)",
     "ruff (>=0.8.1,<1.0.0)"

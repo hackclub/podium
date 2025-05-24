@@ -10,7 +10,7 @@
   import Modal from "$lib/components/Modal.svelte";
   let aboutModal: Modal = $state() as Modal;
   let loadingText = $state(returnLoadingText());
-  let loadingTextInterval: NodeJS.Timeout = $state() as NodeJS.Timeout; 
+  let loadingTextInterval: NodeJS.Timeout = $state() as NodeJS.Timeout;
   onMount(() => {
     console.debug("Page data:", page.data);
     themeChange(false);
@@ -38,17 +38,22 @@
   {/if}
 </svelte:head>
 
-<nav class="p-1 text-center rounded-b-full w-1/2  mx-auto bg-neutral relative max-h-30">
+<nav
+  class="p-1 text-center rounded-b-full w-1/2 mx-auto bg-neutral relative max-h-30"
+>
   <a href="/" class="text-2xl font-bold text-neutral-content">Podium</a>
-  <div class="grid grid-cols-2 items-center p-2 w-7/12 mx-auto max-h-40 my-auto space-x-2">
-   <a href="/projects" class="btn btn-xs ring-1 ring-accent/45">Projects</a>
-   <a href="/events" class="btn btn-xs ring-1 ring-accent/45">Events</a>
+  <div
+    class="grid grid-cols-2 items-center p-2 w-7/12 mx-auto max-h-40 my-auto space-x-2"
+  >
+    <a href="/projects" class="btn btn-xs ring-1 ring-accent/45">Projects</a>
+    <a href="/events" class="btn btn-xs ring-1 ring-accent/45">Events</a>
   </div>
 </nav>
 
 <div class="p-4 bg-info text-center rounded-xl max-w-2xl mx-auto m-4">
   <p class="text-info-content">
-    Podium isn't working and need urgent help? DM @Angad Behl on Slack or call +1 (415) 570-4995.
+    Podium isn't working and need urgent help? DM @Angad Behl on Slack or call
+    +1 (415) 570-4995.
   </p>
 </div>
 
@@ -74,24 +79,29 @@
   </button>
 </div>
 
-
 <Modal bind:this={aboutModal} title="About Podium">
-    <p class="py-4">
-      Podium is <a href="https://hackclub.com" class="hover-link">Hack Club's </a><a
-        href="https://github.com/hackclub/podium" class="hover-link">open-source</a
-      >
-      peer-judging platform for
-      <a href="https://hackathons.hackclub.com/" class="hover-link">hackathons</a>. If you
-      encounter issues, feel free to
-      <a href="https://github.com/hackclub/podium/issues" class="hover-link">report</a> them.
-      Need help? Ask on the <a href="https://hackclub.com/slack" class="hover-link">Slack</a> or
-      email <a href="mailto:angad@hackclub.com" class="hover-link">angad@hackclub.com</a>.
-    </p>
-    <p class="text-right">
-      <a href="https://github.com/slashtechno" class="hover-link">-Angad Behl</a>
-    </p>
-  </Modal>
-
+  <p class="py-4">
+    Podium is <a href="https://hackclub.com" class="hover-link"
+      >Hack Club's
+    </a><a href="https://github.com/hackclub/podium" class="hover-link"
+      >open-source</a
+    >
+    peer-judging platform for
+    <a href="https://hackathons.hackclub.com/" class="hover-link">hackathons</a
+    >. If you encounter issues, feel free to
+    <a href="https://github.com/hackclub/podium/issues" class="hover-link"
+      >report</a
+    >
+    them. Need help? Ask on the
+    <a href="https://hackclub.com/slack" class="hover-link">Slack</a>
+    or email
+    <a href="mailto:angad@hackclub.com" class="hover-link">angad@hackclub.com</a
+    >.
+  </p>
+  <p class="text-right">
+    <a href="https://github.com/slashtechno" class="hover-link">-Angad Behl</a>
+  </p>
+</Modal>
 
 <div class="fixed bottom-4 right-4">
   <ThemeSwitcher />

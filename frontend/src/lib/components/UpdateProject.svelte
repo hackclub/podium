@@ -75,7 +75,7 @@
       chosenProject = emptyProject;
       // Fetch the projects again if the user wants to perform another update to reflect the deletion
       fetchedProjects = false;
-      invalidateProjects(); 
+      invalidateProjects();
     } catch (err) {
       handleError(err);
     }
@@ -97,7 +97,7 @@
       await ProjectsService.updateProjectProjectsProjectIdPut({
         path: { project_id: chosenProject.id },
         body: project,
-      throwOnError: true,
+        throwOnError: true,
       });
       toast("Project updated successfully");
       // Reset the fields
@@ -105,7 +105,7 @@
       chosenProject = emptyProject;
       // fetch the projects again if the user wants to perform another update
       fetchedProjects = false;
-      invalidateProjects();  
+      invalidateProjects();
     } catch (err) {
       handleError(err);
     }
@@ -115,7 +115,8 @@
 <div class="p-4 max-w-md mx-auto">
   {#if showDeleteAlert}
     <div role="alert" class="alert" in:fade out:fade>
-      <span>Are you <strong>sure</strong> you want to delete this project?</span>
+      <span>Are you <strong>sure</strong> you want to delete this project?</span
+      >
       <div>
         <button class="btn" onclick={() => (showDeleteAlert = false)}>
           Cancel
@@ -158,7 +159,9 @@
           class="input input-bordered w-full"
         />
 
-        <label class="label" for="project_description">Project Description</label>
+        <label class="label" for="project_description"
+          >Project Description</label
+        >
         <textarea
           id="project_description"
           bind:value={project.description}

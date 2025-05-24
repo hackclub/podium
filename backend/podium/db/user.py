@@ -8,24 +8,28 @@ from pyairtable.formulas import match
 
 FirstName = Annotated[str, Field(..., min_length=1, max_length=50)]
 LastName = Annotated[str, Field(default="")]
-EmailStrippedLower = Annotated[str, StringConstraints(strip_whitespace=True, to_lower=True)]
+EmailStrippedLower = Annotated[
+    str, StringConstraints(strip_whitespace=True, to_lower=True)
+]
 
 
 class UserLoginPayload(BaseModel):
-    email: EmailStrippedLower 
+    email: EmailStrippedLower
+
 
 class UserBase(BaseModel):
     first_name: FirstName
     last_name: LastName
 
-class UserPublic(UserBase):
-    ...
+
+class UserPublic(UserBase): ...
+
 
 class UserSignupPayload(UserBase):
     email: EmailStrippedLower
     # Optional since some users don't have a last name in the DB
     # International phone number format, allowing empty string
-    # this should have a default since I think Airtable may return None 
+    # this should have a default since I think Airtable may return None
     phone: Annotated[str, StringConstraints(pattern=r"(^$|^\+?[1-9]\d{1,14}$)")] = ""
     street_1: Optional[str] = ""
     street_2: Optional[str] = ""
@@ -49,13 +53,11 @@ class UserSignupPayload(UserBase):
         else:
             data["dob"] = None
         return data
-    
+
     # Ensure email is normalized to lowercase and stripped of whitespace
     # @field_validator("email", mode="before")
     # def normalize_email(cls, v: str) -> str:
     #     return v.strip().lower()
-
-
 
 
 class UserPrivate(UserSignupPayload):
@@ -66,8 +68,6 @@ class UserPrivate(UserSignupPayload):
     owned_events: constants.MultiRecordField = []
     attending_events: constants.MultiRecordField = []
     referral: constants.MultiRecordField = []
-
-
 
 
 def get_user_record_id_by_email(email: str) -> Optional[str]:

@@ -6,7 +6,9 @@
   import { user, signOut } from "$lib/user.svelte";
 </script>
 
-<div class="space-y-8 p-4 max-w-2xl mx-auto flex flex-col justify-center min-h-screen">
+<div
+  class="space-y-8 p-4 max-w-2xl mx-auto flex flex-col justify-center min-h-screen"
+>
   <section>
     <h2 class="text-xl font-semibold mb-4">Login</h2>
     {#if user.isAuthenticated}
@@ -69,5 +71,4 @@
   * {
     @apply text-neutral-content;
   }
-  
 </style>

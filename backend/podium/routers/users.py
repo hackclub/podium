@@ -14,6 +14,7 @@ from requests import HTTPError
 
 router = APIRouter(prefix="/users", tags=["users"])
 
+
 class UserExistsResponse(BaseModel):
     exists: bool
 
@@ -33,19 +34,23 @@ def get_current_user(
         return current_user
     raise BAD_AUTH
 
+
 # It's important that this is under /current since otherwise /users/current will be be passed to this and `current` will be interpreted as a user_id
 @router.get("/{user_id}")
-def get_user_public(user_id: Annotated[str, Path(title="User Airtable ID")]) -> UserPublic:
+def get_user_public(
+    user_id: Annotated[str, Path(title="User Airtable ID")],
+) -> UserPublic:
     try:
         user = db.users.get(user_id)
     except HTTPError as e:
         raise (
-                HTTPException(status_code=404, detail="User not found")
-                if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
-                else e
-            )
-            
+            HTTPException(status_code=404, detail="User not found")
+            if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
+            else e
+        )
+
     return UserPublic.model_validate(user["fields"])
+
 
 # Eventually, this should probably be rate-limited
 @router.post("/")
@@ -55,5 +60,3 @@ def create_user(user: UserSignupPayload):
     if user_id:
         raise HTTPException(status_code=400, detail="User already exists")
     db.users.create(user.model_dump())
-
-

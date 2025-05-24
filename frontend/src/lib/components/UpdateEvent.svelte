@@ -6,9 +6,7 @@
   import type { EventUpdate } from "$lib/client/types.gen";
   import { fade } from "svelte/transition";
 
-  let {
-    events,
-  }: { events: Array<Event> } = $props();
+  let { events }: { events: Array<Event> } = $props();
 
   const emptyEventUpdate: EventUpdate = {
     name: "",
@@ -57,14 +55,14 @@
       await EventsService.updateEventEventsEventIdPut({
         path: { event_id: chosenEvent.id },
         body: event,
-      throwOnError: true,
+        throwOnError: true,
       });
       toast("Event updated successfully");
       // Reset the fields
       event = emptyEventUpdate;
       chosenEvent = emptyEvent;
       // Invalidate events to refresh the list
-      invalidateEvents()
+      invalidateEvents();
     } catch (err) {
       handleError(err);
     }

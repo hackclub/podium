@@ -8,8 +8,6 @@ from quality.models import QualitySettings
 import rich
 from quality.quality import check_project
 
-warnings.filterwarnings("ignore", message="unclosed transport", category=ResourceWarning)
-
 
 parser = argparse.ArgumentParser(
     description="CLI for evaluating project quality. For advanced usage, import `quality` as a library. Outputs JSON."
@@ -21,9 +19,7 @@ parser.add_argument("--image", required=True, help="Image URL to evaluate.")
 # Create a mutually exclusive group for settings
 settings_group = parser.add_mutually_exclusive_group(required=True)
 settings_group.add_argument(
-    "--use-podium-settings",
-    action="store_true",
-    help="Use Podium's settings"
+    "--use-podium-settings", action="store_true", help="Use Podium's settings"
 )
 settings_group.add_argument(
     "--gemini-api-key",
@@ -42,6 +38,7 @@ async def main():
     # If custom settings are not selected, ignore gemini-api-key and headless
     if args.use_podium_settings:
         from podium.config import quality_settings
+
         if args.headless:
             rich.print(
                 "[yellow]Warning: Headless mode is not supported with Podium's settings. Ignoring --headless.[/yellow]"
@@ -72,6 +69,8 @@ async def main():
     rich.print_json(
         json=results.model_dump_json(),
     )
+
+
 def cmd():
     os.environ["BROWSER_USE_LOGGING_LEVEL"] = "RESULT"
     asyncio.run(main())

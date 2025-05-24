@@ -46,7 +46,7 @@ export function setSystemTheme() {
 export function returnLoadingText(): string {
   return loadingTextOptions[
     Math.floor(Math.random() * loadingTextOptions.length)
-  ]
+  ];
 }
 
 export function invalidateEvents() {

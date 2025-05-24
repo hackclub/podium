@@ -15,9 +15,12 @@ SingleRecordField = Annotated[
 
 # raise\s+HTTPException\([^)]*["'].*User.*["']
 BAD_AUTH = HTTPException(status_code=401, detail="Invalid authentication credentials")
-BAD_ACCESS = HTTPException(status_code=403, detail="You don't have permission to do this")
+BAD_ACCESS = HTTPException(
+    status_code=403, detail="You don't have permission to do this"
+)
 
 AIRTABLE_NOT_FOUND_CODES = [404, 403]
+
 
 class EmptyModel(BaseModel):
     pass

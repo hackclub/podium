@@ -4,6 +4,7 @@ from quality.models import Results
 from pydantic import BaseModel, Field, StringConstraints, field_validator
 from typing import Annotated, Optional
 
+
 class ProjectBase(BaseModel):
     name: Annotated[str, StringConstraints(min_length=1)]
     repo: str
@@ -49,8 +50,10 @@ class Project(ProjectBase):
 class PrivateProject(Project):
     join_code: str
 
+
 class InternalProject(PrivateProject):
-    cached_auto_quality: Results|EmptyModel = EmptyModel()
+    cached_auto_quality: Results | EmptyModel = EmptyModel()
+
     # Allow it to be loaded as JSON
     @field_validator("cached_auto_quality", mode="before")
     @classmethod

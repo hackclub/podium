@@ -4,7 +4,7 @@ import { client, EventsService } from "$lib/client/sdk.gen";
 import type { Project } from "$lib/client/types.gen";
 
 export const load: PageLoad = async ({ params, fetch }) => {
-client.setConfig({ fetch });
+  client.setConfig({ fetch });
   const { id } = params;
   const {
     data,
