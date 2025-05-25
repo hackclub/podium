@@ -1,4 +1,5 @@
 import asyncio
+from typing import Optional
 from pydantic import BaseModel, ConfigDict, computed_field
 from langchain.chat_models.base import BaseChatModel
 from steel import Steel
@@ -13,7 +14,7 @@ class QualitySettings(BaseModel):
     use_vision: bool = True
     headless: bool = False
     llm: BaseChatModel
-    steel_client: Steel = None
+    steel_client: Optional[Steel] = None
     prompts: Prompts = Prompts()
     session_semaphore: asyncio.Semaphore = asyncio.Semaphore(2)
 

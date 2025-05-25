@@ -39,10 +39,10 @@ settings.validators.register(
         ),
         Validator(
             "sendgrid_api_key",
-            must_exist=True,
+            # must_exist=True,
             # condition=lambda x: re.match(r"^SG\..+", x) is not None,
-            condition=lambda x: x.startswith("SG."),
-            messages={"condition": "Must start with 'SG.'"},
+            # condition=lambda x: x.startswith("SG."),
+            # messages={"condition": "Must start with 'SG.'"},
         ),
         # Validator(
         # "sendgrid_from_email",
@@ -72,7 +72,7 @@ quality_settings = QualitySettings(
     headless=False,
     steel_client=Steel(
         steel_api_key=settings.steel_api_key,
-    ),
+    ) if settings.get("steel_api_key") else None,
     llm=ChatGoogleGenerativeAI(
         # https://ai.google.dev/gemini-api/docs/rate-limits
         # model="gemini-2.0-flash-exp",

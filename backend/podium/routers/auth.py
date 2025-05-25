@@ -58,20 +58,24 @@ async def send_magic_link(email: str, redirect: str = ""):
     if redirect:
         magic_link += f"&redirect={redirect}"
 
-    message = Mail(
-        from_email=settings.sendgrid_from_email,
-        to_emails=email,
-        subject="Magic link for Podium",
-        # html_content=f"Click <a href='{magic_link}'>here</a> to log in to Podium",
-        html_content=magic_link_email_content(magic_link=magic_link)["html"],
-        plain_text_content=magic_link_email_content(magic_link=magic_link)["text"],
-    )
-
-    try:
-        sg = SendGridAPIClient(settings.sendgrid_api_key)
-        _ = sg.send(message)
-    except Exception:
-        raise HTTPException(status_code=500, detail="Failed to send auth email")
+    if settings.sendgrid_api_key:
+        message = Mail(
+            from_email=settings.sendgrid_from_email,
+            to_emails=email,
+            subject="Magic link for Podium",
+            # html_content=f"Click <a href='{magic_link}'>here</a> to log in to Podium",
+            html_content=magic_link_email_content(magic_link=magic_link)["html"],
+            plain_text_content=magic_link_email_content(magic_link=magic_link)["text"],
+        )
+        try:
+            sg = SendGridAPIClient(settings.sendgrid_api_key)
+            _ = sg.send(message)
+        except Exception:
+            raise HTTPException(status_code=500, detail="Failed to send auth email")
+    else:
+        print(
+            "[WARNING] No SendGrid from email set. Not sending magic link email."
+        )
 
     print(
         f"Token for {email}: {token} | magic_link: {settings.production_url}/login?token={token} | local magic_link: http://localhost:5173/login?token={token}"
