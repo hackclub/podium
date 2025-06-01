@@ -5,11 +5,16 @@ from pydantic import BaseModel, StringConstraints
 
 
 RECORD_REGEX = r"^rec\w*$"
+URL_REGEX = r"^(https?://)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(:\d+)?(/[\w\-./?%&=]*)?$"
+
 # https://docs.pydantic.dev/latest/api/types/#pydantic.types.constr--__tabbed_1_2
 MultiRecordField = List[Annotated[str, StringConstraints(pattern=RECORD_REGEX)]]
 SingleRecordField = Annotated[
     List[Annotated[str, StringConstraints(pattern=RECORD_REGEX)]],
     Len(min_length=1, max_length=1),
+]
+UrlField = Annotated[
+    str, StringConstraints(pattern=URL_REGEX, min_length=1)
 ]
 
 

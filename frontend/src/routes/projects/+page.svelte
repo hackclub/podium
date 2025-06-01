@@ -84,6 +84,7 @@
                     onclick={() => {
                       projectModalState[project.id].openModal();
                     }}
+                    disabled={!projectQualityResults[project.id]}
                   >
                     {#if !projectQualityResults[project.id]}
                       <span class="loading loading-dots loading-xs"></span>

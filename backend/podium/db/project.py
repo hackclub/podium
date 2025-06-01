@@ -1,5 +1,5 @@
 from __future__ import annotations
-from podium.constants import EmptyModel, SingleRecordField, MultiRecordField
+from podium.constants import EmptyModel, SingleRecordField, MultiRecordField, UrlField
 from quality.models import Results
 from pydantic import BaseModel, Field, StringConstraints, field_validator
 from typing import Annotated, Optional
@@ -7,9 +7,9 @@ from typing import Annotated, Optional
 
 class ProjectBase(BaseModel):
     name: Annotated[str, StringConstraints(min_length=1)]
-    repo: str
-    image_url: str
-    demo: str
+    repo: UrlField
+    image_url: UrlField
+    demo: UrlField
     description: Optional[str] = ""
     # event: Annotated[
     #     List[Annotated[str, StringConstraints(pattern=RECORD_REGEX)]],
