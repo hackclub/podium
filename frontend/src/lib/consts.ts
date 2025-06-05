@@ -52,6 +52,10 @@ export const loadingTextOptions = [
   "Feeding the servers some good vibes.",
 ];
 
+export const eventSlugAliases = {
+  "rec8sacRO9Yj6edPG": "scrapyard-flagship",
+}
+
 // node --loader ts-node/esm src/lib/consts.ts
 // console.log("Generated DaisyUI Themes:");
 // console.log(createDaisyUIThemes(darkTheme, lightTheme, themes));

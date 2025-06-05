@@ -6,6 +6,7 @@ import { client } from "$lib/client/sdk.gen";
 import { EventsService } from "$lib/client/sdk.gen";
 import { page } from "$app/state";
 import type { Event } from "$lib/client";
+import { eventSlugAliases } from "$lib/consts";
 
 let partOfEvent = false;
 
@@ -16,13 +17,15 @@ export const load: LayoutLoad = async ({ params, fetch, url, route }) => {
     throw error(400, "no slug provided");
   }
 
+  // Check for alias and replace slug if needed
+  const slug = (eventSlugAliases as Record<string, string>)[params.slug] || params.slug;
   const {
     data: eventId,
     error: errSlug,
     response: responseSlug
   } = await EventsService.getAtIdEventsIdSlugGet({
     path: {
-      slug: params.slug,
+      slug,
     },
     throwOnError: false,
   });
