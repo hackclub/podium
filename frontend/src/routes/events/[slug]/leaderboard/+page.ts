@@ -3,16 +3,17 @@ import type { PageLoad } from "./$types";
 import { client, EventsService } from "$lib/client/sdk.gen";
 import type { Project } from "$lib/client/types.gen";
 
-export const load: PageLoad = async ({ params, fetch }) => {
+export const load: PageLoad = async ({ params, fetch, parent }) => {
   client.setConfig({ fetch });
-  const { id } = params;
+
+  const { event} = await parent();
   const {
     data,
     response,
     error: err,
   } = await EventsService.getLeaderboardEventsEventIdLeaderboardGet({
     path: {
-      event_id: id,
+      event_id: event.id,
     },
     // https://github.com/orgs/hey-api/discussions/1655
     throwOnError: false,

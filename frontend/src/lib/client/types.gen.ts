@@ -18,6 +18,7 @@ export type Event = {
     owner: [
         string
     ];
+    slug: string;
 };
 
 export type EventCreationPayload = {
@@ -56,6 +57,7 @@ export type PrivateEvent = {
     owner: [
         string
     ];
+    slug: string;
     attendees?: Array<(string)>;
     join_code: string;
     projects?: Array<(string)>;
@@ -87,11 +89,6 @@ export type PrivateProject = {
         string
     ];
     join_code: string;
-    /**
-     * Check the quality of the project.
-     * This is done by checking the demo URL, source code URL, and image URL.
-     */
-    readonly quality: Results;
 };
 
 export type Project = {
@@ -147,9 +144,9 @@ export type PublicProjectCreationPayload = {
 };
 
 export type Result = {
-    url: string;
     valid: boolean;
     reason: string;
+    url: string;
 };
 
 export type Results = {
@@ -334,6 +331,16 @@ export type GetEventProjectsEventsEventIdProjectsGetData = {
 export type GetEventProjectsEventsEventIdProjectsGetResponse = (Array<Project>);
 
 export type GetEventProjectsEventsEventIdProjectsGetError = (HTTPValidationError);
+
+export type GetAtIdEventsIdSlugGetData = {
+    path: {
+        slug: string;
+    };
+};
+
+export type GetAtIdEventsIdSlugGetResponse = (string);
+
+export type GetAtIdEventsIdSlugGetError = (HTTPValidationError);
 
 export type GetProjectsProjectsMineGetResponse = (Array<PrivateProject>);
 

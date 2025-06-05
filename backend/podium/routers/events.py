@@ -2,7 +2,7 @@ import random
 from fastapi import APIRouter, Path
 from typing import Annotated, Union, List
 from fastapi import Depends, HTTPException, Query
-from podium.db.event import PrivateEvent
+from podium.db.event import InternalEvent, PrivateEvent
 from podium.db.vote import CreateVotes, VoteCreate
 from pyairtable.formulas import match
 
@@ -22,10 +22,10 @@ from podium.db import (
     ReferralBase,
 )
 from podium.db.project import Project
-from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH, BAD_ACCESS
+from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH, BAD_ACCESS, Slug
+from slugify import slugify
 
 router = APIRouter(prefix="/events", tags=["events"])
-
 
 @router.get("/{event_id}")
 def get_event(
@@ -89,6 +89,12 @@ def create_event(
         raise BAD_AUTH
     owner = [user.id]
 
+    # Turn the event name into a slug and check if it already exists. If the slug already exists, raise an error
+    slug = slugify(event.name, lowercase=True, separator="-")
+    if db.events.first(formula=match({"slug": slug})):
+        raise HTTPException(
+            status_code=400, detail="Event slug already exists. Please choose a different name. If you think this is an error, please contact us.")
+
     # Generate a unique join code by continuously generating a new one until it doesn't match any existing join codes
     while True:
         join_code = token_urlsafe(3).upper()
@@ -101,6 +107,7 @@ def create_event(
         **event.model_dump(),
         join_code=join_code,
         owner=owner,
+        slug=slug,
         id="",  # Placeholder to prevent an unnecessary class
     )
     db.events.create(full_event.model_dump(exclude={"id", "max_votes_per_user"}))[
@@ -309,3 +316,17 @@ def get_event_projects(
     ]
     random.shuffle(projects)
     return projects
+
+
+@router.get("/id/{slug}")
+def get_at_id(
+    slug: Annotated[Slug, Path(title="Event Slug")],
+) -> str:
+    """
+    Get an event's Airtable ID by its slug.
+    """
+    event = db.events.first(formula=match({"slug": slug}))
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    event = InternalEvent.model_validate(event["fields"])
+    return event.id

@@ -28,7 +28,7 @@
             {#each data.events.attending_events as event}
               <tr>
                 <td
-                  ><a href={`/events/${event.id}`} class="hover-link"
+                  ><a href={`/events/${event.slug}`} class="hover-link"
                     >{event.name}</a
                   ></td
                 >
@@ -65,7 +65,7 @@
             {#each data.events.owned_events as event}
               <tr>
                 <td
-                  ><a href={`/events/${event.id}`} class="hover-link"
+                  ><a href={`/events/${event.slug}`} class="hover-link"
                     >{event.name}</a
                   ></td
                 >

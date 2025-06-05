@@ -13,7 +13,7 @@
         : "You can't vote yet! If you think you should be able to, contact your event organizer."}
     >
       <a
-        href={`/events/${data.event.id}/rank`}
+        href={`/events/${data.event.slug}/rank`}
         class="btn-primary btn btn-block {data.event.votable
           ? ''
           : 'btn-disabled'}">Rank Projects</a
@@ -28,7 +28,7 @@
       : "The event organizer has not enabled the leaderboard yet."}
   >
     <a
-      href={`/events/${data.event.id}/leaderboard`}
+      href={`/events/${data.event.slug}/leaderboard`}
       class="btn-primary btn btn-block {data.event.leaderboard_enabled
         ? ''
         : 'btn-disabled'}">Leaderboard</a

@@ -18,6 +18,7 @@ UrlField = Annotated[
     str, StringConstraints(min_length=1)
 ]
 
+Slug = Annotated[str, StringConstraints(min_length=1, max_length=50, pattern = r"[-a-z0-9]+")]
 
 # raise\s+HTTPException\([^)]*["'].*User.*["']
 BAD_AUTH = HTTPException(status_code=401, detail="Invalid authentication credentials")

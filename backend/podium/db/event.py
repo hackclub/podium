@@ -1,4 +1,4 @@
-from podium.constants import MultiRecordField, SingleRecordField
+from podium.constants import MultiRecordField, SingleRecordField, Slug
 from pydantic import BaseModel, StringConstraints, computed_field
 from typing import Annotated, List, Optional
 
@@ -20,7 +20,7 @@ class EventUpdate(BaseEvent): ...
 class Event(EventCreationPayload):
     id: str
     owner: SingleRecordField
-
+    slug: Slug  # Slug is auto-generated
 
 class PrivateEvent(Event):
     """
@@ -44,6 +44,10 @@ class PrivateEvent(Event):
             return 3
         else:
             return 2
+
+# TODO: Migrate internal uses of PrivateEvent to InternalEvent
+class InternalEvent(PrivateEvent):
+    ...
 
 
 class UserEvents(BaseModel):
