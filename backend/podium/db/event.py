@@ -22,6 +22,10 @@ class Event(EventCreationPayload):
     owner: SingleRecordField
     slug: Slug  # Slug is auto-generated
 
+    # feature flags
+    # Should the user see their project as valid or invalid depending on the automatic checks?
+    ysws_checks_enabled: bool = False
+
 class PrivateEvent(Event):
     """
     All data loaded from the event table. Should only be used internally or by the owner of the event.

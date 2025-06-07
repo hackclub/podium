@@ -19,6 +19,7 @@ export type Event = {
         string
     ];
     slug: string;
+    ysws_checks_enabled?: boolean;
 };
 
 export type EventCreationPayload = {
@@ -58,6 +59,7 @@ export type PrivateEvent = {
         string
     ];
     slug: string;
+    ysws_checks_enabled?: boolean;
     attendees?: Array<(string)>;
     join_code: string;
     projects?: Array<(string)>;

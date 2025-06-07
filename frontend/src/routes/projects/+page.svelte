@@ -53,106 +53,107 @@
           </thead>
           <tbody>
             {#each data.projects as project}
-              <tr>
-                <td class="w-1/2">
-                  <!-- container to make the card smaller -->
-                  <div>
-                    <ProjectCard
-                      {project}
-                      isSelected={false}
-                      toggle={() => {}}
-                      selectable={false}
-                    />
-                  </div>
-                </td>
-                <td>
-                  <a
-                    href={`/projects/?join_code=${project.join_code}`}
-                    data-sveltekit-noscroll
-                    class="hover-link"
-                  >
-                    {project.join_code}
-                  </a>
-                </td>
-                <td>
-                  <button
-                    class="badge badge-lg underline"
-                    class:badge-success={projectQualityResults[project.id]
-                      ?.valid}
-                    class:badge-warning={!projectQualityResults[project.id]
-                      ?.valid}
-                    onclick={() => {
-                      projectModalState[project.id].openModal();
-                    }}
-                    disabled={!projectQualityResults[project.id]}
-                  >
-                    {#if !projectQualityResults[project.id]}
-                      <span class="loading loading-dots loading-xs"></span>
-                    {:else}
-                      {projectQualityResults[project.id]?.valid
-                        ? "Valid"
-                        : "Invalid"}
-                    {/if}
-                  </button>
-                  {#if projectQualityResults[project.id]}
-                    <!-- This is in a conditional to prevent trying to access null properties -->
-                    <Modal
-                      title="Project Quality"
-                      bind:this={projectModalState[project.id]}
+              {#key project.id}
+                <tr>
+                  <td class="w-1/2">
+                    <!-- container to make the card smaller -->
+                    <div>
+                      <ProjectCard
+                        {project}
+                        isSelected={false}
+                        toggle={() => {}}
+                        selectable={false}
+                      />
+                    </div>
+                  </td>
+                  <td>
+                    <a
+                      href={`/projects/?join_code=${project.join_code}`}
+                      data-sveltekit-noscroll
+                      class="hover-link"
                     >
-                      <table class="table w-full table-zebra">
-                        <thead>
-                          <tr>
-                            <th>Check</th>
-                            <th>Result</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td>Demo</td>
-                            <td>
-                              {#if projectQualityResults[project.id]?.demo.valid}
-                                ✅
-                              {:else}
-                                ❌ {@html formatReasons(
-                                  projectQualityResults[project.id]?.demo
-                                    .reason,
-                                )}
-                              {/if}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td>Source Code</td>
-                            <td>
-                              {#if projectQualityResults[project.id]?.source_code.valid}
-                                ✅
-                              {:else}
-                                ❌ {@html formatReasons(
-                                  projectQualityResults[project.id]?.source_code
-                                    .reason,
-                                )}
-                              {/if}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td>Image URL</td>
-                            <td>
-                              {#if projectQualityResults[project.id]?.image_url.valid}
-                                ✅
-                              {:else}
-                                ❌ {@html formatReasons(
-                                  projectQualityResults[project.id]?.image_url
-                                    .reason,
-                                )}
-                              {/if}
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </Modal>
-                  {/if}
-                </td>
-              </tr>
+                      {project.join_code}
+                    </a>
+                  </td>
+                  <td>
+                    {#each data.events as event}
+                      {#if event.id === project.event[0]}
+                        {#if event.ysws_checks_enabled === false}
+                          <span class="tooltip tooltip-left underline cursor-help" data-tip="The event owner disabled automatic quality checks">N/A</span>
+                        {:else}
+                          <button
+                            class="badge badge-lg underline {projectQualityResults[project.id]?.valid ? 'badge-success' : 'badge-warning'}"
+                            onclick={() => {
+                              projectModalState[project.id].openModal();
+                            }}
+                            disabled={!projectQualityResults[project.id]}
+                          >
+                            {#if !projectQualityResults[project.id]}
+                              <span class="loading loading-dots loading-xs"></span>
+                            {:else}
+                              {projectQualityResults[project.id]?.valid ? "Valid" : "Invalid"}
+                            {/if}
+                          </button>
+                          {#if projectQualityResults[project.id]}
+                            <!-- This is in a conditional to prevent trying to access null properties -->
+                            <Modal
+                              title="Project Quality"
+                              bind:this={projectModalState[project.id]}
+                            >
+                              <table class="table w-full table-zebra">
+                                <thead>
+                                  <tr>
+                                    <th>Check</th>
+                                    <th>Result</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  <tr>
+                                    <td>Demo</td>
+                                    <td>
+                                      {#if projectQualityResults[project.id]?.demo.valid}
+                                        ✅
+                                      {:else}
+                                        ❌ {@html formatReasons(
+                                          projectQualityResults[project.id]?.demo.reason,
+                                        )}
+                                      {/if}
+                                    </td>
+                                  </tr>
+                                  <tr>
+                                    <td>Source Code</td>
+                                    <td>
+                                      {#if projectQualityResults[project.id]?.source_code.valid}
+                                        ✅
+                                      {:else}
+                                        ❌ {@html formatReasons(
+                                          projectQualityResults[project.id]?.source_code.reason,
+                                        )}
+                                      {/if}
+                                    </td>
+                                  </tr>
+                                  <tr>
+                                    <td>Image URL</td>
+                                    <td>
+                                      {#if projectQualityResults[project.id]?.image_url.valid}
+                                        ✅
+                                      {:else}
+                                        ❌ {@html formatReasons(
+                                          projectQualityResults[project.id]?.image_url.reason,
+                                        )}
+                                      {/if}
+                                    </td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </Modal>
+                          {/if}
+                        {/if}
+                      {/if}
+                    {/each}
+                  </td>
+                </tr>
+              {/key}
             {/each}
           </tbody>
         </table>
