@@ -18,6 +18,7 @@
     ...emptyEventUpdate,
     owner: [""],
     id: "",
+    slug: "",
   };
   let event: EventUpdate = $state(emptyEventUpdate);
   let chosenEvent: Event = $state(emptyEvent);

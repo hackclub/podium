@@ -8,6 +8,7 @@ from podium import db, settings
 
 from fastapi import APIRouter, HTTPException, Query, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from podium.constants import BAD_AUTH
 from podium.db.user import UserLoginPayload, UserPrivate
 from pydantic import BaseModel
 import jwt
@@ -73,9 +74,7 @@ async def send_magic_link(email: str, redirect: str = ""):
         except Exception:
             raise HTTPException(status_code=500, detail="Failed to send auth email")
     else:
-        print(
-            "[WARNING] No SendGrid from email set. Not sending magic link email."
-        )
+        print("[WARNING] No SendGrid from email set. Not sending magic link email.")
 
     print(
         f"Token for {email}: {token} | magic_link: {settings.production_url}/login?token={token} | local magic_link: http://localhost:5173/login?token={token}"
@@ -93,15 +92,15 @@ async def request_login(user: UserLoginPayload, redirect: Annotated[str, Query()
     await send_magic_link(user.email, redirect=redirect)
 
 
-class MagicLinkVerificationResponse(BaseModel):
+class AuthenticatedUser(BaseModel):
     access_token: str
     token_type: str
-    email: str
+    user: UserPrivate
 
 
 @router.get("/verify")
-async def verify_token(token: Annotated[str, Query()]) -> MagicLinkVerificationResponse:
-    """Verify a magic link and return an access token"""
+async def verify_token(token: Annotated[str, Query()]) -> AuthenticatedUser:
+    """Verify a login token and return an access token and user object"""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
@@ -113,15 +112,17 @@ async def verify_token(token: Annotated[str, Query()]) -> MagicLinkVerificationR
     except PyJWTError:
         raise HTTPException(status_code=400, detail="Invalid token")
     # Check if the user exists
-    if db.user.get_user_record_id_by_email(email) is None:
+    if user_record_id := db.user.get_user_record_id_by_email(email) is None:
         raise HTTPException(status_code=404, detail="User not found")
     access_token = create_access_token(
         data={"sub": email},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
         token_type="access",
     )
-    return MagicLinkVerificationResponse(
-        access_token=access_token, token_type="access", email=email
+    return AuthenticatedUser(
+        access_token=access_token,
+        token_type="access",
+        user=UserPrivate.model_validate(db.users.get(user_record_id)["fields"]),
     )
 
 
@@ -155,25 +156,14 @@ async def get_current_user(
     return UserPrivate.model_validate(user["fields"])
 
 
-class CheckAuthResponse(BaseModel):
-    email: str
-
-
 @router.get("/protected-route")
 async def protected_route(
     current_user: Annotated[UserPrivate, Depends(get_current_user)],
-) -> CheckAuthResponse:
-    # Check if null user was sent
-    if current_user is None:
-        raise HTTPException(
-            status_code=401, detail="Invalid authentication credentials"
-        )
+) -> UserPrivate:
     # Check if the user exists
     if db.user.get_user_record_id_by_email(current_user.email) is None:
-        raise HTTPException(
-            status_code=403, detail="Invalid authentication credentials"
-        )
-    return CheckAuthResponse(email=current_user.email)
+        raise BAD_AUTH
+    return current_user
 
 
 if __name__ == "__main__":
