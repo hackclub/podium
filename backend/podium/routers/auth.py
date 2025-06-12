@@ -112,7 +112,8 @@ async def verify_token(token: Annotated[str, Query()]) -> AuthenticatedUser:
     except PyJWTError:
         raise HTTPException(status_code=400, detail="Invalid token")
     # Check if the user exists
-    if user_record_id := db.user.get_user_record_id_by_email(email) is None:
+    user_record_id = db.user.get_user_record_id_by_email(email)
+    if user_record_id is None:
         raise HTTPException(status_code=404, detail="User not found")
     access_token = create_access_token(
         data={"sub": email},

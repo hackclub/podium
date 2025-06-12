@@ -34,7 +34,7 @@ export const defaultAuthenticatedUser: AuthenticatedUser = {
   user: defaultUser,
 };
 
-export let user: AuthenticatedUser = $state(defaultAuthenticatedUser);
+let user: AuthenticatedUser = $state(defaultAuthenticatedUser);
 export function getAuthenticatedUser(): AuthenticatedUser {
   return user;
 }

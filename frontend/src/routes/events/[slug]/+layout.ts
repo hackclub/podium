@@ -1,7 +1,7 @@
 // https://svelte.dev/docs/kit/load#Layout-data
 import { error, isHttpError, redirect } from "@sveltejs/kit";
 import type { LayoutLoad } from "./$types";
-import { user } from "$lib/user.svelte";
+import { getAuthenticatedUser } from "$lib/user.svelte";
 import { client } from "$lib/client/sdk.gen";
 import { EventsService } from "$lib/client/sdk.gen";
 import { page } from "$app/state";
@@ -44,7 +44,7 @@ export const load: LayoutLoad = async ({ params, fetch, url, route }) => {
       event_id: eventId,
     },
     // If the user isn't logged in, just give an empty bearer token. Otherwise, don't set the token since it's already set in the client.
-    headers: user.isAuthenticated
+    headers: getAuthenticatedUser().access_token
       ? {}
       : {
           Authorization: `Bearer SentSinceBearerTokenSeemedToBeNeededForThisToWork`,
@@ -56,7 +56,7 @@ export const load: LayoutLoad = async ({ params, fetch, url, route }) => {
     throw error(responseEvent.status, JSON.stringify(errEvent));
   } else {
     // Check if the user is attending the event
-    if (user.isAuthenticated) {
+    if (getAuthenticatedUser().access_token) {
       const {
         data,
         error: err,
