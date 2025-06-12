@@ -18,7 +18,7 @@
         throwOnError: true,
       });
       toast("Joined project successfully");
-      invalidateProjects();
+      await invalidateProjects();
       // Reset
       toSend.query.join_code = "";
     } catch (err) {

@@ -75,7 +75,7 @@
       chosenProject = emptyProject;
       // Fetch the projects again if the user wants to perform another update to reflect the deletion
       fetchedProjects = false;
-      invalidateProjects();
+      await invalidateProjects();
     } catch (err) {
       handleError(err);
     }
@@ -105,7 +105,7 @@
       chosenProject = emptyProject;
       // fetch the projects again if the user wants to perform another update
       fetchedProjects = false;
-      invalidateProjects();
+      await invalidateProjects();
     } catch (err) {
       handleError(err);
     }

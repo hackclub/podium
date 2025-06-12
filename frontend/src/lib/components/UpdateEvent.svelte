@@ -38,7 +38,7 @@
       event = emptyEventUpdate;
       chosenEvent = emptyEvent;
       // Invalidate events to refresh the list
-      invalidateEvents();
+      await invalidateEvents();
     } catch (err) {
       handleError(err);
     }
@@ -63,7 +63,7 @@
       event = emptyEventUpdate;
       chosenEvent = emptyEvent;
       // Invalidate events to refresh the list
-      invalidateEvents();
+      await invalidateEvents();
     } catch (err) {
       handleError(err);
     }

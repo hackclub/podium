@@ -16,7 +16,7 @@
         throwOnError: true,
       });
       toast("Joined event successfully");
-      invalidateEvents();
+      await invalidateEvents();
       // Reset
       toSend.query.join_code = "";
       toSend.query.referral = "";
