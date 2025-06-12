@@ -4,13 +4,16 @@
   import { toast } from "svelte-sonner";
   import { EventsService } from "$lib/client/sdk.gen";
   import ProjectCard from "$lib/components/ProjectCard.svelte";
-  import { handleError } from "$lib/misc.js";
+  import { handleError, invalidateEvents } from "$lib/misc.js";
+  import { getAuthenticatedUser } from "$lib/user.svelte";
+    import { invalidateAll } from "$app/navigation";
 
   let { data } = $props();
-  let { event, projects } = data;
+  let { event, projects, toSelect, alreadyVoted } = data;
   let selectedProjects: string[] = $state([]);
-  // let toSelect = $state(projects.length >= 20 ? 3 : 2);
-  let toSelect = projects.length >= 20 ? 3 : 2;
+  let userId = getAuthenticatedUser().user.id;
+
+    
 
   function toggleProjectSelection(projectId: string) {
     if (selectedProjects.includes(projectId)) {
@@ -25,13 +28,6 @@
   }
 
   async function submitVote() {
-    // if (
-    //   selectedProjects.length < 2 ||
-    //   (projects.length >= 20 && selectedProjects.length < 3)
-    // ) {
-    //   toast("Please select the required number of projects");
-    //   return;
-    // }
     try {
       await EventsService.voteEventsVotePost({
         body: {
@@ -41,6 +37,9 @@
         throwOnError: true,
       });
       toast("Vote submitted successfully");
+      invalidateEvents();
+      selectedProjects = [];
+
     } catch (err) {
       handleError(err);
     }
@@ -48,27 +47,37 @@
 </script>
 
 <!-- Basic information about voting -->
-<div class="p-4 bg-info text-center rounded-xl max-w-2xl mx-auto">
-  <p class="text-info-content">
-    Select your top {toSelect} projects in no particular order. If you've voted for
-    less than {toSelect} projects, you can still vote.
-  </p>
-</div>
-
-<div class="container mx-auto p-6">
+{#if alreadyVoted}
+  <div class="p-4 bg-success text-center rounded-xl max-w-2xl mx-auto">
+    <p class="text-success-content">
+      You have already voted for this event. You can only vote once.
+    </p>
+  </div>
+{:else}
+  <div class="p-4 bg-warning text-center rounded-xl max-w-2xl mx-auto">
+    <p class="text-warning-content">
+      You can vote for {toSelect - selectedProjects.length} more projects in this event.
+    </p>
+  </div>
+  <div class="container mx-auto p-6">
   <div
     class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
   >
     {#each projects as project}
-      <ProjectCard
-        {project}
-        isSelected={selectedProjects.includes(project.id)}
-        toggle={() => toggleProjectSelection(project.id)}
-        selectable={true}
-      />
+      {#if !(project.owner && project.owner.includes(userId)) && !(project.collaborators && project.collaborators.includes(userId))}
+        <ProjectCard
+          {project}
+          isSelected={selectedProjects.includes(project.id)}
+          toggle={() => toggleProjectSelection(project.id)}
+          selectable={true}
+        />
+      {/if}
     {/each}
   </div>
-  <button class="btn-block btn btn-warning mt-4" onclick={submitVote}
+  <!-- Not disabling if user has already voted since this is hidden then anyway -->
+  <button class="btn-block btn btn-warning mt-4" onclick={submitVote} disabled={(selectedProjects.length < toSelect)}
     >Submit Vote</button
   >
 </div>
+{/if}
+
