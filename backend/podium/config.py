@@ -72,7 +72,9 @@ quality_settings = QualitySettings(
     headless=False,
     steel_client=Steel(
         steel_api_key=settings.steel_api_key,
-    ) if settings.get("steel_api_key") else None,
+    )
+    if settings.get("steel_api_key")
+    else None,
     llm=ChatGoogleGenerativeAI(
         # https://ai.google.dev/gemini-api/docs/rate-limits
         # model="gemini-2.0-flash-exp",

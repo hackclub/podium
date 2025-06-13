@@ -7,7 +7,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "openapi-ts": "openapi-ts",
-    "svelte-check": "svelte-check --threshold error"
+    "svelte-check": "svelte-check --threshold error",
+    "prettier": "prettier --write ."
   },
   "devDependencies": {
     "@hey-api/openapi-ts": "^0.60.1",

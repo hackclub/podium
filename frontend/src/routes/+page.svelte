@@ -15,7 +15,9 @@
       <div class="my-4 text-center">
         <h2>Hey!</h2>
         <p>
-          You're signed in as <strong>{getAuthenticatedUser().user.email}</strong>.
+          You're signed in as <strong
+            >{getAuthenticatedUser().user.email}</strong
+          >.
         </p>
         <!--  Div that stacks the buttons below -->
         <!-- <div class="flex flex-col items-center space-y-2"> -->

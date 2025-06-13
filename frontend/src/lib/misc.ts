@@ -58,13 +58,11 @@ export async function invalidateProjects() {
 }
 
 /**
- * Reload the user's data. 
+ * Reload the user's data.
  * This does not actually call a load function but rather re-requests user data by checking the token again.
-  */
+ */
 export function invalidateUser(): Promise<void> {
-  return validateToken(
-    getAuthenticatedUser().access_token
-  )
+  return validateToken(getAuthenticatedUser().access_token);
 }
 
 /**

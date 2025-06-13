@@ -25,28 +25,26 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
     // console.debug("User votes:", getAuthenticatedUser().user.votes);
     const userVotesInEvent = (getAuthenticatedUser().user.votes || []).filter(
       (vote) => {
-        // A project was voted for if project.votes contains the vote ID. 
+        // A project was voted for if project.votes contains the vote ID.
         return projects.data.some((project) => {
           return (project.votes ?? []).includes(vote);
         });
-      }
+      },
     ).length;
     if (userVotesInEvent > toSelect) {
       Sentry.captureMessage(
-        `User has more votes (${userVotesInEvent}) than allowed (${toSelect}) for event ${event.id}`
+        `User has more votes (${userVotesInEvent}) than allowed (${toSelect}) for event ${event.id}`,
       );
     }
 
-    
     console.debug(
-      `User has ${userVotesInEvent} votes in event ${event.id}, can select ${toSelect} more projects`
+      `User has ${userVotesInEvent} votes in event ${event.id}, can select ${toSelect} more projects`,
     );
     const alreadyVoted = userVotesInEvent >= toSelect;
     if (alreadyVoted) {
       toSelect = 0;
     }
     toSelect = toSelect - userVotesInEvent;
-  
 
     return { projects: projects.data, toSelect, alreadyVoted };
   } catch (err) {

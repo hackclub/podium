@@ -27,6 +27,7 @@ from slugify import slugify
 
 router = APIRouter(prefix="/events", tags=["events"])
 
+
 @router.get("/{event_id}")
 def get_event(
     event_id: Annotated[str, Path(title="Event Airtable ID")],
@@ -93,7 +94,9 @@ def create_event(
     slug = slugify(event.name, lowercase=True, separator="-")
     if db.events.first(formula=match({"slug": slug})):
         raise HTTPException(
-            status_code=400, detail="Event slug already exists. Please choose a different name. If you think this is an error, please contact us.")
+            status_code=400,
+            detail="Event slug already exists. Please choose a different name. If you think this is an error, please contact us.",
+        )
 
     # Generate a unique join code by continuously generating a new one until it doesn't match any existing join codes
     while True:
