@@ -1,11 +1,6 @@
 import { client } from "$lib/client/sdk.gen";
 import { AuthService } from "$lib/client/sdk.gen";
 import type { AuthenticatedUser, UserPrivate } from "./client";
-// type User = {
-  // email: string;
-  // token: string;
-  // isAuthenticated: boolean;
-// };
 
 export const defaultUser: UserPrivate = {
   first_name: "",
