@@ -18,6 +18,7 @@
     ...emptyEventUpdate,
     owner: [""],
     id: "",
+    slug: "",
   };
   let event: EventUpdate = $state(emptyEventUpdate);
   let chosenEvent: Event = $state(emptyEvent);
@@ -37,7 +38,7 @@
       event = emptyEventUpdate;
       chosenEvent = emptyEvent;
       // Invalidate events to refresh the list
-      invalidateEvents();
+      await invalidateEvents();
     } catch (err) {
       handleError(err);
     }
@@ -62,7 +63,7 @@
       event = emptyEventUpdate;
       chosenEvent = emptyEvent;
       // Invalidate events to refresh the list
-      invalidateEvents();
+      await invalidateEvents();
     } catch (err) {
       handleError(err);
     }

@@ -1,7 +1,8 @@
 <script lang="ts">
+  import { getAuthenticatedUser } from "$lib/user.svelte";
   import { toast, Toaster } from "svelte-sonner";
   import { onMount } from "svelte";
-  import { user, validateToken } from "$lib/user.svelte";
+  import { validateToken } from "$lib/user.svelte";
   import { AuthService, UsersService } from "$lib/client/sdk.gen";
   import { goto } from "$app/navigation";
   import type { HTTPValidationError } from "$lib/client/types.gen";
@@ -184,10 +185,10 @@
 </script>
 
 <div class="p-4 max-w-md mx-auto" {...rest}>
-  {#if user.isAuthenticated}
+  {#if getAuthenticatedUser().access_token}
     <div class="text-center">
       <h2 class="text-2xl font-bold mb-2">
-        You are logged in as {user.email}
+        You are logged in as {getAuthenticatedUser().user.email}
       </h2>
       <button
         class="mt-4 px-4 py-2 btn btn-primary"

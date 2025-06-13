@@ -26,6 +26,7 @@ class Event(EventCreationPayload):
     # Should the user see their project as valid or invalid depending on the automatic checks?
     ysws_checks_enabled: bool = False
 
+
 class PrivateEvent(Event):
     """
     All data loaded from the event table. Should only be used internally or by the owner of the event.
@@ -49,9 +50,9 @@ class PrivateEvent(Event):
         else:
             return 2
 
+
 # TODO: Migrate internal uses of PrivateEvent to InternalEvent
-class InternalEvent(PrivateEvent):
-    ...
+class InternalEvent(PrivateEvent): ...
 
 
 class UserEvents(BaseModel):

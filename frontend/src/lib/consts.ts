@@ -53,8 +53,8 @@ export const loadingTextOptions = [
 ];
 
 export const eventSlugAliases = {
-  "rec8sacRO9Yj6edPG": "scrapyard-flagship",
-}
+  rec8sacRO9Yj6edPG: "scrapyard-flagship",
+};
 
 // node --loader ts-node/esm src/lib/consts.ts
 // console.log("Generated DaisyUI Themes:");

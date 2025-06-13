@@ -9,11 +9,14 @@
   import { onMount } from "svelte";
   import { ProjectsService } from "$lib/client/sdk.gen";
   import type { Results } from "$lib/client/types.gen";
+  import { getAuthenticatedUser } from "$lib/user.svelte";
   let { data }: { data: PageData } = $props();
 </script>
 
 <div class="text-center p-4">
-  <h1 class="text-2xl font-semibold">Hi {data.userData.first_name}!</h1>
+  <h1 class="text-2xl font-semibold">
+    Hi {getAuthenticatedUser().user.first_name}!
+  </h1>
   <p class="text-accent">Here are your projects!</p>
 </div>
 

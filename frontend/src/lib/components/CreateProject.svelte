@@ -44,7 +44,7 @@
         event: [""],
         hours_spent: 0,
       };
-      invalidateProjects();
+      await invalidateProjects();
     } catch (err) {
       handleError(err);
     }

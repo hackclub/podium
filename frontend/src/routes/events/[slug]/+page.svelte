@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { user } from "$lib/user.svelte";
   import type { PageData } from "./$types";
   let { data }: { data: PageData } = $props();
 </script>
@@ -20,7 +19,6 @@
       >
     </div>
   {/if}
-  <!-- {#if data.event.leaderboard_enabled} -->
   <div
     class="tooltip"
     data-tip={data.event.leaderboard_enabled
@@ -34,5 +32,4 @@
         : 'btn-disabled'}">Leaderboard</a
     >
   </div>
-  <!-- {/if} -->
 </div>

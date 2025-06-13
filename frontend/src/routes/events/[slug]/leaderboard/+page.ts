@@ -6,7 +6,7 @@ import type { Project } from "$lib/client/types.gen";
 export const load: PageLoad = async ({ params, fetch, parent }) => {
   client.setConfig({ fetch });
 
-  const { event} = await parent();
+  const { event } = await parent();
   const {
     data,
     response,

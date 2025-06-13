@@ -79,19 +79,30 @@
                     {#each data.events as event}
                       {#if event.id === project.event[0]}
                         {#if event.ysws_checks_enabled === false}
-                          <span class="tooltip tooltip-left underline cursor-help" data-tip="The event owner disabled automatic quality checks">N/A</span>
+                          <span
+                            class="tooltip tooltip-left underline cursor-help"
+                            data-tip="The event owner disabled automatic quality checks"
+                            >N/A</span
+                          >
                         {:else}
                           <button
-                            class="badge badge-lg underline {projectQualityResults[project.id]?.valid ? 'badge-success' : 'badge-warning'}"
+                            class="badge badge-lg underline {projectQualityResults[
+                              project.id
+                            ]?.valid
+                              ? 'badge-success'
+                              : 'badge-warning'}"
                             onclick={() => {
                               projectModalState[project.id].openModal();
                             }}
                             disabled={!projectQualityResults[project.id]}
                           >
                             {#if !projectQualityResults[project.id]}
-                              <span class="loading loading-dots loading-xs"></span>
+                              <span class="loading loading-dots loading-xs"
+                              ></span>
                             {:else}
-                              {projectQualityResults[project.id]?.valid ? "Valid" : "Invalid"}
+                              {projectQualityResults[project.id]?.valid
+                                ? "Valid"
+                                : "Invalid"}
                             {/if}
                           </button>
                           {#if projectQualityResults[project.id]}
@@ -115,7 +126,8 @@
                                         ✅
                                       {:else}
                                         ❌ {@html formatReasons(
-                                          projectQualityResults[project.id]?.demo.reason,
+                                          projectQualityResults[project.id]
+                                            ?.demo.reason,
                                         )}
                                       {/if}
                                     </td>
@@ -127,7 +139,8 @@
                                         ✅
                                       {:else}
                                         ❌ {@html formatReasons(
-                                          projectQualityResults[project.id]?.source_code.reason,
+                                          projectQualityResults[project.id]
+                                            ?.source_code.reason,
                                         )}
                                       {/if}
                                     </td>
@@ -139,7 +152,8 @@
                                         ✅
                                       {:else}
                                         ❌ {@html formatReasons(
-                                          projectQualityResults[project.id]?.image_url.reason,
+                                          projectQualityResults[project.id]
+                                            ?.image_url.reason,
                                         )}
                                       {/if}
                                     </td>

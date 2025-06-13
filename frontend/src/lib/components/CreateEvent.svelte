@@ -16,8 +16,7 @@
         throwOnError: true,
       });
       toast("Event created successfully");
-      invalidateEvents();
-      // invalidate("events:events")
+      await invalidateEvents();
       // Clear the form
       eventName = "";
       eventDescription = "";

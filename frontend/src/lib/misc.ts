@@ -1,7 +1,8 @@
 import type { HTTPValidationError } from "$lib/client/types.gen";
 import { toast } from "svelte-sonner";
 import { lightTheme, darkTheme, loadingTextOptions } from "$lib/consts";
-import { invalidate } from "$app/navigation";
+import { invalidate, invalidateAll } from "$app/navigation";
+import { getAuthenticatedUser, validateToken } from "./user.svelte";
 
 type ErrorWithDetail = {
   detail: string;
@@ -49,9 +50,25 @@ export function returnLoadingText(): string {
   ];
 }
 
-export function invalidateEvents() {
-  invalidate((url) => url.pathname.startsWith("/events"));
+export async function invalidateEvents() {
+  await invalidate((url) => url.pathname.startsWith("/events"));
 }
-export function invalidateProjects() {
-  invalidate((url) => url.pathname.startsWith("/projects"));
+export async function invalidateProjects() {
+  await invalidate((url) => url.pathname.startsWith("/projects"));
+}
+
+/**
+ * Reload the user's data.
+ * This does not actually call a load function but rather re-requests user data by checking the token again.
+ */
+export function invalidateUser(): Promise<void> {
+  return validateToken(getAuthenticatedUser().access_token);
+}
+
+/**
+ * Custom invalidate all function that also invalidates the user data.
+ */
+export async function customInvalidateAll() {
+  await invalidateAll();
+  await invalidateUser();
 }

@@ -1,21 +1,44 @@
 import { client } from "$lib/client/sdk.gen";
 import { AuthService } from "$lib/client/sdk.gen";
-type User = {
-  email: string;
-  token: string;
-  isAuthenticated: boolean;
+import type { AuthenticatedUser, UserPrivate } from "./client";
+
+export const defaultUser: UserPrivate = {
+  first_name: "",
+  last_name: "",
+  email: "",
+  phone: "",
+  street_1: null,
+  street_2: null,
+  city: null,
+  state: null,
+  zip_code: null,
+  country: null,
+  dob: null,
+  id: "",
+  votes: [],
+  projects: [],
+  collaborations: [],
+  owned_events: [],
+  attending_events: [],
+  referral: [],
 };
 
-export const user: User = $state({
-  email: "",
-  token: "",
-  isAuthenticated: false,
-});
+export const defaultAuthenticatedUser: AuthenticatedUser = {
+  access_token: "",
+  token_type: "",
+  user: defaultUser,
+};
+
+let user: AuthenticatedUser = $state(defaultAuthenticatedUser);
+export function getAuthenticatedUser(): AuthenticatedUser {
+  return user;
+}
+export function setAuthenticatedUser(newUser: AuthenticatedUser) {
+  user = newUser;
+}
 
 export function signOut() {
-  user.email = "";
-  user.token = "";
-  user.isAuthenticated = false;
+  user = defaultAuthenticatedUser;
   localStorage.removeItem("token");
   client.setConfig({
     headers: {
@@ -39,13 +62,14 @@ export function validateToken(token: string): Promise<void> {
         console.error("Invalid token", response);
         throw new Error("Invalid token");
       }
-      const data = response.data;
-      user.email = data.email;
-      user.token = token;
-      user.isAuthenticated = true;
+      user = {
+        access_token: token,
+        token_type: "Bearer",
+        user: response.data,
+      };
       client.setConfig({
         headers: {
-          Authorization: `Bearer ${user.token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
       console.debug("Token verified, set user state and headers");

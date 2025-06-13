@@ -1,7 +1,7 @@
 // https://svelte.dev/docs/kit/load#Layout-data
 import { error, isHttpError, redirect } from "@sveltejs/kit";
 import type { LayoutLoad } from "./$types";
-import { user } from "$lib/user.svelte";
+import { getAuthenticatedUser } from "$lib/user.svelte";
 import { client } from "$lib/client/sdk.gen";
 import { EventsService } from "$lib/client/sdk.gen";
 import { page } from "$app/state";
@@ -18,11 +18,12 @@ export const load: LayoutLoad = async ({ params, fetch, url, route }) => {
   }
 
   // Check for alias and replace slug if needed
-  const slug = (eventSlugAliases as Record<string, string>)[params.slug] || params.slug;
+  const slug =
+    (eventSlugAliases as Record<string, string>)[params.slug] || params.slug;
   const {
     data: eventId,
     error: errSlug,
-    response: responseSlug
+    response: responseSlug,
   } = await EventsService.getAtIdEventsIdSlugGet({
     path: {
       slug,
@@ -30,66 +31,64 @@ export const load: LayoutLoad = async ({ params, fetch, url, route }) => {
     throwOnError: false,
   });
   if (errSlug) {
-      console.error(errSlug, responseSlug);
-      throw error(responseSlug.status, JSON.stringify(errSlug));
+    console.error(errSlug, responseSlug);
+    throw error(responseSlug.status, JSON.stringify(errSlug));
   } else {
-
-
-  const {
-    data: event,
-    error: errEvent,
-    response: responseEvent,
-  } = await EventsService.getEventEventsEventIdGet({
-    path: {
-      event_id: eventId,
-    },
-    // If the user isn't logged in, just give an empty bearer token. Otherwise, don't set the token since it's already set in the client.
-    headers: user.isAuthenticated
-      ? {}
-      : {
-          Authorization: `Bearer SentSinceBearerTokenSeemedToBeNeededForThisToWork`,
-        },
-    throwOnError: false,
-  });
-  if (errEvent) {
-    console.error(errEvent, responseEvent);
-    throw error(responseEvent.status, JSON.stringify(errEvent));
-  } else {
-    // Check if the user is attending the event
-    if (user.isAuthenticated) {
-      const {
-        data,
-        error: err,
-        response,
-      } = await EventsService.getAttendingEventsEventsGet({
-        throwOnError: false,
-      });
-      if (err) {
-        console.error(err, response);
-        throw error(response.status, JSON.stringify(err));
-      } else {
-        partOfEvent =
-          data?.attending_events.some((e) => e.id === event.id) || false;
-      }
+    const {
+      data: event,
+      error: errEvent,
+      response: responseEvent,
+    } = await EventsService.getEventEventsEventIdGet({
+      path: {
+        event_id: eventId,
+      },
+      // If the user isn't logged in, just give an empty bearer token. Otherwise, don't set the token since it's already set in the client.
+      headers: getAuthenticatedUser().access_token
+        ? {}
+        : {
+            Authorization: `Bearer SentSinceBearerTokenSeemedToBeNeededForThisToWork`,
+          },
+      throwOnError: false,
+    });
+    if (errEvent) {
+      console.error(errEvent, responseEvent);
+      throw error(responseEvent.status, JSON.stringify(errEvent));
     } else {
-      partOfEvent = false;
-    }
+      // Check if the user is attending the event
+      if (getAuthenticatedUser().access_token) {
+        const {
+          data,
+          error: err,
+          response,
+        } = await EventsService.getAttendingEventsEventsGet({
+          throwOnError: false,
+        });
+        if (err) {
+          console.error(err, response);
+          throw error(response.status, JSON.stringify(err));
+        } else {
+          partOfEvent =
+            data?.attending_events.some((e) => e.id === event.id) || false;
+        }
+      } else {
+        partOfEvent = false;
+      }
 
-    const meta = [
-      {
-        name: "description",
-        content: event.description || "No description provided",
-      },
-    ];
-    return {
-      event: {
-        ...event,
-        owned: "attendees" in event,
-        partOfEvent,
-      },
-      title: event.name,
-      meta,
-    };
+      const meta = [
+        {
+          name: "description",
+          content: event.description || "No description provided",
+        },
+      ];
+      return {
+        event: {
+          ...event,
+          owned: "attendees" in event,
+          partOfEvent,
+        },
+        title: event.name,
+        meta,
+      };
+    }
   }
-}
 };

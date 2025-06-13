@@ -19,7 +19,7 @@ export class AuthService {
     
     /**
      * Verify Token
-     * Verify a magic link and return an access token
+     * Verify a login token and return an access token and user object
      */
     public static verifyTokenVerifyGet<ThrowOnError extends boolean = false>(options: OptionsLegacyParser<VerifyTokenVerifyGetData, ThrowOnError>) {
         return (options?.client ?? client).get<VerifyTokenVerifyGetResponse, VerifyTokenVerifyGetError, ThrowOnError>({
