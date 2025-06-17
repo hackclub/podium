@@ -49,26 +49,16 @@
 
   let showDeleteAlert = $state(false);
 
-  // async function fetchProjects() {
-  //   try {
-  //     toast("Fetching projects...");
-  //     const { data } = await ProjectsService.getProjectsProjectsMineGet({
-  //       throwOnError: true,
-  //     });
-  //     projects = data;
-  //     fetchedProjects = true;
-  //   } catch (err) {
-  //     handleError(err);
-  //   }
-  // }
-
   async function deleteProject() {
     showDeleteAlert = false;
-    try {
-      await ProjectsService.deleteProjectProjectsProjectIdDelete({
+      const {data, error: err} = await ProjectsService.deleteProjectProjectsProjectIdDelete({
         path: { project_id: chosenProject.id },
-        throwOnError: true,
+        throwOnError: false,
       });
+      if (err) {
+        handleError(err);
+        return;
+      }
       toast("Project deleted successfully");
       // Reset the fields
       project = emptyProjectUpdate;
@@ -76,9 +66,6 @@
       // Fetch the projects again if the user wants to perform another update to reflect the deletion
       fetchedProjects = false;
       await invalidateProjects();
-    } catch (err) {
-      handleError(err);
-    }
   }
 
   async function confirmDeleteProject() {

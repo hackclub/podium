@@ -51,39 +51,41 @@
 
   async function checkUserExists(): Promise<boolean> {
     isLoading = true;
-    try {
-      const { data } = await UsersService.userExistsUsersExistsGet({
+      const { data, error: err } = await UsersService.userExistsUsersExistsGet({
         query: { email: userInfo.email },
-        throwOnError: true,
+        throwOnError: false,
       });
-      if (data?.exists) {
+      isLoading = false;
+      if (err) {
+        handleError(err);
+        return false;
+      }
+      if (data.exists) {
         showSignupFields = false;
         return true;
       } else {
         return false;
         // If the user doesn't exist, login() will toast and show the signup fields
       }
-    } catch (error) {
-      handleError(error);
-      return false;
-    } finally {
-      isLoading = false;
-    }
   }
 
   // Function to handle login
   async function login() {
     isLoading = true;
     // Even though error handling is done in the API, the try-finally block is used to ensure the loading state is reset
-    try {
       const userExists = await checkUserExists();
       if (userExists) {
         // Request magic link for the provided email if the user exists
-        await AuthService.requestLoginRequestLoginPost({
+        const  { error: err } = await AuthService.requestLoginRequestLoginPost({
           body: { email: userInfo.email },
           query: { redirect: redirectUrl ?? "" },
-          throwOnError: true,
+          throwOnError: false,
         });
+        isLoading = false;
+        if (err) {
+          handleError(err);
+          return;
+        }
         toast(`Magic link sent to ${userInfo.email}`);
         // Clear field
         userInfo.email = "";
@@ -92,21 +94,20 @@
         expandedDueTo = userInfo.email;
         showSignupFields = true;
       }
-    } catch (error) {
-      handleError(error);
-    } finally {
-      isLoading = false;
-    }
   }
 
   // Function to handle signup and login
   async function signupAndLogin() {
     isLoading = true;
-    try {
-      await UsersService.createUserUsersPost({
+    const {error: err} = await UsersService.createUserUsersPost({
         body: userInfo,
-        throwOnError: true,
+        throwOnError: false,
       });
+      isLoading = false;
+      if (err) {
+        handleError(err)
+        return;
+      }
       await login();
       // toast(`Signed up! Check your email for a magic link!`);
       // Clear values
@@ -123,11 +124,6 @@
         country: "",
         dob: "",
       };
-    } catch (error) {
-      handleError(error);
-    } finally {
-      isLoading = false;
-    }
   }
 
   // Function to handle verification link
@@ -135,12 +131,12 @@
     isLoading = true;
     try {
       // AuthService.verifyTokenVerifyGet({query: {token}} as VerifyTokenVerifyGetData).then((response) => {
-      const { data, error } = await AuthService.verifyTokenVerifyGet({
+      const { data, error: err } = await AuthService.verifyTokenVerifyGet({
         query: { token },
         throwOnError: false,
       });
-      if (error) {
-        handleError(error);
+      if (err) {
+        handleError(err);
       } else {
         // Store the token in localStorage
         localStorage.setItem("token", data.access_token);

@@ -36,8 +36,8 @@ export const load: LayoutLoad = async ({ params, fetch, url, route }) => {
   } else {
     const {
       data: event,
-      error: errEvent,
-      response: responseEvent,
+      error: eventErr,
+      response: eventResponse,
     } = await EventsService.getEventEventsEventIdGet({
       path: {
         event_id: eventId,
@@ -50,9 +50,9 @@ export const load: LayoutLoad = async ({ params, fetch, url, route }) => {
           },
       throwOnError: false,
     });
-    if (errEvent) {
-      console.error(errEvent, responseEvent);
-      throw error(responseEvent.status, JSON.stringify(errEvent));
+    if (eventErr) {
+      console.error(eventErr, eventResponse);
+      throw error(eventResponse.status, JSON.stringify(eventErr));
     } else {
       // Check if the user is attending the event
       if (getAuthenticatedUser().access_token) {

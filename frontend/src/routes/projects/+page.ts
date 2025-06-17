@@ -14,31 +14,25 @@ export const load: PageLoad = async ({ params, fetch, depends }) => {
     throw error(401, "Unauthorized, try logging in first");
   }
 
-  let events: Array<Event> = [];
-  let projects: Array<PrivateProject> = [];
-
-  try {
-    const { data } = await EventsService.getAttendingEventsEventsGet({
-      throwOnError: true,
-    });
-    events = data.attending_events;
-  } catch (err) {
-    console.error(err);
-    throw error(500, "Failed to load events");
+  const { data: events, error: eventsError, response: eventsResponse } = await EventsService.getAttendingEventsEventsGet({
+    throwOnError: false,
+  });
+  if (eventsError) {
+    console.error(eventsError, eventsResponse);
+    throw error(eventsResponse.status, JSON.stringify(eventsError));
   }
+  
 
-  try {
-    const { data } = await ProjectsService.getProjectsProjectsMineGet({
-      throwOnError: true,
-    });
-    projects = data;
-  } catch (err) {
-    console.error(err);
-    throw error(500, "Failed to load projects");
+  const {data: projects, error: projectsError,  response: projectsResponse} = await ProjectsService.getProjectsProjectsMineGet({
+    throwOnError: false,
+  });
+  if (projectsError) {
+    console.error(projectsError, projectsResponse);
+    throw error(projectsResponse.status, JSON.stringify(projectsError));
   }
 
   return {
-    events,
-    projects,
+    events: events?.attending_events ?? [],
+    projects: projects ?? [],
   };
 };
