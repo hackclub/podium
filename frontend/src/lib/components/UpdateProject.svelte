@@ -101,7 +101,7 @@
     bind:this={updateModal}
     title="Update Project"
   >
-<div class="p-4 max-w-md mx-auto">``
+<div class="p-4 max-w-md mx-auto">
   <!-- <form onsubmit={updateProject} class="space-y-4"> -->
   <div class="space-y-4">
     <fieldset class="fieldset">

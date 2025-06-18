@@ -168,24 +168,23 @@
                       {/if}
                     {/each}
                   </td>
-                <td>
-                  {#each data.events as event}
-                    {#if event.id === project.event[0]}
-                      <a
-                        href={`/events/${event.slug}`}
-                        class="hover-link"
-                        data-sveltekit-noscroll
-                      >{event.name}
-                      </a>
-                    {/if}
-                  {/each}
-                </td>
-                <td>
-                  <UpdateProject
-                  preselectedProject={project}
-                    events={data.events}
+                  <td>
+                    {#each data.events as event}
+                      {#if event.id === project.event[0]}
+                        <a
+                          href={`/events/${event.slug}`}
+                          class="hover-link"
+                          data-sveltekit-noscroll>{event.name}</a
+                        >
+                      {/if}
+                    {/each}
+                  </td>
+                  <td>
+                    <UpdateProject
+                      preselectedProject={project}
+                      events={data.events}
                     />
-                </td>
+                  </td>
                 </tr>
               {/key}
             {/each}

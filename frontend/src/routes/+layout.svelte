@@ -116,7 +116,7 @@
       <p class="py-4">
         Podium is <a href="https://hackclub.com" class="hover-link"
           >Hack Club's
-        </a><a href="https://github.com/hackclub/podium" class="hover-link"
+        </a> <a href="https://github.com/hackclub/podium" class="hover-link"
           >open-source</a
         >
         peer-judging platform for
