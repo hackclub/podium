@@ -49,6 +49,8 @@
               <th>Project</th>
               <th>Join Code</th>
               <th>Quality</th>
+              <th>Event</th>
+              <th>Update</th>
             </tr>
           </thead>
           <tbody>
@@ -166,6 +168,24 @@
                       {/if}
                     {/each}
                   </td>
+                <td>
+                  {#each data.events as event}
+                    {#if event.id === project.event[0]}
+                      <a
+                        href={`/events/${event.slug}`}
+                        class="hover-link"
+                        data-sveltekit-noscroll
+                      >{event.name}
+                      </a>
+                    {/if}
+                  {/each}
+                </td>
+                <td>
+                  <UpdateProject
+                  preselectedProject={project}
+                    events={data.events}
+                    />
+                </td>
                 </tr>
               {/key}
             {/each}
@@ -182,11 +202,6 @@
   <section>
     <Collapse title="Join a project">
       <JoinProject />
-    </Collapse>
-  </section>
-  <section>
-    <Collapse title="Update a project">
-      <UpdateProject projects={data.projects} events={data.events} />
     </Collapse>
   </section>
 </div>

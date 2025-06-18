@@ -2,10 +2,12 @@
   import { EventsService, ProjectsService } from "$lib/client/sdk.gen";
   import type { Event, Project } from "$lib/client";
   import { toast } from "svelte-sonner";
-  import { handleError, invalidateProjects } from "$lib/misc";
+  import { customInvalidateAll, handleError, invalidateProjects } from "$lib/misc";
   import type { PrivateProject, ProjectUpdate } from "$lib/client/types.gen";
   import { fade } from "svelte/transition";
   import { onMount } from "svelte";
+  import Modal from "$lib/components/Modal.svelte";
+
 
   // let events: Event[] = $state([]);
   // let fetchedEvents = false;
@@ -23,9 +25,11 @@
   // }
 
   let {
-    projects,
+    preselectedProject,
     events,
-  }: { projects: Array<PrivateProject>; events: Array<Event> } = $props();
+    }: { preselectedProject: PrivateProject; events: Array<Event>} = $props();
+  
+  let updateModal: Modal = $state() as Modal;
 
   const emptyProjectUpdate: ProjectUpdate = {
     name: "",
@@ -42,17 +46,16 @@
     event: [""],
     id: "",
   };
-  let project: ProjectUpdate = $state(emptyProjectUpdate);
-  let chosenProject: Project = $state(emptyProject);
+  // Derive           project = { ...chosenProject };
+  let project: ProjectUpdate  = $derived({ ...preselectedProject })
   $inspect(project);
-  let fetchedProjects = false;
 
   let showDeleteAlert = $state(false);
 
   async function deleteProject() {
     showDeleteAlert = false;
       const {data, error: err} = await ProjectsService.deleteProjectProjectsProjectIdDelete({
-        path: { project_id: chosenProject.id },
+        path: { project_id: preselectedProject.id },
         throwOnError: false,
       });
       if (err) {
@@ -60,12 +63,8 @@
         return;
       }
       toast("Project deleted successfully");
-      // Reset the fields
-      project = emptyProjectUpdate;
-      chosenProject = emptyProject;
-      // Fetch the projects again if the user wants to perform another update to reflect the deletion
-      fetchedProjects = false;
-      await invalidateProjects();
+      await customInvalidateAll();
+      updateModal.closeModal();
   }
 
   async function confirmDeleteProject() {
@@ -82,66 +81,35 @@
   async function updateProject() {
     try {
       await ProjectsService.updateProjectProjectsProjectIdPut({
-        path: { project_id: chosenProject.id },
-        body: project,
+        path: { project_id: preselectedProject.id },
+        body: preselectedProject,
         throwOnError: true,
       });
       toast("Project updated successfully");
-      // Reset the fields
-      project = emptyProjectUpdate;
-      chosenProject = emptyProject;
-      // fetch the projects again if the user wants to perform another update
-      fetchedProjects = false;
       await invalidateProjects();
+      updateModal.closeModal();
     } catch (err) {
       handleError(err);
     }
   }
 </script>
 
-<div class="p-4 max-w-md mx-auto">
-  {#if showDeleteAlert}
-    <div role="alert" class="alert" in:fade out:fade>
-      <span>Are you <strong>sure</strong> you want to delete this project?</span
-      >
-      <div>
-        <button class="btn" onclick={() => (showDeleteAlert = false)}>
-          Cancel
-        </button>
-        <button class="btn btn-error" onclick={() => deleteProject()}>
-          Delete
-        </button>
-      </div>
-    </div>
-  {/if}
+  <button class="badge badge-lg underline badge-secondary" onclick={() => {updateModal.openModal()}}>
+    Update
+  </button>
+  <Modal
+    bind:this={updateModal}
+    title="Update Project"
+  >
+<div class="p-4 max-w-md mx-auto">``
   <!-- <form onsubmit={updateProject} class="space-y-4"> -->
   <div class="space-y-4">
     <fieldset class="fieldset">
-      <label class="label" for="project_select">
-        <span class="text-primary">Choose a project to update</span>
-        <span class="text-sm">This will only show projects you own</span>
-      </label>
-      <select
-        id="project_select"
-        bind:value={chosenProject}
-        class="select select-bordered w-full"
-        onchange={() => {
-          project = { ...chosenProject };
-          showDeleteAlert = false;
-        }}
-      >
-        <option value="" disabled selected>Select a project to update</option>
-        {#each projects as project}
-          <option value={project}>{project.name}</option>
-        {/each}
-      </select>
-
-      {#if chosenProject.id}
         <label class="label" for="project_name">Project Name</label>
         <input
           id="project_name"
           type="text"
-          bind:value={project.name}
+          bind:value={preselectedProject.name}
           placeholder="A really cool project!"
           class="input input-bordered w-full"
         />
@@ -151,7 +119,7 @@
         >
         <textarea
           id="project_description"
-          bind:value={project.description}
+          bind:value={preselectedProject.description}
           placeholder="Some cool description"
           class="textarea textarea-bordered w-full"
         ></textarea>
@@ -160,7 +128,7 @@
         <input
           id="image_url"
           type="text"
-          bind:value={project.image_url}
+          bind:value={preselectedProject.image_url}
           placeholder="Image URL"
           class="input input-bordered w-full"
         />
@@ -169,7 +137,7 @@
         <input
           id="demo_url"
           type="text"
-          bind:value={project.demo}
+          bind:value={preselectedProject.demo}
           placeholder="Demo URL"
           class="input input-bordered w-full"
         />
@@ -178,7 +146,7 @@
         <input
           id="repo_url"
           type="text"
-          bind:value={project.repo}
+          bind:value={preselectedProject.repo}
           placeholder="Repository URL"
           class="input input-bordered w-full"
         />
@@ -187,7 +155,7 @@
         <input
           id="hours_spent"
           type="number"
-          bind:value={project.hours_spent}
+          bind:value={preselectedProject.hours_spent}
           placeholder="Hours spent"
           class="input input-bordered w-full"
           min="0"
@@ -196,7 +164,7 @@
         <label class="label" for="event">Event</label>
         <select
           id="event"
-          bind:value={project.event[0]}
+          bind:value={preselectedProject.event[0]}
           class="select select-bordered w-full"
         >
           <option value="" disabled selected>Select an event</option>
@@ -215,8 +183,22 @@
         >
           Delete Project
         </button>
-      {/if}
     </fieldset>
   </div>
   <!-- </form> -->
+    {#if showDeleteAlert}
+    <div role="alert" class="alert" in:fade out:fade>
+      <span>Are you <strong>sure</strong> you want to delete this project?</span
+      >
+      <div>
+        <button class="btn" onclick={() => (showDeleteAlert = false)}>
+          Cancel
+        </button>
+        <button class="btn btn-error" onclick={() => deleteProject()}>
+          Delete
+        </button>
+      </div>
+    </div>
+  {/if}
 </div>
+</Modal>
