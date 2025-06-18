@@ -2,47 +2,42 @@
   import { EventsService } from "$lib/client/sdk.gen";
   import type { Event } from "$lib/client";
   import { toast } from "svelte-sonner";
-  import { handleError, invalidateEvents } from "$lib/misc";
+  import { customInvalidateAll, handleError, invalidateEvents } from "$lib/misc";
   import type { EventUpdate } from "$lib/client/types.gen";
   import { fade } from "svelte/transition";
+  import Modal from "$lib/components/Modal.svelte";
 
-  let { events }: { events: Array<Event> } = $props();
+  let {
+    preselectedEvent,
+    events,
+  }: { preselectedEvent: Event; events: Array<Event> } = $props();
 
+  let updateModal: Modal = $state() as Modal;
   const emptyEventUpdate: EventUpdate = {
     name: "",
     description: null,
     votable: false,
     leaderboard_enabled: false,
   };
-  const emptyEvent: Event = {
-    ...emptyEventUpdate,
-    owner: [""],
-    id: "",
-    slug: "",
-    max_votes_per_user: 0,
-  };
-  let event: EventUpdate = $state(emptyEventUpdate);
-  let chosenEvent: Event = $state(emptyEvent);
+  
+  // Derive event from preselectedEvent
+  let event: EventUpdate = $derived({ ...preselectedEvent });
   $inspect(event);
 
   let showDeleteAlert = $state(false);
-
   async function deleteEvent() {
     showDeleteAlert = false;
-    try {
-      await EventsService.deleteEventEventsEventIdDelete({
-        path: { event_id: chosenEvent.id },
-        throwOnError: true,
-      });
-      toast.success("Event deleted successfully");
-      // Reset the fields
-      event = emptyEventUpdate;
-      chosenEvent = emptyEvent;
-      // Invalidate events to refresh the list
-      await invalidateEvents();
-    } catch (err) {
+    const { data, error: err } = await EventsService.deleteEventEventsEventIdDelete({
+      path: { event_id: preselectedEvent.id },
+      throwOnError: false,
+    });
+    if (err) {
       handleError(err);
+      return;
     }
+    toast.success("Event deleted successfully");
+    await customInvalidateAll();
+    updateModal.closeModal();
   }
 
   async function confirmDeleteEvent() {
@@ -51,27 +46,81 @@
       showDeleteAlert = false;
     }, 5000);
   }
-
   async function updateEvent() {
     try {
       await EventsService.updateEventEventsEventIdPut({
-        path: { event_id: chosenEvent.id },
-        body: event,
+        path: { event_id: preselectedEvent.id },
+        body: preselectedEvent,
         throwOnError: true,
       });
       toast.success("Event updated successfully");
-      // Reset the fields
-      event = emptyEventUpdate;
-      chosenEvent = emptyEvent;
-      // Invalidate events to refresh the list
       await invalidateEvents();
+      updateModal.closeModal();
     } catch (err) {
       handleError(err);
     }
   }
 </script>
 
+<button class="badge badge-lg underline badge-secondary" onclick={() => {updateModal.openModal()}}>
+  Update
+</button>
+<Modal
+  bind:this={updateModal}
+  title="Update Event"
+>
 <div class="p-4 max-w-md mx-auto">
+  <div class="space-y-4">
+    <fieldset class="fieldset">
+      <label class="label" for="event_name">Event Name</label>
+      <input
+        id="event_name"
+        type="text"
+        bind:value={preselectedEvent.name}
+        placeholder="Super cool Hackathon!"
+        class="input input-bordered w-full"
+      />
+
+      <label class="label" for="event_description">Event Description</label>
+      <textarea
+        id="event_description"
+        bind:value={preselectedEvent.description}
+        placeholder="Some cool description"
+        class="textarea textarea-bordered w-full"
+      ></textarea>
+
+      <label class="label" for="votable">
+        <span>Votable</span>
+      </label>
+      <input
+        id="votable"
+        type="checkbox"
+        class="checkbox"
+        bind:checked={preselectedEvent.votable}
+      />
+
+      <label class="label" for="leaderboard_enabled">
+        <span>Leaderboard Enabled</span>
+      </label>
+      <input
+        id="leaderboard_enabled"
+        type="checkbox"
+        class="checkbox"
+        bind:checked={preselectedEvent.leaderboard_enabled}
+      />
+
+      <button class="btn btn-block mt-4 btn-primary" onclick={updateEvent}>
+        Update Event
+      </button>
+      <button
+        class="btn btn-block mt-4 btn-warning"
+        type="button"
+        onclick={() => confirmDeleteEvent()}
+      >
+        Delete Event
+      </button>
+    </fieldset>
+  </div>
   {#if showDeleteAlert}
     <div role="alert" class="alert" in:fade out:fade>
       <span>Are you <strong>sure</strong> you want to delete this event?</span>
@@ -85,80 +134,5 @@
       </div>
     </div>
   {/if}
-  <!-- <form onsubmit={updateEvent} class="space-y-4"> -->
-  <div class="space-y-4">
-    <fieldset class="fieldset">
-      <!-- legend removed -->
-
-      <label class="label flex justify-between" for="event_select">
-        <span class="text-primary">Select an event to update</span>
-        <span>This will only show events you own</span>
-      </label>
-      <select
-        id="event_select"
-        bind:value={chosenEvent}
-        class="select select-bordered w-full"
-        onchange={() => {
-          event = { ...chosenEvent };
-          showDeleteAlert = false;
-        }}
-      >
-        <option value="" disabled selected>Select an event to update</option>
-        {#each events as event}
-          <option value={event}>{event.name}</option>
-        {/each}
-      </select>
-
-      {#if chosenEvent.id}
-        <label class="label" for="event_name">Event Name</label>
-        <input
-          id="event_name"
-          type="text"
-          bind:value={event.name}
-          placeholder="Super cool Hackathon!"
-          class="input input-bordered w-full"
-        />
-
-        <label class="label" for="event_description">Event Description</label>
-        <textarea
-          id="event_description"
-          bind:value={event.description}
-          placeholder="Some cool description"
-          class="textarea textarea-bordered w-full"
-        ></textarea>
-
-        <label class="label" for="votable">
-          <span>Votable</span>
-        </label>
-        <input
-          id="votable"
-          type="checkbox"
-          class="checkbox"
-          bind:checked={event.votable}
-        />
-
-        <label class="label" for="leaderboard_enabled">
-          <span>Leaderboard Enabled</span>
-        </label>
-        <input
-          id="leaderboard_enabled"
-          type="checkbox"
-          class="checkbox"
-          bind:checked={event.leaderboard_enabled}
-        />
-
-        <button class="btn btn-block mt-4 btn-primary" onclick={updateEvent}>
-          Update Event
-        </button>
-        <button
-          class="btn btn-block mt-4 btn-warning"
-          type="button"
-          onclick={() => confirmDeleteEvent()}
-        >
-          Delete Event
-        </button>
-      {/if}
-    </fieldset>
-  </div>
-  <!-- </form> -->
 </div>
+</Modal>

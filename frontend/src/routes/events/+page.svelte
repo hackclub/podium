@@ -59,6 +59,7 @@
               <th>Event Name</th>
               <th>Description</th>
               <th>Join Code</th>
+              <th>Update</th>
             </tr>
           </thead>
           <tbody>
@@ -78,16 +79,17 @@
                     class="hover-link">{event.join_code}</a
                   ></td
                 >
+                <td>
+                  <UpdateEvent
+                    preselectedEvent={event}
+                    events={data.events.owned_events}
+                  />
+                </td>
               </tr>
             {/each}
           </tbody>
         </table>
       </div>
-    </Collapse>
-  </section>
-  <section>
-    <Collapse title="Update an Event">
-      <UpdateEvent events={data.events.owned_events} />
     </Collapse>
   </section>
 </div>
