@@ -19,6 +19,7 @@
     owner: [""],
     id: "",
     slug: "",
+    max_votes_per_user: 0,
   };
   let event: EventUpdate = $state(emptyEventUpdate);
   let chosenEvent: Event = $state(emptyEvent);
@@ -33,7 +34,7 @@
         path: { event_id: chosenEvent.id },
         throwOnError: true,
       });
-      toast("Event deleted successfully");
+      toast.success("Event deleted successfully");
       // Reset the fields
       event = emptyEventUpdate;
       chosenEvent = emptyEvent;
@@ -58,7 +59,7 @@
         body: event,
         throwOnError: true,
       });
-      toast("Event updated successfully");
+      toast.success("Event updated successfully");
       // Reset the fields
       event = emptyEventUpdate;
       chosenEvent = emptyEvent;

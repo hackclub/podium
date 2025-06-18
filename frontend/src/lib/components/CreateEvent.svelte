@@ -18,7 +18,7 @@
           handleError(err);
           return;
       }
-      toast("Event created successfully");
+      toast.success("Event created successfully");
       await invalidateEvents();
       // Clear the form
       eventName = "";

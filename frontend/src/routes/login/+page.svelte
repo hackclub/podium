@@ -86,11 +86,11 @@
           handleError(err);
           return;
         }
-        toast(`Magic link sent to ${userInfo.email}`);
+        toast.success(`Magic link sent to ${userInfo.email}`);
         // Clear field
         userInfo.email = "";
       } else {
-        toast("You don't exist (yet)! Let's change that.");
+        toast.error("You don't exist (yet)! Let's change that.");
         expandedDueTo = userInfo.email;
         showSignupFields = true;
       }

@@ -19,15 +19,15 @@ export function handleError(
       const invalidFields = error.detail.map(
         (e) => `${e.loc.join(".")}: ${e.msg}`,
       );
-      toast(invalidFields.join(" | "));
+      toast.error(invalidFields.join(" | "));
     } else if (typeof error?.detail === "string") {
-      toast(error.detail);
+      toast.error(error.detail);
     }
   } else {
     if (error instanceof Error) {
-      toast(error.message);
+      toast.error(error.message);
     } else {
-      toast("An error occurred, check the console for more details");
+      toast.error("An error occurred, check the console for more details");
     }
   }
 }

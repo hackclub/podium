@@ -15,7 +15,7 @@
         ...toSend,
         throwOnError: true,
       });
-      toast("Joined event successfully");
+      toast.success("Joined event successfully");
       await invalidateEvents();
       // Reset
       toSend.query.join_code = "";

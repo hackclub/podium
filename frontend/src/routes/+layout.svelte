@@ -51,6 +51,19 @@
   {/each}
 </svelte:head>
 
+        <Toaster
+        toastOptions={{
+            unstyled: true,
+            class: "toast alert",
+            classes: {
+              success: "alert-success",
+              error: "alert-error",
+              info: "alert-info",
+              warning: "alert-warning",
+              closeButton: "btn btn-sm btn-circle btn-ghost btn-error",
+              cancelButton: "btn btn-sm btn-circle btn-ghost btn-error",
+            }
+        }} closeButton/>
 <div class="drawer">
   <input id="my-drawer-3" type="checkbox" class="drawer-toggle" />
   <div class="drawer-content flex flex-col">
@@ -151,7 +164,6 @@
     <div class="fixed bottom-4 right-4">
       <ThemeSwitcher />
     </div>
-    <Toaster />
 </div> 
     <!--------- end of page content --------->
   </div>

@@ -18,7 +18,7 @@
   let fetchedEvents = false;
   async function fetchEvents() {
     try {
-      toast("Fetching events; please wait");
+      toast.info("Fetching events; please wait");
       const { data: userEvents } =
         await EventsService.getAttendingEventsEventsGet({ throwOnError: true });
       events = userEvents.attending_events;
@@ -34,7 +34,7 @@
         body: project,
         throwOnError: true,
       });
-      toast("Project created successfully");
+      toast.success("Project created successfully");
       project = {
         name: "",
         repo: "",

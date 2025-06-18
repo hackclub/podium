@@ -33,7 +33,7 @@
         },
         throwOnError: true,
       });
-      toast("Vote submitted successfully");
+      toast.success("Vote submitted successfully");
       selectedProjects = [];
       await invalidateUser();
       invalidateEvents();

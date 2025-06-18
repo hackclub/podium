@@ -62,7 +62,7 @@
         handleError(err);
         return;
       }
-      toast("Project deleted successfully");
+      toast.success("Project deleted successfully");
       await customInvalidateAll();
       updateModal.closeModal();
   }
@@ -85,7 +85,7 @@
         body: preselectedProject,
         throwOnError: true,
       });
-      toast("Project updated successfully");
+      toast.success("Project updated successfully");
       await invalidateProjects();
       updateModal.closeModal();
     } catch (err) {

@@ -17,7 +17,7 @@
         ...toSend,
         throwOnError: true,
       });
-      toast("Joined project successfully");
+      toast.success("Joined project successfully");
       await invalidateProjects();
       // Reset
       toSend.query.join_code = "";
