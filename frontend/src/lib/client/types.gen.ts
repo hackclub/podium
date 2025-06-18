@@ -22,6 +22,7 @@ export type Event = {
     ];
     slug: string;
     ysws_checks_enabled?: boolean;
+    readonly max_votes_per_user: number;
 };
 
 export type EventCreationPayload = {
@@ -60,9 +61,6 @@ export type PrivateEvent = {
     join_code: string;
     projects?: Array<(string)>;
     referrals?: Array<(string)>;
-    /**
-     * The maximum number of votes a user can cast for this event. This is based on the number of projects in the event. If there are 20 or more projects, the user can vote for 3 projects. Otherwise, they can vote for 2 projects.
-     */
     readonly max_votes_per_user: number;
 };
 

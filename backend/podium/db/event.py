@@ -1,6 +1,11 @@
-from podium.constants import MultiRecordField, SingleRecordField, Slug
+from fastapi import HTTPException
+from podium import db
+from podium.constants import AIRTABLE_NOT_FOUND_CODES, MultiRecordField, SingleRecordField, Slug
 from pydantic import BaseModel, StringConstraints, computed_field
 from typing import Annotated, List, Optional
+from functools import cached_property
+
+from requests import HTTPError
 
 
 # https://docs.pydantic.dev/1.10/usage/schema/#field-customization
@@ -26,6 +31,27 @@ class Event(EventCreationPayload):
     # Should the user see their project as valid or invalid depending on the automatic checks?
     ysws_checks_enabled: bool = False
 
+    @computed_field
+    @cached_property
+    def max_votes_per_user(self) -> int:
+        try:
+            event = db.events.get(self.id)
+        except HTTPError as e:
+            raise (
+            HTTPException(status_code=404, detail="Event not found")
+            if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
+            else e
+        )
+        event = InternalEvent.model_validate(event["fields"])
+
+        if len(event.projects) >= 20:
+            return 3
+        elif len(event.projects) >= 4:
+            return 2
+        else:
+            return 1
+
+
 
 class PrivateEvent(Event):
     """
@@ -39,16 +65,6 @@ class PrivateEvent(Event):
     projects: MultiRecordField = []
     referrals: MultiRecordField = []
 
-    @computed_field
-    @property
-    def max_votes_per_user(self) -> int:
-        """
-        The maximum number of votes a user can cast for this event. This is based on the number of projects in the event. If there are 20 or more projects, the user can vote for 3 projects. Otherwise, they can vote for 2 projects.
-        """
-        if len(self.projects) >= 20:
-            return 3
-        else:
-            return 2
 
 
 # TODO: Migrate internal uses of PrivateEvent to InternalEvent

@@ -18,7 +18,7 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
     if (!projects.data) {
       throw error(404, "No projects found");
     }
-    let toSelect = projects.data.length >= 20 ? 3 : 2;
+    let toSelect = event.max_votes_per_user;
 
     // Check if user already voted
     // console.debug("Project IDs loaded:", projects.data.map((project) => project.id));
@@ -37,15 +37,12 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
       );
     }
 
+    const alreadyVoted = userVotesInEvent >= toSelect;
+    toSelect = toSelect - userVotesInEvent;
+    
     console.debug(
       `User has ${userVotesInEvent} votes in event ${event.id}, can select ${toSelect} more projects`,
     );
-    const alreadyVoted = userVotesInEvent >= toSelect;
-    if (alreadyVoted) {
-      toSelect = 0;
-    }
-    toSelect = toSelect - userVotesInEvent;
-
     return { projects: projects.data, toSelect, alreadyVoted };
   } catch (err) {
     console.error(err);

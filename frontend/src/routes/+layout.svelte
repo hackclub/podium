@@ -15,11 +15,11 @@
   // Reactive variables for meta tags to ensure they update properly
   const title = $derived(page.data.title ? `${page.data.title} | Podium` : 'Podium');
   const description = $derived(
-    page.data.meta?.find(m => m.name === 'description')?.content || 
+    page.data.meta?.find((m: { name: string; }) => m.name === 'description')?.content || 
     "Podium - Hack Club's open-source peer-judging platform for hackathons"
   );
   const additionalMeta = $derived(
-    page.data.meta?.filter(m => m.name !== 'description') || []
+    page.data.meta?.filter((m: { name: string; }) => m.name !== 'description') || []
   );
 
   onMount(() => {
