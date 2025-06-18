@@ -41,7 +41,7 @@
 
 <div class="p-4 mx-auto space-y-4">
   <section>
-    <Collapse title="Your projects">
+    <Collapse title="Your projects" expandByDefault>
       <div class="overflow-x-auto">
         <table class="table w-full table-zebra">
           <thead>

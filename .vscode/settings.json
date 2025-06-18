@@ -19,5 +19,8 @@
     {
       "file": "./.vscode/svelte.md"
     }
-  ]
+  ],
+  "search.exclude": {
+    "**/.vscode/*.md": true
+  }
   }
