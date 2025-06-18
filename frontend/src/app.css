@@ -6,8 +6,7 @@
   themes:
     coffee,
     night --prefersdark,
-    retro,
-    nord --default,
+    retro --default,
     dracula;
 }
 

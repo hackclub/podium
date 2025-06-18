@@ -16,7 +16,6 @@ export const themes = [
   "coffee",
   "night",
   "retro",
-  "nord",
   "dracula",
 ];
 export const lightTheme = "nord";
