@@ -33,9 +33,7 @@
 </script>
 
 <svelte:head>
-  {#if page.data.title}
-    <title>{page.data.title} | Podium</title>
-  {/if}
+  <title>{page.data.title ? `${page.data.title} | Podium` : 'Podium'}</title>
   {#if page.data.meta}
     {#each page.data.meta as { name, content }}
       <meta {name} {content} />
