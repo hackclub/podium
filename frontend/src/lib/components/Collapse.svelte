@@ -33,21 +33,13 @@
           isOpen = false;
         }
       } catch (error) {
-        // If we the active element doesn't exist stare into space and ponder why
+        // If the active element doesn't exist stare into space and ponder why
         // (realistically this is probably because the user is navigating away from the page, so close the collapse)
         isOpen = false;
       }
     }, 10); // Small delay to allow new focus to be set
   }
 </script>
-
-<!-- <div class="collapse bg-base-200 text-center collapse-arrow max-w-2xl mx-auto">
-    <input type="checkbox" />
-    <div class="collapse-title text-xl font-medium">{title}</div>
-    <div class="collapse-content">
-      {@render children?.()}
-    </div>
-  </div> -->
 
 <div
   tabindex="0"
@@ -62,8 +54,6 @@
   <div class="collapse-title text-xl font-medium text-center">
     {title}
   </div>
-  <!-- <div class="collapse-content" onmousedown={handleFocusIn} role="button"> -->
-  <!-- <div class="collapse-content" onfocusin={handleFocusIn} onblur={handleFocusOut} role="button" tabindex="0"> -->
   <div class="collapse-content overflow-x-auto" role="button" tabindex="0">
     {@render children?.()}
   </div>
