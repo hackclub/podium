@@ -11,6 +11,17 @@
   let aboutModal: Modal = $state() as Modal;
   let loadingText = $state(returnLoadingText());
   let loadingTextInterval: NodeJS.Timeout = $state() as NodeJS.Timeout;
+
+  // Reactive variables for meta tags to ensure they update properly
+  const title = $derived(page.data.title ? `${page.data.title} | Podium` : 'Podium');
+  const description = $derived(
+    page.data.meta?.find(m => m.name === 'description')?.content || 
+    "Podium - Hack Club's open-source peer-judging platform for hackathons"
+  );
+  const additionalMeta = $derived(
+    page.data.meta?.filter(m => m.name !== 'description') || []
+  );
+
   onMount(() => {
     console.debug("Page data:", page.data);
     themeChange(false);
@@ -33,12 +44,11 @@
 </script>
 
 <svelte:head>
-  <title>{page.data.title ? `${page.data.title} | Podium` : 'Podium'}</title>
-  {#if page.data.meta}
-    {#each page.data.meta as { name, content }}
-      <meta {name} {content} />
-    {/each}
-  {/if}
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  {#each additionalMeta as { name, content }}
+    <meta {name} {content} />
+  {/each}
 </svelte:head>
 
 <div class="drawer">
