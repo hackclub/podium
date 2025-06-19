@@ -18,19 +18,18 @@ class UserLoginPayload(BaseModel):
 
 
 class UserBase(BaseModel):
-    first_name: FirstName
-    last_name: LastName
-
-
+        display_name: str = ""
 class UserPublic(UserBase): ...
 
 
-class UserSignupPayload(UserBase):
+class UserSignupPayload(UserBase):  
     email: EmailStrippedLower
+    first_name: FirstName
+    last_name: LastName
     # Optional since some users don't have a last name in the DB
     # International phone number format, allowing empty string
     # this should have a default since I think Airtable may return None
-    phone: Annotated[str, StringConstraints(pattern=r"(^$|^\+?[1-9]\d{1,14}$)")] = ""
+    phone: Annotated[str, StringConstraints(pattern=r"(^$|^\+?[\d\-\(\)\s]{7,20}$)")] = ""
     street_1: Optional[str] = ""
     street_2: Optional[str] = ""
     city: Optional[str] = ""

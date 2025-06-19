@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getAuthenticatedUser } from "$lib/user.svelte";
+  import { defaultUser, getAuthenticatedUser } from "$lib/user.svelte";
   import { toast, Toaster } from "svelte-sonner";
   import { onMount } from "svelte";
   import { validateToken } from "$lib/user.svelte";
@@ -16,18 +16,7 @@
   let showSignupFields = $state(false);
   let expandedDueTo = "";
   let userInfo: UserSignupPayload = $state({
-    email: "",
-    first_name: "",
-    last_name: "",
-    phone: "",
-    street_1: "",
-    street_2: "",
-    city: "",
-    state: "",
-    zip_code: "",
-    country: "",
-    // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/date
-    dob: null,
+...defaultUser
   });
   $inspect(userInfo);
   let redirectUrl: string;
@@ -112,17 +101,7 @@
       // toast(`Signed up! Check your email for a magic link!`);
       // Clear values
       userInfo = {
-        email: "",
-        first_name: "",
-        last_name: "",
-        phone: "",
-        street_1: "",
-        street_2: "",
-        city: "",
-        state: "",
-        zip_code: "",
-        country: "",
-        dob: "",
+        ...defaultUser,
       };
   }
 
@@ -240,6 +219,19 @@
           class="input input-bordered w-full"
           placeholder="Xyz"
           bind:value={userInfo.last_name}
+        />
+
+          <!-- Display name; if it's not set, use first name and last initial -->
+        <label class="label flex justify-between" for="display_name">
+          <span>Display Name</span>
+          <span>Optional, default is First Name + Last Initial</span>
+        </label>
+        <input
+          id="display_name"
+          type="text"
+          class="input input-bordered w-full"
+          placeholder="Abc X."
+          bind:value={userInfo.display_name}
         />
 
         <label class="label flex justify-between" for="phone">

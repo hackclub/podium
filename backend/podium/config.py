@@ -4,6 +4,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from quality.models import QualitySettings
 from steel import Steel
 
+print(f"Using environment: {os.getenv('ENV_FOR_DYNACONF', '')}")
 settings = Dynaconf(
     envvar_prefix="PODIUM",
     load_dotenv=True,
