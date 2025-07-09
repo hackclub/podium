@@ -1,6 +1,6 @@
 # from __future__ import annotations
 import asyncio
-
+from rich import print as pprint
 # import logging
 from browser_use import Agent, Browser, BrowserConfig, Controller
 from browser_use.browser.context import BrowserContext
@@ -9,7 +9,8 @@ from browser_use.browser.context import BrowserContext
 from string import Template
 import mimetypes
 import httpx
-from quality.models import QualitySettings, Result, ResultResponse, Results
+from podium import config 
+from quality.models import QualitySettings, Result, ResultsResponse, Results
 from pydantic import ValidationError
 from podium.db.project import Project
 
@@ -17,40 +18,28 @@ from podium.db.project import Project
 # os.environ["ANONYMIZED_TELEMETRY"] = "false" # set in .env, along with BROWSER_USE_LOGGING_LEVEL=result
 # logging.basicConfig(level=logging.DEBUG)
 
-controller = Controller(output_model=ResultResponse)
+controller = Controller(output_model=ResultsResponse)
 
 
 async def check_project(project: "Project", config: QualitySettings) -> Results:
     # Acquire the semaphore to ensure no more than 2 concurrent sessions
-    # https://fastapi.tiangolo.com/tutorial/background-tasks/
-    # Might be a problem if a different semaphore is being passed to each function run
     async with config.session_semaphore:
         if config.steel_client:
             # Create separate sessions for each agent
-            demo_session = config.steel_client.sessions.create()
-            source_session = config.steel_client.sessions.create()
-            print(f"View live demo session at: {demo_session.session_viewer_url}")
-            print(f"View live source session at: {source_session.session_viewer_url}")
+            browser_session = config.steel_client.sessions.create()
+            print(f"View live session at: {browser_session.session_viewer_url}")
 
-            demo_cdp_url = f"wss://connect.steel.dev?apiKey={config.steel_client.steel_api_key}&sessionId={demo_session.id}"
-            source_cdp_url = f"wss://connect.steel.dev?apiKey={config.steel_client.steel_api_key}&sessionId={source_session.id}"
+            browser_cdp_url = f"wss://connect.steel.dev?apiKey={config.steel_client.steel_api_key}&sessionId={browser_session.id}"
 
-            demo_browser = Browser(config=BrowserConfig(cdp_url=demo_cdp_url))
-            source_browser = Browser(config=BrowserConfig(cdp_url=source_cdp_url))
+            browser = Browser(config=BrowserConfig(cdp_url=browser_cdp_url))
         else:
-            demo_browser = Browser(
-                config=BrowserConfig(
-                    headless=config.headless,
-                )
-            )
-            source_browser = Browser(
+            browser = Browser(
                 config=BrowserConfig(
                     headless=config.headless,
                 )
             )
 
-        demo_context = BrowserContext(browser=demo_browser)
-        source_context = BrowserContext(browser=source_browser)
+        browser_context = BrowserContext(browser=browser)
 
         options = {
             "llm": config.llm,
@@ -60,81 +49,59 @@ async def check_project(project: "Project", config: QualitySettings) -> Results:
         }
 
         try:
-            # Initialize variables with default invalid results
-            demo_result = Result(
-                url=str(project.demo),
-                valid=False,
-                reason="Demo URL validation failed unexpectedly",
-            )
-            source_code_result = Result(
-                url=str(project.repo),
-                valid=False,
-                reason="Source code URL validation failed unexpectedly",
-            )
-
-            # Create tasks for concurrent execution
-            demo_task = asyncio.create_task(
+            # Run the browser agent for demo and source_code only
+            agent_task = asyncio.create_task(
                 Agent(
                     **options,
-                    task=Template(config.prompts.demo).substitute(url=project.demo),
-                    browser_context=demo_context,
-                ).run(max_steps=10)
-            )
-
-            source_task = asyncio.create_task(
-                Agent(
-                    **options,
-                    task=Template(config.prompts.source_code).substitute(
-                        url=project.repo
+                    task=Template(config.prompts.unified).substitute(
+                        repo=project.repo,
+                        demo=project.demo,
                     ),
-                    browser_context=source_context,
+                    browser_context=browser_context,
                 ).run(max_steps=10)
             )
 
-            # Run both agents concurrently
-            demo_result_raw, source_result_raw = await asyncio.gather(
-                demo_task, source_task
+            results_raw = await asyncio.gather(agent_task)
+            agent_result = results_raw[0]
+            final_json = agent_result.final_result()
+            pprint(final_json)
+            if final_json is not None:
+                # Only use demo and source_code from agent result
+                agent_results = ResultsResponse.model_validate_json(final_json).model_dump()
+
+                demo_result = agent_results.get("demo") or {"valid": False, "reason": "Agent did not return a result"}
+                source_code_result = agent_results.get("source_code") or {"valid": False, "reason": "Agent did not return a result"}
+            else:
+                demo_result = {"valid": False, "reason": "Agent did not return a result"}
+                source_code_result = {"valid": False, "reason": "Agent did not return a result"}
+
+            result = ResultsResponse(
+                demo=Result(**demo_result),
+                source_code=Result(**source_code_result),
             )
 
-            # Validate results with pydantic
-            demo_result = ResultResponse.model_validate_json(
-                demo_result_raw.final_result()
-            )
-            source_code_result = ResultResponse.model_validate_json(
-                source_result_raw.final_result()
-            )
-            # Add the URL to the results
-            demo_result = Result(**demo_result.model_dump(), url=str(project.demo))
-            source_code_result = Result(
-                **source_code_result.model_dump(), url=str(project.repo)
-            )
         except ValidationError as e:
-            # Default values are already set in case the URL is inaccessible or something else goes with the agent
             print(f"Validation error occurred: {e}")
+            result = ResultsResponse(
+                demo=Result(valid=False, reason="Validation error occurred"),
+                source_code=Result(valid=False, reason="Validation error occurred"),
+            )
         finally:
-            # Close browser contexts
-            if demo_context:
-                await demo_context.close()
-            if source_context:
-                await source_context.close()
-
-            # Close browsers
-            if demo_browser:
-                await demo_browser.close()
-            if source_browser:
-                await source_browser.close()
-
-            # Release sessions
+            # Close browser context
+            if browser_context:
+                await browser_context.close()
+            # Close browser
+            if browser:
+                await browser.close()
+            # Release session if used
             if config.steel_client:
-                if demo_session:
-                    config.steel_client.sessions.release(demo_session.id)
-                if source_session:
-                    config.steel_client.sessions.release(source_session.id)
+                if browser_session:
+                    config.steel_client.sessions.release(browser_session.id)
 
         return Results(
-            demo=demo_result,
-            source_code=source_code_result,
-            image_url=await is_raw_image(str(project.image_url)),
+            demo=result.demo,
+            source_code=result.source_code,
+            image_url=await is_raw_image(project.image_url),
         )
 
 
@@ -147,7 +114,6 @@ async def is_raw_image(url: str) -> Result:
     mime_type, _ = mimetypes.guess_type(url)
     if mime_type and mime_type.startswith("image/"):
         return Result(
-            url=url,
             valid=True,
             reason="",
         )
@@ -159,22 +125,18 @@ async def is_raw_image(url: str) -> Result:
             content_type = response.headers.get("Content-Type", "")
             is_image_type = content_type.startswith("image/")
             return Result(
-                url=url,
                 valid=is_image_type,
-                reason="",
+                reason="" if is_image_type else "Content-Type is not an image",
             )
     except Exception as e:
         print(f"Error checking image URL: {e}")
         return Result(
-            url=url,
             valid=False,
             reason="Image URL is not a raw image",
         )
 
 
 async def main():
-    from podium.config import quality_settings
-
     test_run = await check_project(
         Project(
             id="123",
@@ -186,7 +148,18 @@ async def main():
             event=["recj2PpwaPPxGsAbk"],
             owner=["recj2PpwaPPxGsAbk"],
         ),
-        config=quality_settings,
+#     QualitySettings(
+#     use_vision=True,
+#     headless=False,
+#     steel_client=None
+#     llm=ChatGoogleGenerativeAI(
+#         # https://ai.google.dev/gemini-api/docs/rate-limits
+#         # model="gemini-2.0-flash-exp",
+#         api_key=os.environ["GEMINI_API_KEY"],
+#         model="gemini-2.0-flash-lite",
+#     ),
+# )
+        config=config.quality_settings,
     )
     # {
     #     "id": "123",

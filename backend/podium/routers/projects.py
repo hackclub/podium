@@ -161,7 +161,7 @@ def get_project(project_id: Annotated[str, Path(pattern=r"^rec\w*$")]):
 
 
 @router.post("/check")
-async def check_project(project: Project) -> quality.Results:
+async def check_project(project: Project) -> quality.ResultsResponse:
     # TODO: add a parameter to force a recheck or request human review. This could just trigger a Slack webhook
     try:
         # Don't trust the user to provide accurate cached_auto_quality data
