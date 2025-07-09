@@ -1,95 +1,124 @@
 <svelte:options runes />
 
 <script lang="ts">
-  import AttendEvent from "$lib/components/AttendEvent.svelte";
-  import CreateEvent from "$lib/components/CreateEvent.svelte";
   import UpdateEvent from "$lib/components/UpdateEvent.svelte";
   import { EventsService } from "$lib/client";
   import type { PageData } from "./$types";
   import { handleError } from "$lib/misc";
   import { toast } from "svelte-sonner";
-  import Collapse from "$lib/components/Collapse.svelte";
 
   let { data }: { data: PageData } = $props();
 </script>
 
-<div class="space-y-8 p-4">
-  <section>
-    <Collapse title="Events you're attending" expandByDefault>
-      <div class="overflow-x-auto">
-        <table class="table w-full table-zebra">
-          <thead>
-            <tr>
-              <th>Event Name</th>
-              <th>Description</th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each data.events.attending_events as event}
+<div class="max-w-6xl mx-auto space-y-8">
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-base-content mb-2">My Events</h1>
+    <p class="text-base-content/70">Manage your hackathon events and track participation.</p>
+  </div>
+
+  <!-- Events you're attending -->
+  <div class="card bg-base-100 shadow-lg">
+    <div class="card-body">
+      <h2 class="card-title text-xl mb-4">Events You're Attending</h2>
+      {#if data.events.attending_events.length > 0}
+        <div class="overflow-x-auto">
+          <table class="table table-zebra w-full">
+            <thead>
               <tr>
-                <td
-                  ><a href={`/events/${event.slug}`} class="hover-link"
-                    >{event.name}</a
-                  ></td
-                >
-                <td>{event.description}</td>
+                <th>Event Name</th>
+                <th>Description</th>
+                <th>Actions</th>
               </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
-    </Collapse>
-  </section>
-  <section>
-    <Collapse title="Attend Event">
-      <AttendEvent />
-    </Collapse>
-  </section>
-  <section>
-    <Collapse title="Create Event">
-      <CreateEvent />
-    </Collapse>
-  </section>
-  <section>
-    <Collapse title="Owned Events">
-      <div class="overflow-x-auto">
-        <table class="table w-full table-zebra">
-          <thead>
-            <tr>
-              <th>Event Name</th>
-              <th>Description</th>
-              <th>Join Code</th>
-              <th>Update</th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each data.events.owned_events as event}
+            </thead>
+            <tbody>
+              {#each data.events.attending_events as event}
+                <tr>
+                  <td>
+                    <a href={`/events/${event.slug}`} class="link link-primary font-medium">
+                      {event.name}
+                    </a>
+                  </td>
+                  <td class="max-w-md">
+                    <p class="truncate">{event.description}</p>
+                  </td>
+                  <td>
+                    <a href={`/events/${event.slug}`} class="btn btn-sm btn-primary">
+                      View Event
+                    </a>
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      {:else}
+        <div class="text-center py-8">
+          <p class="text-base-content/70 mb-4">You're not attending any events yet.</p>
+          <a href="/events/attend" class="btn btn-primary">Attend an Event</a>
+        </div>
+      {/if}
+    </div>
+  </div>
+
+  <!-- Owned Events -->
+  <div class="card bg-base-100 shadow-lg">
+    <div class="card-body">
+      <h2 class="card-title text-xl mb-4">Events You Own</h2>
+      {#if data.events.owned_events.length > 0}
+        <div class="overflow-x-auto">
+          <table class="table table-zebra w-full">
+            <thead>
               <tr>
-                <td
-                  ><a href={`/events/${event.slug}`} class="hover-link"
-                    >{event.name}</a
-                  ></td
-                >
-                <td>{event.description}</td>
-                <!-- <span class="ml-4 bg-base-300 p-1 rounded-xs"></span> -->
-                <td
-                  ><a
-                    href={`/events/?join_code=${event.join_code}`}
-                    data-sveltekit-noscroll
-                    class="hover-link">{event.join_code}</a
-                  ></td
-                >
-                <td>
-                  <UpdateEvent
-                    preselectedEvent={event}
-                    events={data.events.owned_events}
-                  />
-                </td>
+                <th>Event Name</th>
+                <th>Description</th>
+                <th>Join Code</th>
+                <th>Actions</th>
               </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
-    </Collapse>
-  </section>
+            </thead>
+            <tbody>
+              {#each data.events.owned_events as event}
+                <tr>
+                  <td>
+                    <a href={`/events/${event.slug}`} class="link link-primary font-medium">
+                      {event.name}
+                    </a>
+                  </td>
+                  <td class="max-w-md">
+                    <p class="truncate">{event.description}</p>
+                  </td>
+                  <td>
+                    <div class="tooltip" data-tip="Click to copy join link">
+                      <a
+                        href={`/events/?join_code=${event.join_code}`}
+                        data-sveltekit-noscroll
+                        class="badge badge-accent font-mono"
+                      >
+                        {event.join_code}
+                      </a>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="flex gap-2">
+                      <a href={`/events/${event.slug}`} class="btn btn-sm btn-primary">
+                        View
+                      </a>
+                      <UpdateEvent
+                        preselectedEvent={event}
+                        events={data.events.owned_events}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      {:else}
+        <div class="text-center py-8">
+          <p class="text-base-content/70 mb-4">You haven't created any events yet.</p>
+          <a href="/events/create" class="btn btn-primary">Create an Event</a>
+        </div>
+      {/if}
+    </div>
+  </div>
 </div>

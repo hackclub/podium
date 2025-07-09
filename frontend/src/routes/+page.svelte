@@ -31,94 +31,124 @@
   });
 </script>
 
-<div
-  class="space-y-8 p-4 max-w-2xl mx-auto flex flex-col justify-center min-h-screen"
->
-  <section>
-    <h2 class="text-xl font-semibold mb-4">Login</h2>
-    {#if getAuthenticatedUser().access_token}
-      <div class="my-4 text-center">
-        <h2>Hey!</h2>
-        <p>
-          You're signed in as <strong
-            >{getAuthenticatedUser().user.email}</strong
-          >.
-        </p>
-        <!--  Div that stacks the buttons below -->
-        <!-- <div class="flex flex-col items-center space-y-2"> -->
-        <button class="btn btn-primary mt-2" onclick={signOut}>Sign out</button>
-        <!-- <a href="/user" class="btn btn-primary">Profile</a> -->
-        <!-- </div>   -->
+{#if !getAuthenticatedUser().access_token}
+  <!-- Not logged in - center everything -->
+  <div class="min-h-screen flex items-center justify-center">
+    <div class="max-w-md w-full space-y-8">
+      <div class="text-center">
+        <h1 class="text-4xl font-bold text-base-content mb-4">Welcome to Podium</h1>
+        <p class="text-base-content/70 mb-8">Hack Club's open-source peer-judging platform for hackathons</p>
+        <a href="/login" class="btn btn-primary btn-lg">Login / Sign Up</a>
       </div>
-    {:else}
-      <div class="flex justify-center my-4">
-        <a href="/login" class="btn btn-primary">Login / Sign Up</a>
-      </div>
-    {/if}
-  </section>
+    </div>
+  </div>
+{:else}
+  <!-- Logged in dashboard -->
+  <div class="max-w-6xl mx-auto space-y-8">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-base-content mb-2">
+        Welcome back, {getAuthenticatedUser().user.first_name}!
+      </h1>
+      <p class="text-base-content/70">Here's an overview of your hackathon activity.</p>
+    </div>
 
-  {#if getAuthenticatedUser().access_token}
-    <!-- Style and center -->
-    <!-- <section>
-      <h2 class="text-xl font-semibold mb-4">Events</h2>
-      <div class="flex justify-center">
-        <a href="/events" class="btn btn-wide btn-primary">
-          Events Dashboard
-        </a>
+    <!-- User Info Card -->
+    <div class="card bg-base-100 shadow-lg">
+      <div class="card-body">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-semibold">Account</h2>
+            <p class="text-base-content/70">
+              Signed in as <strong>{getAuthenticatedUser().user.email}</strong>
+            </p>
+          </div>
+          <div class="flex gap-2">
+            <a href="/user" class="btn btn-outline">View Profile</a>
+            <button class="btn btn-ghost" onclick={signOut}>Sign out</button>
+          </div>
+        </div>
       </div>
-    </section>
-    <section>
-      <h2 class="text-xl font-semibold mb-4">Projects</h2>
-      <div class="flex justify-center">
-        <a href="/projects" class="btn btn-wide btn-primary">
-          Projects Dashboard
-        </a>
-      </div>
-    </section> -->
-    <!-- <section>
-      <h2 class="text-xl font-semibold mb-4">Your profile</h2>
-      <div class="flex justify-center">
-        <a href="/user" class="btn btn-wide btn-primary">
-          Profile
-        </a>
-      </div>
-    </section> -->
+    </div>
 
-    {#if projects}
-        <p class="text-center text-lg font-semibold" transition:fade>Your projects</p>
-        <div
-          class="carousel carousel-vertical rounded-box max-w-3/4 lg:carousel-horizontal mx-auto"
-          transition:fade
-        >
-          {#each projects as project}
-            <div class="carousel-item w-full">
-              <!-- <img
-            src={project.image_url}
-            class="w-full"
-            alt="{project.name} project image"
-          /> -->
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <a href="/projects" class="card bg-primary text-primary-content shadow-lg hover:shadow-xl transition-shadow">
+        <div class="card-body">
+          <div class="flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            <div>
+              <h3 class="font-semibold">Projects</h3>
+              <p class="text-sm opacity-90">Manage your work</p>
+            </div>
+          </div>
+        </div>
+      </a>
+
+      <a href="/events" class="card bg-secondary text-secondary-content shadow-lg hover:shadow-xl transition-shadow">
+        <div class="card-body">
+          <div class="flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v14a2 2 0 002 2z" />
+            </svg>
+            <div>
+              <h3 class="font-semibold">Events</h3>
+              <p class="text-sm opacity-90">Join hackathons</p>
+            </div>
+          </div>
+        </div>
+      </a>
+
+      <a href="/projects/create" class="card bg-accent text-accent-content shadow-lg hover:shadow-xl transition-shadow">
+        <div class="card-body">
+          <div class="flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            <div>
+              <h3 class="font-semibold">Create Project</h3>
+              <p class="text-sm opacity-90">Start building</p>
+            </div>
+          </div>
+        </div>
+      </a>
+
+      <a href="/events/attend" class="card bg-info text-info-content shadow-lg hover:shadow-xl transition-shadow">
+        <div class="card-body">
+          <div class="flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+            <div>
+              <h3 class="font-semibold">Join Event</h3>
+              <p class="text-sm opacity-90">Find hackathons</p>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Recent Projects -->
+    {#if projects && projects.length > 0}
+      <div class="card bg-base-100 shadow-lg" transition:fade>
+        <div class="card-body">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="card-title text-xl">Your Recent Projects</h2>
+            <a href="/projects" class="btn btn-sm btn-outline">View All</a>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {#each projects.slice(0, 3) as project}
               <ProjectCard
                 {project}
                 isSelected={false}
                 toggle={() => {}}
                 selectable={false}
               />
-            </div>
-          {/each}
+            {/each}
+          </div>
         </div>
+      </div>
     {/if}
-  {/if}
-</div>
-
-<style>
-  @reference "../app.css";
-
-  section {
-    /* @apply p-6 rounded-lg shadow-xs border-accent/50 border-2 border-dotted; */
-    @apply p-6 rounded-3xl shadow-2xl ring-2 ring-accent border-accent/10 border-2 border-dotted bg-neutral;
-  }
-
-  * {
-    @apply text-neutral-content;
-  }
-</style>
+  </div>
+{/if}
