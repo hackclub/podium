@@ -254,7 +254,7 @@
 {/if}
 
 <!-- Global Info Button -->
-<div class="fixed bottom-4 left-4 z-50">
+<div class="fixed bottom-4 right-4 z-50">
   <button
     class="btn btn-info btn-square btn-md font-serif font-light"
     aria-label="Info"
