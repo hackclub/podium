@@ -147,8 +147,8 @@
               <a 
                 href={path} 
                 class="flex items-center gap-3 p-3 rounded-lg transition-colors"
-                class:bg-primary={page.url.pathname === path}
-                class:text-primary-content={page.url.pathname === path}
+                class:bg-primary={path === '/' ? page.url.pathname === path : isInSection(path)}
+                class:text-primary-content={path === '/' ? page.url.pathname === path : isInSection(path)}
               >
                 {#if path === '/'}
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

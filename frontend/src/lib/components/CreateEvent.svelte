@@ -26,7 +26,7 @@
   }
 </script>
 
-<div class="p-4 max-w-md mx-auto">
+<div class="w-full">
   <!-- <form onsubmit={createEvent} class="space-y-2"> -->
   <div class="space-y-2">
     <fieldset class="fieldset">

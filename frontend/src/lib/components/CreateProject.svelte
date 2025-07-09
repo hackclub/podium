@@ -53,9 +53,20 @@
   let guidelinesModal: Modal = $state() as Modal;
 </script>
 
-<div class="p-4 max-w-md mx-auto">
+<div class="w-full">
   <!-- <form onsubmit={createProject} class="space-y-4"> -->
   <fieldset class="fieldset">
+    <div class="flex items-center gap-2 mb-4">
+      <div class="tooltip tooltip-right" data-tip="You can always edit this later!">
+        <div class="badge badge-info badge-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+      </div>
+      <span class="text-sm text-base-content/70">You can always edit this later!</span>
+    </div>
+
     <label class="label" for="project_name">Project Name</label>
     <input
       id="project_name"

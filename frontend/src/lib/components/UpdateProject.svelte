@@ -95,7 +95,7 @@
 </script>
 
   <button class="badge badge-lg underline badge-secondary" onclick={() => {updateModal.openModal()}}>
-    Update
+    Edit
   </button>
   <Modal
     bind:this={updateModal}

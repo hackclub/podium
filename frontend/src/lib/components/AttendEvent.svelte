@@ -41,7 +41,7 @@
   });
 </script>
 
-<div class="p-4 max-w-md mx-auto">
+<div class="w-full">
   <!-- <form onsubmit={attendEvent} class="space-y-4"> -->
   <div class="space-y-4">
     <fieldset class="fieldset">
