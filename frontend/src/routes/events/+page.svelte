@@ -60,11 +60,11 @@
     </div>
   </div>
 
-  <!-- Owned Events -->
-  <div class="card bg-base-100 shadow-lg">
-    <div class="card-body">
-      <h2 class="card-title text-xl mb-4">Events You Own</h2>
-      {#if data.events.owned_events.length > 0}
+  <!-- Owned Events - only show if user has owned events -->
+  {#if data.events.owned_events.length > 0}
+    <div class="card bg-base-100 shadow-lg">
+      <div class="card-body">
+        <h2 class="card-title text-xl mb-4">Events You Own</h2>
         <div class="overflow-x-auto">
           <table class="table table-zebra w-full">
             <thead>
@@ -113,12 +113,7 @@
             </tbody>
           </table>
         </div>
-      {:else}
-        <div class="text-center py-8">
-          <p class="text-base-content/70 mb-4">You haven't created any events yet.</p>
-          <a href="/events/create" class="btn btn-primary">Create an Event</a>
-        </div>
-      {/if}
+      </div>
     </div>
-  </div>
+  {/if}
 </div>

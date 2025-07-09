@@ -71,36 +71,22 @@
     </div>
 
     <!-- Quick Actions -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <a href="/projects" class="card bg-primary text-primary-content shadow-lg hover:shadow-xl transition-shadow">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <a href="/events/attend" class="card bg-accent text-accent-content shadow-lg hover:shadow-xl transition-shadow">
         <div class="card-body">
           <div class="flex items-center gap-3">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
             </svg>
             <div>
-              <h3 class="font-semibold">Projects</h3>
-              <p class="text-sm opacity-90">Manage your work</p>
+              <h3 class="font-semibold">Join Event</h3>
+              <p class="text-sm opacity-90">Enter your ~4 digit code</p>
             </div>
           </div>
         </div>
       </a>
 
-      <a href="/events" class="card bg-secondary text-secondary-content shadow-lg hover:shadow-xl transition-shadow">
-        <div class="card-body">
-          <div class="flex items-center gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v14a2 2 0 002 2z" />
-            </svg>
-            <div>
-              <h3 class="font-semibold">Events</h3>
-              <p class="text-sm opacity-90">Join hackathons</p>
-            </div>
-          </div>
-        </div>
-      </a>
-
-      <a href="/projects/create" class="card bg-accent text-accent-content shadow-lg hover:shadow-xl transition-shadow">
+      <a href="/projects/create" class="card bg-info text-info-content shadow-lg hover:shadow-xl transition-shadow">
         <div class="card-body">
           <div class="flex items-center gap-3">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -109,20 +95,6 @@
             <div>
               <h3 class="font-semibold">Create Project</h3>
               <p class="text-sm opacity-90">Start building</p>
-            </div>
-          </div>
-        </div>
-      </a>
-
-      <a href="/events/attend" class="card bg-info text-info-content shadow-lg hover:shadow-xl transition-shadow">
-        <div class="card-body">
-          <div class="flex items-center gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-            </svg>
-            <div>
-              <h3 class="font-semibold">Join Event</h3>
-              <p class="text-sm opacity-90">Find hackathons</p>
             </div>
           </div>
         </div>

@@ -43,7 +43,6 @@
     "/": "Dashboard",
     "/projects": "Projects", 
     "/events": "Events",
-    "/user": "Profile",
   };
 
   // Event sub-navigation options
