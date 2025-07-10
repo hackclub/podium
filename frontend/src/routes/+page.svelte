@@ -11,24 +11,10 @@
   import { handleError } from "$lib/misc";
   import ProjectCard from "$lib/components/ProjectCard.svelte";
   import { fade } from "svelte/transition";
+    import SignupWizard from "$lib/components/SignupWizard.svelte";
 
   let projects = $state() as Array<PrivateProject>;
 
-  // onMount(async () => {
-  //   // If the user is authenticated, get their projects so they can be displayed
-  //   if (getAuthenticatedUser().access_token) {
-  //     const { data: projectsData, error: projectsErr } =
-  //       await ProjectsService.getProjectsProjectsMineGet({
-  //         throwOnError: false,
-  //       });
-  //     if (projectsErr) {
-  //       console.error("Error fetching projects:", projectsErr);
-  //       handleError(projectsErr);
-  //     } else {
-  //       projects = projectsData || [];
-  //     }
-  //   }
-  // });
 </script>
 
 {#if !getAuthenticatedUser().access_token}
@@ -49,8 +35,9 @@
       <h1 class="text-3xl font-bold text-base-content mb-2">
         Welcome back, {getAuthenticatedUser().user.first_name}!
       </h1>
-      <p class="text-base-content/70">Here's an overview of your hackathon activity.</p>
     </div>
+
+    <SignupWizard />
 
     <!-- User Info Card -->
     <div class="card bg-base-100 shadow-lg">
@@ -63,14 +50,10 @@
             </p>
           </div>
           <div class="flex gap-2">
-            <a href="/user" class="btn btn-outline">View Profile</a>
-            <button class="btn btn-ghost" onclick={signOut}>Sign out</button>
+            <button class="btn btn-outline" onclick={signOut}>Sign out</button>
           </div>
         </div>
       </div>
     </div>
-
-
-    
   </div>
 {/if}

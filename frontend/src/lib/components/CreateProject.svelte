@@ -5,6 +5,9 @@
   import { handleError, invalidateProjects } from "$lib/misc";
   import Modal from "$lib/components/Modal.svelte";
 
+  // Accept callback prop for when project is successfully created
+  let { onProjectCreated }: { onProjectCreated?: () => void } = $props();
+
   let project: PublicProjectCreationPayload = $state({
     name: "",
     repo: "",
@@ -45,6 +48,11 @@
         hours_spent: 0,
       };
       await invalidateProjects();
+      
+      // Call the callback if provided (for auto-progression in SignupWizard)
+      if (onProjectCreated) {
+        onProjectCreated();
+      }
     } catch (err) {
       handleError(err);
     }
