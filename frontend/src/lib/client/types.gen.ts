@@ -16,6 +16,7 @@ export type Event = {
     description?: (string | null);
     votable?: boolean;
     leaderboard_enabled?: boolean;
+    demo_links_optional?: boolean;
     id: string;
     owner: [
         string
@@ -30,6 +31,7 @@ export type EventCreationPayload = {
     description?: (string | null);
     votable?: boolean;
     leaderboard_enabled?: boolean;
+    demo_links_optional?: boolean;
 };
 
 export type EventUpdate = {
@@ -37,6 +39,7 @@ export type EventUpdate = {
     description?: (string | null);
     votable?: boolean;
     leaderboard_enabled?: boolean;
+    demo_links_optional?: boolean;
 };
 
 export type HTTPValidationError = {
@@ -51,6 +54,7 @@ export type PrivateEvent = {
     description?: (string | null);
     votable?: boolean;
     leaderboard_enabled?: boolean;
+    demo_links_optional?: boolean;
     id: string;
     owner: [
         string

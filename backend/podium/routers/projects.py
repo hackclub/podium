@@ -1,6 +1,7 @@
 from secrets import token_urlsafe
 from typing import Annotated
 from quality import quality
+from quality.models import Results, Result
 from requests import HTTPError
 from podium import db
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -171,6 +172,14 @@ async def check_project(project: Project) -> quality.Results:
             raise e
         return await quality.check_project(project, config=quality_settings)
 
+    # Get the event to check if demo links are optional
+    try:
+        event = db.events.get(project.event[0])
+        demo_links_optional = event["fields"].get("demo_links_optional", False)
+    except HTTPError:
+        # If we can't fetch the event, assume demo links are required
+        demo_links_optional = False
+
     # Skip whatever checks have the same cached url as the current project
     if not isinstance(project.cached_auto_quality, EmptyModel):
         if (
@@ -178,12 +187,45 @@ async def check_project(project: Project) -> quality.Results:
             and (project.cached_auto_quality.demo.tested_url == project.demo)
             and (project.cached_auto_quality.image_url.tested_url == project.image_url)
         ):
+            # Apply demo links optional logic to cached results
+            if demo_links_optional and not project.cached_auto_quality.demo.valid:
+                # Create a modified result where demo is considered valid if only demo fails
+                modified_result = quality.Results(
+                    demo=quality.Result(
+                        valid=True,
+                        reason="Demo link validation skipped (optional for this event)",
+                        tested_url=project.cached_auto_quality.demo.tested_url
+                    ),
+                    source_code=project.cached_auto_quality.source_code,
+                    image_url=project.cached_auto_quality.image_url
+                )
+                return modified_result
             return project.cached_auto_quality
 
     # Recheck the project and update cached data
     project.cached_auto_quality = await quality.check_project(
         project, config=quality_settings
     )
+    
+    # Apply demo links optional logic to new results
+    if demo_links_optional and not project.cached_auto_quality.demo.valid:
+        # Create a modified result where demo is considered valid if only demo fails
+        modified_result = quality.Results(
+            demo=quality.Result(
+                valid=True,
+                reason="Demo link validation skipped (optional for this event)",
+                tested_url=project.cached_auto_quality.demo.tested_url
+            ),
+            source_code=project.cached_auto_quality.source_code,
+            image_url=project.cached_auto_quality.image_url
+        )
+        # Store the original result but return the modified one
+        db.projects.update(
+            project.id,
+            {"cached_auto_quality": project.cached_auto_quality.model_dump_json()},
+        )
+        return modified_result
+    
     db.projects.update(
         project.id,
         {"cached_auto_quality": project.cached_auto_quality.model_dump_json()},

@@ -99,9 +99,15 @@
                             {#if projectQualityResults[project.id]?.demo.valid}
                               ✅
                             {:else}
-                              ❌ {@html formatReasons(
-                                projectQualityResults[project.id]?.demo.reason,
-                              )}
+                              {#if event.demo_links_optional}
+                                ⚠️ {@html formatReasons(
+                                  projectQualityResults[project.id]?.demo.reason,
+                                )} <span class="text-sm text-base-content/70">(Optional for this event)</span>
+                              {:else}
+                                ❌ {@html formatReasons(
+                                  projectQualityResults[project.id]?.demo.reason,
+                                )}
+                              {/if}
                             {/if}
                           </td>
                         </tr>
