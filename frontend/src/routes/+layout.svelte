@@ -40,48 +40,31 @@
 
   import { getAuthenticatedUser } from "$lib/user.svelte";
 
+  // Navigation options - some with dropdowns
   const navOptions = {
-    "/": "Home",
+    "/": { label: "Home", icon: "home" },
+    "/projects": { label: "Projects", icon: "projects" },
   };
 
-  // Event sub-navigation options
-  const eventSubNav = {
-    "/events": "My Events",
-    "/events/attend": "Attend Event", 
-    "/events/create": "Create Event",
+  // Events section with dropdown
+  const eventsSection = {
+    main: { path: "/events", label: "My Events", icon: "events" },
+    subItems: {
+      "/events/create": { label: "Create Event", icon: "create" }
+    }
   };
 
-  // Project sub-navigation options  
-  const projectSubNav = {
-    "/projects": "My Projects",
-    "/projects/create": "Create Project",
-    "/projects/join": "Join Project",
-  };
-
-  // State for dropdown toggles
-  let projectsExpanded = $state(false);
+  // State for events dropdown
   let eventsExpanded = $state(false);
 
-  // State for immediate click feedback
-  let projectsClicked = $state(false);
-  let eventsClicked = $state(false);
-
-  // Helper function to check if current path matches a section
-  const isInSection = (section: string) => {
-    return page.url.pathname.startsWith(section);
+  // Helper function to check if current path matches events section
+  const isInEventsSection = () => {
+    return page.url.pathname.startsWith('/events');
   };
 
-  // Auto-expand/collapse relevant section based on current path
+  // Auto-expand events section based on current path
   $effect(() => {
-    // Projects: unfold if on /projects path, fold if not
-    projectsExpanded = isInSection('/projects');
-    
-    // Events: unfold if on /events path, fold if not
-    eventsExpanded = isInSection('/events');
-
-    // Reset click states when navigation completes
-    projectsClicked = false;
-    eventsClicked = false;
+    eventsExpanded = isInEventsSection();
   });
 </script>
 
@@ -161,7 +144,7 @@
       <!-- Navigation Menu -->
       <div class="flex-1 p-4">
         <ul class="menu menu-vertical space-y-2">
-          {#each Object.entries(navOptions) as [path, label]}
+          {#each Object.entries(navOptions) as [path, { label, icon }]}
             <li>
               <a 
                 href={path} 
@@ -169,76 +152,35 @@
                 class:bg-primary={page.url.pathname === path}
                 class:text-primary-content={page.url.pathname === path}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m3 12 2-2m0 0 7-7 7 7M5 10v10a1 1 0 0 0 1 1h3m10-11 2 2m-2-2v10a1 1 0 0 1-1 1h-3m-6 0a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1m-6 0h6" />
-                </svg>
+                {#if icon === "home"}
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m3 12 2-2m0 0 7-7 7 7M5 10v10a1 1 0 0 0 1 1h3m10-11 2 2m-2-2v10a1 1 0 0 1-1 1h-3m-6 0a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1m-6 0h6" />
+                  </svg>
+                {:else if icon === "projects"}
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                {/if}
                 <span class="font-medium">{label}</span>
               </a>
             </li>
           {/each}
           
-          <!-- Projects Section -->
+          <!-- Events Section with Dropdown -->
           <li>
             <button 
               onclick={() => {
-                projectsClicked = true;
-                projectsExpanded = !projectsExpanded;
-                goto('/projects');
-              }}
-              class="flex items-center gap-3 p-3 rounded-lg transition-colors w-full text-left"
-              class:bg-primary={isInSection('/projects') || projectsClicked}
-              class:text-primary-content={isInSection('/projects') || projectsClicked}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-              <span class="font-medium flex-1">Projects</span>
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                class="h-4 w-4 transition-transform duration-200"
-                class:rotate-180={projectsExpanded}
-                fill="none" 
-                viewBox="0 0 24 24" 
-                stroke="currentColor"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-          </li>
-          
-          <!-- Projects Sub-navigation -->
-          {#if projectsExpanded}
-            {#each Object.entries(projectSubNav) as [subPath, subLabel]}
-              <li class="ml-6">
-                <a 
-                  href={subPath} 
-                  class="flex items-center gap-3 p-2 rounded-lg transition-colors text-sm"
-                  class:bg-primary={page.url.pathname === subPath}
-                  class:text-primary-content={page.url.pathname === subPath}
-                >
-                  <span class="w-2 h-2 rounded-full bg-current opacity-50"></span>
-                  <span>{subLabel}</span>
-                </a>
-              </li>
-            {/each}
-          {/if}
-          
-          <!-- Events Section -->
-          <li>
-            <button 
-              onclick={() => {
-                eventsClicked = true;
                 eventsExpanded = !eventsExpanded;
                 goto('/events');
               }}
               class="flex items-center gap-3 p-3 rounded-lg transition-colors w-full text-left"
-              class:bg-primary={isInSection('/events') || eventsClicked}
-              class:text-primary-content={isInSection('/events') || eventsClicked}
+              class:bg-primary={isInEventsSection()}
+              class:text-primary-content={isInEventsSection()}
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v14a2 2 0 002 2z" />
               </svg>
-              <span class="font-medium flex-1">Events</span>
+              <span class="font-medium flex-1">{eventsSection.main.label}</span>
               <svg 
                 xmlns="http://www.w3.org/2000/svg" 
                 class="h-4 w-4 transition-transform duration-200"
@@ -254,7 +196,7 @@
           
           <!-- Events Sub-navigation -->
           {#if eventsExpanded}
-            {#each Object.entries(eventSubNav) as [subPath, subLabel]}
+            {#each Object.entries(eventsSection.subItems) as [subPath, { label, icon }]}
               <li class="ml-6">
                 <a 
                   href={subPath} 
@@ -262,8 +204,10 @@
                   class:bg-primary={page.url.pathname === subPath}
                   class:text-primary-content={page.url.pathname === subPath}
                 >
-                  <span class="w-2 h-2 rounded-full bg-current opacity-50"></span>
-                  <span>{subLabel}</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span>{label}</span>
                 </a>
               </li>
             {/each}
