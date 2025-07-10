@@ -45,7 +45,7 @@
       <div class="grid grid-cols-3 gap-3 text-sm">
         <!-- Join Code -->
         <div class="flex flex-col items-center">
-          <span class="text-xs text-base-content/70 mb-1">Join Code</span>
+          <span class="text-xs text-base-content/70 mb-1">Project Join Code</span>
           <span class="badge badge-accent font-mono text-sm px-3 py-1">
             {project.join_code}
           </span>

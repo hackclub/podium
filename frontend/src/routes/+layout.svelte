@@ -40,6 +40,16 @@
 
   import { getAuthenticatedUser } from "$lib/user.svelte";
 
+  // Check if user is authenticated
+  const isAuthenticated = $derived.by(() => {
+    try {
+      const user = getAuthenticatedUser();
+      return user && user.access_token && user.access_token !== "";
+    } catch {
+      return false;
+    }
+  });
+
   // Navigation options - some with dropdowns
   const navOptions = {
     "/": { label: "Home", icon: "home" },
@@ -90,7 +100,7 @@
             }
         }} closeButton/>
 
-{#if page.url.pathname !== '/login'}
+{#if page.url.pathname !== '/login' && isAuthenticated}
 <!-- Sidebar Layout for authenticated users -->
 <div class="drawer lg:drawer-open">
   <input id="sidebar-drawer" type="checkbox" class="drawer-toggle" />
@@ -225,7 +235,7 @@
   </div>
 </div>
 {:else}
-<!-- Login page without sidebar -->
+<!-- Login page or unauthenticated users without sidebar -->
 <div class="min-h-screen">
   <div class="navbar bg-base-200">
     <div class="flex-1">

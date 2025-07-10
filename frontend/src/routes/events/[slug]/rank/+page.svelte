@@ -36,9 +36,9 @@
       toast.success("Vote submitted successfully");
       selectedProjects = [];
       await invalidateUser();
-      invalidateEvents();
+      await invalidateEvents();
       // Navigate back to the event page
-      goto(`/events/${data.event.slug}`);
+      await goto(`/events/${data.event.slug}`);
     } catch (err) {
       handleError(err);
     }
