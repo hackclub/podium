@@ -8,6 +8,7 @@
   import ThemeSwitcher from "$lib/components/ThemeSwitcher.svelte";
   import { setSystemTheme, returnLoadingText } from "$lib/misc";
   import Modal from "$lib/components/Modal.svelte";
+  import { goto } from "$app/navigation";
   let aboutModal: Modal = $state() as Modal;
   let loadingText = $state(returnLoadingText());
   let loadingTextInterval: NodeJS.Timeout = $state() as NodeJS.Timeout;
@@ -37,10 +38,44 @@
     clearInterval(loadingTextInterval);
   });
 
+  import { getAuthenticatedUser } from "$lib/user.svelte";
+
+  // Check if user is authenticated
+  const isAuthenticated = $derived.by(() => {
+    try {
+      const user = getAuthenticatedUser();
+      return user && user.access_token && user.access_token !== "";
+    } catch {
+      return false;
+    }
+  });
+
+  // Navigation options - some with dropdowns
   const navOptions = {
-    "/projects": "Projects",
-    "/events": "Events",
+    "/": { label: "Home", icon: "home" },
+    "/projects": { label: "Projects", icon: "projects" },
   };
+
+  // Events section with dropdown
+  const eventsSection = {
+    main: { path: "/events", label: "My Events", icon: "events" },
+    subItems: {
+      "/events/create": { label: "Create Event", icon: "create" }
+    }
+  };
+
+  // State for events dropdown
+  let eventsExpanded = $state(false);
+
+  // Helper function to check if current path matches events section
+  const isInEventsSection = () => {
+    return page.url.pathname.startsWith('/events');
+  };
+
+  // Auto-expand events section based on current path
+  $effect(() => {
+    eventsExpanded = isInEventsSection();
+  });
 </script>
 
 <svelte:head>
@@ -64,61 +99,156 @@
               cancelButton: "btn btn-sm btn-circle btn-ghost btn-error",
             }
         }} closeButton/>
-<div class="drawer">
-  <input id="my-drawer-3" type="checkbox" class="drawer-toggle" />
+
+{#if page.url.pathname !== '/login' && isAuthenticated}
+<!-- Sidebar Layout for authenticated users -->
+<div class="drawer lg:drawer-open">
+  <input id="sidebar-drawer" type="checkbox" class="drawer-toggle" />
   <div class="drawer-content flex flex-col">
-    <!-- Navbar -->
-    <div class="navbar bg-base-300 w-full">
-      <div class="navbar-start">
-        <div class="lg:hidden">
-          <label
-            for="my-drawer-3"
-            aria-label="open sidebar"
-            class="btn btn-square btn-ghost"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              class="inline-block h-6 w-6 stroke-current"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 6h16M4 12h16M4 18h16"
-              ></path>
-            </svg>
-          </label>
-        </div>
+    <!-- Top Navbar -->
+    <div class="navbar bg-base-200 lg:hidden">
+      <div class="flex-none">
+        <label for="sidebar-drawer" aria-label="open sidebar" class="btn btn-square btn-ghost">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block h-6 w-6 stroke-current">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </label>
       </div>
-      
-      <div class="navbar-center">
+      <div class="flex-1">
         <a href="/" class="btn btn-ghost text-xl font-extrabold">Podium</a>
       </div>
+      <div class="flex-none">
+        <ThemeSwitcher />
+      </div>
+    </div>
+      </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="flex-1 p-6">
+      <div class="bg-info text-center rounded-xl max-w-2xl mx-auto mb-6 p-4">
+        <p class="text-info-content">
+          Podium isn't working and need urgent help? DM @Angad Behl on Slack or call +1 (415) 570-4995.
+        </p>
+      </div>
+
+      {#if navigating.to && navigating.type != "form"}
+        <div class="flex items-center justify-center min-h-screen flex-col">
+          <span class="loading loading-ball loading-lg mb-2"></span>
+          <p>{loadingText}</p>
+        </div>
+      {:else}
+        {@render children()}
+      {/if}
+    </div>
+  </div>
+  
+  <!-- Sidebar -->
+  <div class="drawer-side">
+    <label for="sidebar-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+    <div class="min-h-full w-80 bg-base-200 flex flex-col">
+      <!-- Logo/Header -->
+      <div class="p-6 border-b border-base-300">
+        <a href="/" class="text-2xl font-extrabold text-primary">Podium</a>
+        <p class="text-base-content/70 text-sm mt-1">Hackathon peer judging platform</p>
+      </div>
       
-      <div class="navbar-end">
-        <div class="hidden lg:block">
-          <ul class="menu menu-horizontal px-1">
-            {#each Object.entries(navOptions) as [path, label]}
-              <li>
-                <a href={path}>{label}</a>
+      <!-- Navigation Menu -->
+      <div class="flex-1 p-4">
+        <ul class="menu menu-vertical space-y-2">
+          {#each Object.entries(navOptions) as [path, { label, icon }]}
+            <li>
+              <a 
+                href={path} 
+                class="flex items-center gap-3 p-3 rounded-lg transition-colors"
+                class:bg-primary={page.url.pathname === path}
+                class:text-primary-content={page.url.pathname === path}
+              >
+                {#if icon === "home"}
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m3 12 2-2m0 0 7-7 7 7M5 10v10a1 1 0 0 0 1 1h3m10-11 2 2m-2-2v10a1 1 0 0 1-1 1h-3m-6 0a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1m-6 0h6" />
+                  </svg>
+                {:else if icon === "projects"}
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                {/if}
+                <span class="font-medium">{label}</span>
+              </a>
+            </li>
+          {/each}
+          
+          <!-- Events Section with Dropdown -->
+          <li>
+            <button 
+              onclick={() => {
+                eventsExpanded = !eventsExpanded;
+                goto('/events');
+              }}
+              class="flex items-center gap-3 p-3 rounded-lg transition-colors w-full text-left"
+              class:bg-primary={isInEventsSection()}
+              class:text-primary-content={isInEventsSection()}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v14a2 2 0 002 2z" />
+              </svg>
+              <span class="font-medium flex-1">{eventsSection.main.label}</span>
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                class="h-4 w-4 transition-transform duration-200"
+                class:rotate-180={eventsExpanded}
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </li>
+          
+          <!-- Events Sub-navigation -->
+          {#if eventsExpanded}
+            {#each Object.entries(eventsSection.subItems) as [subPath, { label, icon }]}
+              <li class="ml-6">
+                <a 
+                  href={subPath} 
+                  class="flex items-center gap-3 p-2 rounded-lg transition-colors text-sm"
+                  class:bg-primary={page.url.pathname === subPath}
+                  class:text-primary-content={page.url.pathname === subPath}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span>{label}</span>
+                </a>
               </li>
             {/each}
-          </ul>
+          {/if}
+        </ul>
+      </div>
+      
+      <!-- Bottom Section -->
+      <div class="p-4 border-t border-base-300">
+        <div class="hidden lg:block mb-4">
+          <ThemeSwitcher />
         </div>
       </div>
     </div>
-    <!--------- start of page content --------->
-    <!-- flex-1 makes it take up the entire space. Without the div with flex-1 the width was too small -->
+  </div>
+</div>
+{:else}
+<!-- Login page or unauthenticated users without sidebar -->
+<div class="min-h-screen">
+  <div class="navbar bg-base-200">
     <div class="flex-1">
-    <div class="p-4 bg-info text-center rounded-xl max-w-2xl mx-auto m-4">
-      <p class="text-info-content">
-        Podium isn't working and need urgent help? DM @Angad Behl on Slack or
-        call +1 (415) 570-4995.
-      </p>
+      <a href="/" class="btn btn-ghost text-xl font-extrabold">Podium</a>
     </div>
-
+    <div class="flex-none">
+      <ThemeSwitcher />
+    </div>
+  </div>
+  
+  <div class="p-6">
     {#if navigating.to && navigating.type != "form"}
       <div class="flex items-center justify-center min-h-screen flex-col">
         <span class="loading loading-ball loading-lg mb-2"></span>
@@ -127,64 +257,48 @@
     {:else}
       {@render children()}
     {/if}
-
-    <div class="fixed bottom-4 left-4">
-      <!-- Info Button -->
-      <button
-        class="btn btn-info btn-square btn-md font-serif font-light"
-        aria-label="Info"
-        onclick={() => {
-          aboutModal.openModal();
-        }}
-      >
-        ?
-      </button>
-    </div>
-
-    <Modal bind:this={aboutModal} title="About Podium">
-      <p class="py-4">
-        Podium is <a href="https://hackclub.com" class="hover-link"
-          >Hack Club's
-        </a> <a href="https://github.com/hackclub/podium" class="hover-link"
-          >open-source</a
-        >
-        peer-judging platform for
-        <a href="https://hackathons.hackclub.com/" class="hover-link"
-          >hackathons</a
-        >. If you encounter issues, feel free to
-        <a href="https://github.com/hackclub/podium/issues" class="hover-link"
-          >report</a
-        >
-        them. Need help? Ask on the
-        <a href="https://hackclub.com/slack" class="hover-link">Slack</a>
-        or email
-        <a href="mailto:angad@hackclub.com" class="hover-link"
-          >angad@hackclub.com</a
-        >.
-      </p>
-      <p class="text-right">
-        <a href="https://github.com/slashtechno" class="hover-link"
-          >-Angad Behl</a
-        >
-      </p>
-    </Modal>
-
-    <div class="fixed bottom-4 right-4">
-      <ThemeSwitcher />
-    </div>
-</div> 
-    <!--------- end of page content --------->
-  </div>
-  <div class="drawer-side">
-    <label for="my-drawer-3" aria-label="close sidebar" class="drawer-overlay"
-    ></label>
-    <ul class="menu bg-base-200 min-h-full w-80 p-4">
-      <!-- Sidebar content here -->
-      {#each Object.entries(navOptions) as [path, label]}
-        <li>
-          <a href={path}>{label}</a>
-        </li>
-      {/each}
-    </ul>
   </div>
 </div>
+{/if}
+
+<!-- Global Info Button -->
+<div class="fixed bottom-4 right-4 z-50">
+  <button
+    class="btn btn-info btn-square btn-md font-serif font-light"
+    aria-label="Info"
+    onclick={() => {
+      aboutModal.openModal();
+    }}
+  >
+    ?
+  </button>
+</div>
+
+<!-- About Modal -->
+<Modal bind:this={aboutModal} title="About Podium">
+  <p class="py-4">
+    Podium is <a href="https://hackclub.com" class="hover-link"
+      >Hack Club's
+    </a> <a href="https://github.com/hackclub/podium" class="hover-link"
+      >open-source</a
+    >
+    peer-judging platform for
+    <a href="https://hackathons.hackclub.com/" class="hover-link"
+      >hackathons</a
+    >. If you encounter issues, feel free to
+    <a href="https://github.com/hackclub/podium/issues" class="hover-link"
+      >report</a
+    >
+    them. Need help? Ask on the
+    <a href="https://hackclub.com/slack" class="hover-link">Slack</a>
+    or email
+    <a href="mailto:angad@hackclub.com" class="hover-link"
+      >angad@hackclub.com</a
+    >.
+  </p>
+  <p class="text-right">
+    <a href="https://github.com/slashtechno" class="hover-link"
+      >-Angad Behl</a
+    >
+  </p>
+</Modal>

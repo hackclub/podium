@@ -62,8 +62,8 @@
   }
 </script>
 
-<button class="badge badge-lg underline badge-secondary" onclick={() => {updateModal.openModal()}}>
-  Update
+<button class="btn btn-sm btn-primary" onclick={() => {updateModal.openModal()}}>
+  Edit Event
 </button>
 <Modal
   bind:this={updateModal}

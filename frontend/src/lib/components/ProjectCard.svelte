@@ -1,10 +1,10 @@
 <script lang="ts">
   import { UsersService } from "$lib/client";
-  import type { Project } from "$lib/client/types.gen";
+  import type { PrivateProject } from "$lib/client/types.gen";
   import { handleError } from "$lib/misc";
   import { onMount } from "svelte";
   interface Props {
-    project: Project;
+    project: PrivateProject;
     isSelected: boolean;
     toggle: () => void;
     selectable?: boolean;

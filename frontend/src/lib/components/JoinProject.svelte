@@ -7,6 +7,9 @@
   import { afterNavigate, goto } from "$app/navigation";
   import { onMount } from "svelte";
 
+  // Accept callback prop for when project is successfully joined
+  let { onProjectJoined }: { onProjectJoined?: () => void } = $props();
+
   let toSend: JoinProjectProjectsJoinPostData = $state({
     query: { join_code: "" },
   });
@@ -21,6 +24,11 @@
       await invalidateProjects();
       // Reset
       toSend.query.join_code = "";
+      
+      // Call the callback if provided (for auto-progression in SignupWizard)
+      if (onProjectJoined) {
+        onProjectJoined();
+      }
     } catch (err) {
       handleError(err);
     }
