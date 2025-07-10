@@ -32,7 +32,7 @@ def get_projects(
         raise BAD_AUTH
 
     projects = [
-        InternalProject.model_validate(project["fields"])
+        PrivateProject.model_validate(project["fields"])
         for project in [db.projects.get(project_id) for project_id in user.projects]
         + [db.projects.get(project_id) for project_id in user.collaborations]
     ]
@@ -161,7 +161,7 @@ def get_project(project_id: Annotated[str, Path(pattern=r"^rec\w*$")]):
 
 
 @router.post("/check")
-async def check_project(project: Project) -> quality.ResultsResponse:
+async def check_project(project: Project) -> quality.Results:
     # TODO: add a parameter to force a recheck or request human review. This could just trigger a Slack webhook
     try:
         # Don't trust the user to provide accurate cached_auto_quality data
@@ -174,9 +174,9 @@ async def check_project(project: Project) -> quality.ResultsResponse:
     # Skip whatever checks have the same cached url as the current project
     if not isinstance(project.cached_auto_quality, EmptyModel):
         if (
-            (project.cached_auto_quality.source_code.url == project.repo)
-            and (project.cached_auto_quality.demo.url == project.demo)
-            and (project.cached_auto_quality.image_url.url == project.image_url)
+            (project.cached_auto_quality.source_code.tested_url == project.repo)
+            and (project.cached_auto_quality.demo.tested_url == project.demo)
+            and (project.cached_auto_quality.image_url.tested_url == project.image_url)
         ):
             return project.cached_auto_quality
 
@@ -189,3 +189,4 @@ async def check_project(project: Project) -> quality.ResultsResponse:
         {"cached_auto_quality": project.cached_auto_quality.model_dump_json()},
     )
     return project.cached_auto_quality
+

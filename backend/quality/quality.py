@@ -69,11 +69,11 @@ async def check_project(project: "Project", config: QualitySettings) -> Results:
                 # Only use demo and source_code from agent result
                 agent_results = ResultsResponse.model_validate_json(final_json).model_dump()
 
-                demo_result = agent_results.get("demo") or {"valid": False, "reason": "Agent did not return a result"}
-                source_code_result = agent_results.get("source_code") or {"valid": False, "reason": "Agent did not return a result"}
+                demo_result = agent_results.get("demo") or {"valid": False, "reason": "Agent did not return a result", "url": project.demo}
+                source_code_result = agent_results.get("source_code") or {"valid": False, "reason": "Agent did not return a result", "url": project.repo}
             else:
-                demo_result = {"valid": False, "reason": "Agent did not return a result"}
-                source_code_result = {"valid": False, "reason": "Agent did not return a result"}
+                demo_result = {"valid": False, "reason": "Agent did not return a result", "url": project.demo}
+                source_code_result = {"valid": False, "reason": "Agent did not return a result", "url": project.repo}
 
             result = ResultsResponse(
                 demo=Result(**demo_result),
@@ -83,8 +83,8 @@ async def check_project(project: "Project", config: QualitySettings) -> Results:
         except ValidationError as e:
             print(f"Validation error occurred: {e}")
             result = ResultsResponse(
-                demo=Result(valid=False, reason="Validation error occurred"),
-                source_code=Result(valid=False, reason="Validation error occurred"),
+                demo=Result(valid=False, reason="Validation error occurred", tested_url=project.demo),
+                source_code=Result(valid=False, reason="Validation error occurred", tested_url=project.repo),
             )
         finally:
             # Close browser context
@@ -116,6 +116,7 @@ async def is_raw_image(url: str) -> Result:
         return Result(
             valid=True,
             reason="",
+            tested_url=url,
         )
 
     # Check Content-Type header
@@ -127,12 +128,14 @@ async def is_raw_image(url: str) -> Result:
             return Result(
                 valid=is_image_type,
                 reason="" if is_image_type else "Content-Type is not an image",
+                tested_url=url,
             )
     except Exception as e:
         print(f"Error checking image URL: {e}")
         return Result(
             valid=False,
             reason="Image URL is not a raw image",
+            tested_url=url,
         )
 
 

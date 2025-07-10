@@ -142,15 +142,11 @@ export type PublicProjectCreationPayload = {
 export type Result = {
     valid: boolean;
     reason: string;
-    url: string;
 };
 
-export type Results = {
+export type ResultsResponse = {
     demo: Result;
     source_code: Result;
-    image_url: Result;
-    readonly reasons: string;
-    readonly valid: boolean;
 };
 
 /**
@@ -170,9 +166,10 @@ export type UserLoginPayload = {
 };
 
 export type UserPrivate = {
+    display_name?: string;
+    email: string;
     first_name: string;
     last_name?: string;
-    email: string;
     phone?: string;
     street_1?: (string | null);
     street_2?: (string | null);
@@ -191,14 +188,14 @@ export type UserPrivate = {
 };
 
 export type UserPublic = {
-    first_name: string;
-    last_name?: string;
+    display_name?: string;
 };
 
 export type UserSignupPayload = {
+    display_name?: string;
+    email: string;
     first_name: string;
     last_name?: string;
-    email: string;
     phone?: string;
     street_1?: (string | null);
     street_2?: (string | null);
@@ -398,7 +395,7 @@ export type CheckProjectProjectsCheckPostData = {
     body: Project;
 };
 
-export type CheckProjectProjectsCheckPostResponse = (Results);
+export type CheckProjectProjectsCheckPostResponse = (ResultsResponse);
 
 export type CheckProjectProjectsCheckPostError = (HTTPValidationError);
 
