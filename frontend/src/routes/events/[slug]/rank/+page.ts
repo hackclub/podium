@@ -2,7 +2,6 @@ import { error } from "@sveltejs/kit";
 import type { PageLoad } from "./$types";
 import { client, EventsService } from "$lib/client/sdk.gen";
 import { getAuthenticatedUser } from "$lib/user.svelte";
-import * as Sentry from "@sentry/browser";
 
 export const load: PageLoad = async ({ params, fetch, parent }) => {
   client.setConfig({ fetch });

@@ -5,6 +5,10 @@
   import type { AttendEventEventsAttendPostData } from "$lib/client";
   import { afterNavigate, goto, invalidate } from "$app/navigation";
   import { onMount } from "svelte";
+  
+  // Accept callback prop for when event is successfully joined
+  let { onEventJoined }: { onEventJoined?: () => void } = $props();
+  
   let toSend: AttendEventEventsAttendPostData = $state({
     query: { join_code: "", referral: "" },
   });
@@ -20,6 +24,11 @@
       // Reset
       toSend.query.join_code = "";
       toSend.query.referral = "";
+      
+      // Call the callback if provided (for auto-progression in SignupWizard)
+      if (onEventJoined) {
+        onEventJoined();
+      }
     } catch (err) {
       handleError(err);
     }
@@ -41,7 +50,7 @@
   });
 </script>
 
-<div class="p-4 max-w-md mx-auto">
+<div class="w-full">
   <!-- <form onsubmit={attendEvent} class="space-y-4"> -->
   <div class="space-y-4">
     <fieldset class="fieldset">
@@ -69,7 +78,7 @@
       />
 
       <button class="btn-block btn btn-primary" onclick={attendEvent}>
-        Join the adventure!
+        Join the event!
       </button>
     </fieldset>
   </div>
