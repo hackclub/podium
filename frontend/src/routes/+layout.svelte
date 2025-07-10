@@ -121,7 +121,6 @@
         <ThemeSwitcher />
       </div>
     </div>
-    
     <!-- Main Content -->
     <div class="flex-1 p-6">
       <div class="bg-info text-center rounded-xl max-w-2xl mx-auto mb-6 p-4">
@@ -129,7 +128,6 @@
           Podium isn't working and need urgent help? DM @Angad Behl on Slack or call +1 (415) 570-4995.
         </p>
       </div>
-
       {#if navigating.to && navigating.type != "form"}
         <div class="flex items-center justify-center min-h-screen flex-col">
           <span class="loading loading-ball loading-lg mb-2"></span>
@@ -140,7 +138,6 @@
       {/if}
     </div>
   </div>
-  
   <!-- Sidebar -->
   <div class="drawer-side">
     <label for="sidebar-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
@@ -150,7 +147,6 @@
         <a href="/" class="text-2xl font-extrabold text-primary">Podium</a>
         <p class="text-base-content/70 text-sm mt-1">Hackathon peer judging platform</p>
       </div>
-      
       <!-- Navigation Menu -->
       <div class="flex-1 p-4">
         <ul class="menu menu-vertical space-y-2">
@@ -175,7 +171,6 @@
               </a>
             </li>
           {/each}
-          
           <!-- Events Section with Dropdown -->
           <li>
             <button 
@@ -203,7 +198,6 @@
               </svg>
             </button>
           </li>
-          
           <!-- Events Sub-navigation -->
           {#if eventsExpanded}
             {#each Object.entries(eventsSection.subItems) as [subPath, { label, icon }]}
@@ -224,7 +218,6 @@
           {/if}
         </ul>
       </div>
-      
       <!-- Bottom Section -->
       <div class="p-4 border-t border-base-300">
         <div class="hidden lg:block mb-4">
