@@ -12,6 +12,13 @@
 
 <div class="max-w-6xl mx-auto space-y-8">
 
+  <!-- Help text -->
+  <div class="text-center mb-6">
+    <p class="text-base-content/60 text-sm">
+      Click on an event to view the leaderboard or to vote on projects.
+    </p>
+  </div>
+
   <!-- Events you're attending -->
   <div class="card bg-base-100 shadow-lg">
     <div class="card-body">
@@ -23,7 +30,6 @@
               <tr>
                 <th>Event Name</th>
                 <th>Description</th>
-                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -36,11 +42,6 @@
                   </td>
                   <td class="max-w-md">
                     <p class="truncate">{event.description}</p>
-                  </td>
-                  <td>
-                    <a href={`/events/${event.slug}`} class="btn btn-sm btn-primary">
-                      View Event
-                    </a>
                   </td>
                 </tr>
               {/each}
@@ -88,15 +89,10 @@
                     </span>
                   </td>
                   <td>
-                    <div class="flex gap-2">
-                      <a href={`/events/${event.slug}`} class="btn btn-sm btn-primary">
-                        View
-                      </a>
-                      <UpdateEvent
-                        preselectedEvent={event}
-                        events={data.events.owned_events}
-                      />
-                    </div>
+                    <UpdateEvent
+                      preselectedEvent={event}
+                      events={data.events.owned_events}
+                    />
                   </td>
                 </tr>
               {/each}
