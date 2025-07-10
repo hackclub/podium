@@ -83,15 +83,9 @@
                     <p class="truncate">{event.description}</p>
                   </td>
                   <td>
-                    <div class="tooltip" data-tip="Click to copy join link">
-                      <a
-                        href={`/events/?join_code=${event.join_code}`}
-                        data-sveltekit-noscroll
-                        class="badge badge-accent font-mono"
-                      >
-                        {event.join_code}
-                      </a>
-                    </div>
+                    <span class="badge badge-accent font-mono">
+                      {event.join_code}
+                    </span>
                   </td>
                   <td>
                     <div class="flex gap-2">

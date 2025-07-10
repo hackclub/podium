@@ -155,7 +155,7 @@
       <!-- Logo/Header -->
       <div class="p-6 border-b border-base-300">
         <a href="/" class="text-2xl font-extrabold text-primary">Podium</a>
-        <p class="text-base-content/70 text-sm mt-1">Hackathon judging platform</p>
+        <p class="text-base-content/70 text-sm mt-1">Hackathon peer judging platform</p>
       </div>
       
       <!-- Navigation Menu -->

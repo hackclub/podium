@@ -94,7 +94,7 @@
   }
 </script>
 
-  <button class="badge badge-lg underline badge-secondary" onclick={() => {updateModal.openModal()}}>
+  <button class="badge text-sm px-3 py-1 underline badge-secondary cursor-pointer" onclick={() => {updateModal.openModal()}}>
     Edit
   </button>
   <Modal

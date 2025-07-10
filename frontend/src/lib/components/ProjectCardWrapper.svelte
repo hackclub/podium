@@ -28,6 +28,7 @@
     <div class="card-body pb-2">
       <!-- Event name at the top -->
       <div class="text-center mb-3">
+        <span class="text-xs text-base-content/70 mb-1 block">Event</span>
         {#each events as event}
           {#if event.id === project.event[0]}
             <a
@@ -45,15 +46,9 @@
         <!-- Join Code -->
         <div class="flex flex-col items-center">
           <span class="text-xs text-base-content/70 mb-1">Join Code</span>
-          <div class="tooltip" data-tip="Click to copy join link">
-            <a
-              href={`/projects/?join_code=${project.join_code}`}
-              data-sveltekit-noscroll
-              class="badge badge-accent font-mono text-sm px-3 py-1 underline"
-            >
-              {project.join_code}
-            </a>
-          </div>
+          <span class="badge badge-accent font-mono text-sm px-3 py-1">
+            {project.join_code}
+          </span>
         </div>
 
         <!-- Quality Status -->
@@ -70,7 +65,7 @@
                 </span>
               {:else}
                 <button
-                  class="badge text-sm px-3 py-1 underline {projectQualityResults[project.id]?.valid
+                  class="badge text-sm px-3 py-1 underline cursor-pointer {projectQualityResults[project.id]?.valid
                     ? 'badge-success'
                     : 'badge-warning'}"
                   onclick={() => {

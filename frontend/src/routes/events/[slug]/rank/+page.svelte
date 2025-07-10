@@ -4,7 +4,7 @@
   import { toast } from "svelte-sonner";
   import { EventsService } from "$lib/client/sdk.gen";
   import ProjectCard from "$lib/components/ProjectCard.svelte";
-  import { handleError, invalidateEvents, invalidateUser } from "$lib/misc.js";
+  import { handleError, invalidateEvents, invalidateUser } from "$lib/misc";
   import { getAuthenticatedUser } from "$lib/user.svelte";
   import { invalidateAll } from "$app/navigation";
 

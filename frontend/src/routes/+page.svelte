@@ -107,7 +107,7 @@
         <div class="card-body">
           <div class="flex items-center justify-between mb-4">
             <h2 class="card-title text-xl">Your Recent Projects</h2>
-            <a href="/projects" class="btn btn-sm btn-outline">View All</a>
+            <a href="/projects" class="btn btn-sm btn-outline">View All / Edit</a>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {#each projects.slice(0, 3) as project}
