@@ -58,7 +58,7 @@
 
         <!-- Quality Status -->
         <div class="flex flex-col items-center">
-          <span class="text-xs text-base-content/70 mb-1">Quality</span>
+          <span class="text-xs text-base-content/70 mb-1">Status</span>
           {#each events as event}
             {#if event.id === project.event[0]}
               {#if event.ysws_checks_enabled === false}

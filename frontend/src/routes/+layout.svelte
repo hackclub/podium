@@ -8,6 +8,7 @@
   import ThemeSwitcher from "$lib/components/ThemeSwitcher.svelte";
   import { setSystemTheme, returnLoadingText } from "$lib/misc";
   import Modal from "$lib/components/Modal.svelte";
+  import { goto } from "$app/navigation";
   let aboutModal: Modal = $state() as Modal;
   let loadingText = $state(returnLoadingText());
   let loadingTextInterval: NodeJS.Timeout = $state() as NodeJS.Timeout;
@@ -41,8 +42,6 @@
 
   const navOptions = {
     "/": "Dashboard",
-    "/projects": "Projects", 
-    "/events": "Events",
   };
 
   // Event sub-navigation options
@@ -59,10 +58,31 @@
     "/projects/join": "Join Project",
   };
 
+  // State for dropdown toggles
+  let projectsExpanded = $state(false);
+  let eventsExpanded = $state(false);
+
+  // State for immediate click feedback
+  let projectsClicked = $state(false);
+  let eventsClicked = $state(false);
+
   // Helper function to check if current path matches a section
   const isInSection = (section: string) => {
     return page.url.pathname.startsWith(section);
   };
+
+  // Auto-expand/collapse relevant section based on current path
+  $effect(() => {
+    // Projects: unfold if on /projects path, fold if not
+    projectsExpanded = isInSection('/projects');
+    
+    // Events: unfold if on /events path, fold if not
+    eventsExpanded = isInSection('/events');
+
+    // Reset click states when navigation completes
+    projectsClicked = false;
+    eventsClicked = false;
+  });
 </script>
 
 <svelte:head>
@@ -146,41 +166,51 @@
               <a 
                 href={path} 
                 class="flex items-center gap-3 p-3 rounded-lg transition-colors"
-                class:bg-primary={path === '/' ? page.url.pathname === path : isInSection(path)}
-                class:text-primary-content={path === '/' ? page.url.pathname === path : isInSection(path)}
+                class:bg-primary={page.url.pathname === path}
+                class:text-primary-content={page.url.pathname === path}
               >
-                {#if path === '/'}
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6a2 2 0 01-2 2H10a2 2 0 01-2-2V5z" />
-                  </svg>
-                {:else if path === '/projects'}
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
-                {:else if path === '/events'}
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v14a2 2 0 002 2z" />
-                  </svg>
-                {:else if path === '/user'}
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                {/if}
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6a2 2 0 01-2 2H10a2 2 0 01-2-2V5z" />
+                </svg>
                 <span class="font-medium">{label}</span>
               </a>
             </li>
           {/each}
           
-          <!-- Events Sub-navigation -->
-          {#if isInSection('/events')}
-            <li class="mt-4">
-              <div class="px-3 py-2 text-xs font-semibold text-base-content/50 uppercase tracking-wider">
-                Events
-              </div>
-            </li>
-            {#each Object.entries(eventSubNav) as [subPath, subLabel]}
-              <li class="ml-2">
+          <!-- Projects Section -->
+          <li>
+            <button 
+              onclick={() => {
+                projectsClicked = true;
+                projectsExpanded = !projectsExpanded;
+                goto('/projects');
+              }}
+              class="flex items-center gap-3 p-3 rounded-lg transition-colors w-full text-left"
+              class:bg-primary={isInSection('/projects') || projectsClicked}
+              class:text-primary-content={isInSection('/projects') || projectsClicked}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              <span class="font-medium flex-1">Projects</span>
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                class="h-4 w-4 transition-transform duration-200"
+                class:rotate-180={projectsExpanded}
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </li>
+          
+          <!-- Projects Sub-navigation -->
+          {#if projectsExpanded}
+            {#each Object.entries(projectSubNav) as [subPath, subLabel]}
+              <li class="ml-6">
                 <a 
                   href={subPath} 
                   class="flex items-center gap-3 p-2 rounded-lg transition-colors text-sm"
@@ -194,15 +224,39 @@
             {/each}
           {/if}
           
-          <!-- Projects Sub-navigation -->
-          {#if isInSection('/projects')}
-            <li class="mt-4">
-              <div class="px-3 py-2 text-xs font-semibold text-base-content/50 uppercase tracking-wider">
-                Projects
-              </div>
-            </li>
-            {#each Object.entries(projectSubNav) as [subPath, subLabel]}
-              <li class="ml-2">
+          <!-- Events Section -->
+          <li>
+            <button 
+              onclick={() => {
+                eventsClicked = true;
+                eventsExpanded = !eventsExpanded;
+                goto('/events');
+              }}
+              class="flex items-center gap-3 p-3 rounded-lg transition-colors w-full text-left"
+              class:bg-primary={isInSection('/events') || eventsClicked}
+              class:text-primary-content={isInSection('/events') || eventsClicked}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v14a2 2 0 002 2z" />
+              </svg>
+              <span class="font-medium flex-1">Events</span>
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                class="h-4 w-4 transition-transform duration-200"
+                class:rotate-180={eventsExpanded}
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </li>
+          
+          <!-- Events Sub-navigation -->
+          {#if eventsExpanded}
+            {#each Object.entries(eventSubNav) as [subPath, subLabel]}
+              <li class="ml-6">
                 <a 
                   href={subPath} 
                   class="flex items-center gap-3 p-2 rounded-lg transition-colors text-sm"

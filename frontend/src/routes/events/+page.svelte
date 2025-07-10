@@ -11,10 +11,6 @@
 </script>
 
 <div class="max-w-6xl mx-auto space-y-8">
-  <div class="mb-8">
-    <h1 class="text-3xl font-bold text-base-content mb-2">My Events</h1>
-    <p class="text-base-content/70">Manage your hackathon events and track participation.</p>
-  </div>
 
   <!-- Events you're attending -->
   <div class="card bg-base-100 shadow-lg">

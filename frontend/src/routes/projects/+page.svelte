@@ -37,10 +37,7 @@
 </script>
 
 <div class="max-w-6xl mx-auto space-y-8">
-  <div class="mb-8">
-    <h1 class="text-3xl font-bold text-base-content mb-2">My Projects</h1>
-    <p class="text-base-content/70">Manage your hackathon projects and track their quality.</p>
-  </div>
+
 
   <!-- Your Projects -->
   <div class="card bg-base-100 shadow-lg">
