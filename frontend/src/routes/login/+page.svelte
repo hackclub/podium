@@ -88,6 +88,12 @@
   // Function to handle signup and login
   async function signupAndLogin() {
     isLoading = true;
+    // Generate display name if not provided or only whitespace
+    if (!userInfo.display_name || userInfo.display_name.trim() === "") {
+      const first = userInfo.first_name?.trim() || "";
+      const lastInitial = userInfo.last_name?.trim() ? userInfo.last_name.trim()[0] + "." : "";
+      userInfo.display_name = `${first} ${lastInitial}`.trim();
+    }
     const {error: err} = await UsersService.createUserUsersPost({
         body: userInfo,
         throwOnError: false,
@@ -233,6 +239,7 @@
           placeholder="Abc X."
           bind:value={userInfo.display_name}
         />
+        <!-- Removed display name preview -->
 
         <label class="label flex justify-between" for="phone">
           <span>Phone</span>

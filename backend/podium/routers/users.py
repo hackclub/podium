@@ -6,6 +6,7 @@ from podium.db.user import (
     UserSignupPayload,
     UserPrivate,
     UserPublic,
+    UserUpdate,
     get_user_record_id_by_email,
 )
 from podium.routers.auth import get_current_user
@@ -27,12 +28,33 @@ def user_exists(email: Annotated[EmailStr, Query(...)]) -> UserExistsResponse:
 
 
 @router.get("/current")
-def get_current_user(
+def get_current_user_info(
     current_user: Annotated[UserPrivate, Depends(get_current_user)],
 ) -> UserPrivate:
     if current_user:
         return current_user
     raise BAD_AUTH
+
+
+@router.put("/current")
+def update_current_user(
+    user_update: UserUpdate,
+    current_user: Annotated[UserPrivate, Depends(get_current_user)],
+) -> UserPrivate:
+    """
+    Update the current user's information
+    """
+    if current_user is None:
+        raise BAD_AUTH
+    
+    # Only include non-None values in the update
+    update_data = {k: v for k, v in user_update.model_dump().items() if v is not None}
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    
+    updated_user = db.users.update(current_user.id, update_data)
+    return UserPrivate.model_validate(updated_user["fields"])
 
 
 # It's important that this is under /current since otherwise /users/current will be be passed to this and `current` will be interpreted as a user_id

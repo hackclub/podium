@@ -142,11 +142,15 @@ export type PublicProjectCreationPayload = {
 export type Result = {
     valid: boolean;
     reason: string;
+    tested_url: string;
 };
 
-export type ResultsResponse = {
+export type Results = {
     demo: Result;
     source_code: Result;
+    image_url: Result;
+    readonly reasons: string;
+    readonly valid: boolean;
 };
 
 /**
@@ -192,6 +196,21 @@ export type UserPublic = {
 };
 
 export type UserSignupPayload = {
+    display_name?: string;
+    email: string;
+    first_name: string;
+    last_name?: string;
+    phone?: string;
+    street_1?: (string | null);
+    street_2?: (string | null);
+    city?: (string | null);
+    state?: (string | null);
+    zip_code?: (string | null);
+    country?: (string | null);
+    dob?: (string | null);
+};
+
+export type UserUpdate = {
     display_name?: string;
     email: string;
     first_name: string;
@@ -395,7 +414,7 @@ export type CheckProjectProjectsCheckPostData = {
     body: Project;
 };
 
-export type CheckProjectProjectsCheckPostResponse = (ResultsResponse);
+export type CheckProjectProjectsCheckPostResponse = (Results);
 
 export type CheckProjectProjectsCheckPostError = (HTTPValidationError);
 
@@ -409,9 +428,17 @@ export type UserExistsUsersExistsGetResponse = (UserExistsResponse);
 
 export type UserExistsUsersExistsGetError = (HTTPValidationError);
 
-export type GetCurrentUserUsersCurrentGetResponse = (UserPrivate);
+export type GetCurrentUserInfoUsersCurrentGetResponse = (UserPrivate);
 
-export type GetCurrentUserUsersCurrentGetError = unknown;
+export type GetCurrentUserInfoUsersCurrentGetError = unknown;
+
+export type UpdateCurrentUserUsersCurrentPutData = {
+    body: UserUpdate;
+};
+
+export type UpdateCurrentUserUsersCurrentPutResponse = (UserPrivate);
+
+export type UpdateCurrentUserUsersCurrentPutError = (HTTPValidationError);
 
 export type GetUserPublicUsersUserIdGetData = {
     path: {

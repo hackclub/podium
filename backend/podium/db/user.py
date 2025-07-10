@@ -18,7 +18,9 @@ class UserLoginPayload(BaseModel):
 
 
 class UserBase(BaseModel):
-        display_name: str = ""
+    display_name: str = ""
+
+
 class UserPublic(UserBase): ...
 
 
@@ -57,6 +59,9 @@ class UserSignupPayload(UserBase):
     # @field_validator("email", mode="before")
     # def normalize_email(cls, v: str) -> str:
     #     return v.strip().lower()
+
+
+class UserUpdate(UserSignupPayload): ...
 
 
 class UserPrivate(UserSignupPayload):
