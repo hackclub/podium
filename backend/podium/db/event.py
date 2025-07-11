@@ -14,6 +14,7 @@ class BaseEvent(BaseModel):
     description: Optional[Annotated[str, StringConstraints(max_length=500)]] = ""
     votable: bool = False
     leaderboard_enabled: bool = False
+    demo_links_optional: bool = False
 
 
 class EventCreationPayload(BaseEvent): ...

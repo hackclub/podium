@@ -20,8 +20,8 @@ from sendgrid.helpers.mail import Mail
 router = APIRouter(tags=["auth"])
 
 SECRET_KEY = settings.jwt_secret
-ALGORITHM = settings.jwt_algorithm
-ACCESS_TOKEN_EXPIRE_MINUTES = settings.jwt_expire_minutes
+ALGORITHM = str(settings.jwt_algorithm)
+ACCESS_TOKEN_EXPIRE_MINUTES: int = settings.jwt_expire_minutes # type: ignore
 MAGIC_LINK_EXPIRE_MINUTES = 15
 
 
@@ -147,11 +147,11 @@ async def get_current_user(
             raise HTTPException(status_code=400, detail="Bad JWT")
     except PyJWTError:
         # raise credentials_exception
-        return None
+        raise BAD_AUTH
     # Check if the user exists
     user_id = db.user.get_user_record_id_by_email(email)
     if user_id is None:
-        return None
+        raise BAD_AUTH
     user = db.users.get(user_id)
 
     return UserPrivate.model_validate(user["fields"])

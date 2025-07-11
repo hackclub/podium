@@ -31,6 +31,10 @@
   
   let updateModal: Modal = $state() as Modal;
 
+  // Track the selected event's demo_links_optional setting
+  let selectedEvent = $derived(events.find(e => e.id === preselectedProject.event[0]));
+  let demoLinksOptional = $derived(selectedEvent?.demo_links_optional || false);
+
   const emptyProjectUpdate: ProjectUpdate = {
     name: "",
     repo: "",
@@ -114,6 +118,18 @@
           class="input input-bordered w-full"
         />
 
+        <label class="label" for="event">Event</label>
+        <select
+          id="event"
+          bind:value={preselectedProject.event[0]}
+          class="select select-bordered w-full"
+        >
+          <option value="" disabled selected>Select an event</option>
+          {#each events as event}
+            <option value={event.id}>{event.name}</option>
+          {/each}
+        </select>
+
         <label class="label" for="project_description"
           >Project Description</label
         >
@@ -133,7 +149,12 @@
           class="input input-bordered w-full"
         />
 
-        <label class="label" for="demo_url">Demo URL</label>
+        <label class="label" for="demo_url">
+          Demo URL
+          {#if demoLinksOptional}
+            <span class="text-sm text-base-content/70">(Optional for this event)</span>
+          {/if}
+        </label>
         <input
           id="demo_url"
           type="text"
@@ -141,6 +162,11 @@
           placeholder="Demo URL"
           class="input input-bordered w-full"
         />
+        {#if demoLinksOptional}
+          <div class="text-sm text-base-content/70 mt-1">
+            Demo links are optional for this event. Your project won't be marked as invalid if only the demo link fails validation.
+          </div>
+        {/if}
 
         <label class="label" for="repo_url">Repository URL</label>
         <input
@@ -160,18 +186,6 @@
           class="input input-bordered w-full"
           min="0"
         />
-
-        <label class="label" for="event">Event</label>
-        <select
-          id="event"
-          bind:value={preselectedProject.event[0]}
-          class="select select-bordered w-full"
-        >
-          <option value="" disabled selected>Select an event</option>
-          {#each events as event}
-            <option value={event.id}>{event.name}</option>
-          {/each}
-        </select>
 
         <button class="btn btn-block mt-4 btn-primary" onclick={updateProject}>
           Update Project

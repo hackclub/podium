@@ -19,6 +19,11 @@
   });
   let events: Event[] = $state([]);
   let fetchedEvents = false;
+  
+  // Track the selected event's demo_links_optional setting
+  let selectedEvent = $derived(events.find(e => e.id === project.event[0]));
+  let demoLinksOptional = $derived(selectedEvent?.demo_links_optional || false);
+  
   async function fetchEvents() {
     try {
       toast.info("Fetching events; please wait");
@@ -84,6 +89,21 @@
       class="input input-bordered w-full"
     />
 
+    <label class="label" for="event">Event</label>
+    <select
+      id="event"
+      bind:value={project.event[0]}
+      class="select select-bordered w-full"
+      onfocus={() => {
+        if (!fetchedEvents) fetchEvents();
+      }}
+    >
+      <option value="" disabled selected>Select an event</option>
+      {#each events as event}
+        <option value={event.id}>{event.name}</option>
+      {/each}
+    </select>
+
     <label class="label" for="project_description">Project Description</label>
     <textarea
       id="project_description"
@@ -103,9 +123,12 @@
       class="input input-bordered w-full"
     />
 
-    <label class="label" for="demo_url"
-      >URL to a deployed version of your project</label
-    >
+    <label class="label" for="demo_url">
+      URL to a deployed version of your project
+      {#if demoLinksOptional}
+        <span class="text-sm text-base-content/70">(Optional for this event)</span>
+      {/if}
+    </label>
     <input
       id="demo_url"
       type="text"
@@ -113,6 +136,11 @@
       placeholder="Demo URL"
       class="input input-bordered w-full"
     />
+    {#if demoLinksOptional}
+      <div class="text-sm text-base-content/70 mt-1">
+        Demo links are optional for this event. Your project won't be marked as invalid if only the demo link fails validation.
+      </div>
+    {/if}
     <button
       type="button"
       class="btn-link label"
@@ -141,21 +169,6 @@
       class="input input-bordered w-full"
       min="0"
     />
-
-    <label class="label" for="event">Event</label>
-    <select
-      id="event"
-      bind:value={project.event[0]}
-      class="select select-bordered w-full"
-      onfocus={() => {
-        if (!fetchedEvents) fetchEvents();
-      }}
-    >
-      <option value="" disabled selected>Select an event</option>
-      {#each events as event}
-        <option value={event.id}>{event.name}</option>
-      {/each}
-    </select>
 
     <button class="btn btn-block btn-primary mt-4" onclick={createProject}>
       Create Project

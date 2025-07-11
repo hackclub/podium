@@ -18,6 +18,9 @@
     },
     {
       "file": "./.vscode/svelte.md"
+    },
+    {
+      "file": "./.vscode/pydantic.md"
     }
   ],
   "search.exclude": {

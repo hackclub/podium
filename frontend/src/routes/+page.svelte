@@ -4,6 +4,7 @@
   import CreateProject from "$lib/components/CreateProject.svelte";
   import AttendEvent from "$lib/components/AttendEvent.svelte";
   import { getAuthenticatedUser, signOut } from "$lib/user.svelte";
+  import UpdateUser from "$lib/components/UpdateUser.svelte";
 
   import { onMount } from "svelte";
   import { ProjectsService } from "$lib/client/sdk.gen";
@@ -11,7 +12,7 @@
   import { handleError } from "$lib/misc";
   import ProjectCard from "$lib/components/ProjectCard.svelte";
   import { fade } from "svelte/transition";
-    import SignupWizard from "$lib/components/SignupWizard.svelte";
+    import StartWizard from "$lib/components/StartWizard.svelte";
 
   let projects = $state() as Array<PrivateProject>;
 
@@ -37,7 +38,7 @@
       </h1>
     </div>
 
-    <SignupWizard />
+    <StartWizard />
 
     <!-- User Info Card -->
     <div class="card bg-base-100 shadow-lg">
@@ -48,9 +49,13 @@
             <p class="text-base-content/70">
               Signed in as <strong>{getAuthenticatedUser().user.email}</strong>
             </p>
+            <p class="text-base-content/70">
+              Display name: <strong>{getAuthenticatedUser().user.display_name || `${getAuthenticatedUser().user.first_name} ${getAuthenticatedUser().user.last_name?.[0] || ''}`}</strong>
+            </p>
           </div>
           <div class="flex gap-2">
-            <button class="btn btn-outline" onclick={signOut}>Sign out</button>
+            <UpdateUser user={getAuthenticatedUser().user} />
+            <button class="btn btn-outline btn-sm" onclick={signOut}>Sign out</button>
           </div>
         </div>
       </div>

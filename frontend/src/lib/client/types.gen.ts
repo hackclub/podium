@@ -16,6 +16,7 @@ export type Event = {
     description?: (string | null);
     votable?: boolean;
     leaderboard_enabled?: boolean;
+    demo_links_optional?: boolean;
     id: string;
     owner: [
         string
@@ -30,6 +31,7 @@ export type EventCreationPayload = {
     description?: (string | null);
     votable?: boolean;
     leaderboard_enabled?: boolean;
+    demo_links_optional?: boolean;
 };
 
 export type EventUpdate = {
@@ -37,6 +39,7 @@ export type EventUpdate = {
     description?: (string | null);
     votable?: boolean;
     leaderboard_enabled?: boolean;
+    demo_links_optional?: boolean;
 };
 
 export type HTTPValidationError = {
@@ -51,6 +54,7 @@ export type PrivateEvent = {
     description?: (string | null);
     votable?: boolean;
     leaderboard_enabled?: boolean;
+    demo_links_optional?: boolean;
     id: string;
     owner: [
         string
@@ -142,7 +146,7 @@ export type PublicProjectCreationPayload = {
 export type Result = {
     valid: boolean;
     reason: string;
-    url: string;
+    tested_url: string;
 };
 
 export type Results = {
@@ -170,9 +174,10 @@ export type UserLoginPayload = {
 };
 
 export type UserPrivate = {
+    display_name?: string;
+    email: string;
     first_name: string;
     last_name?: string;
-    email: string;
     phone?: string;
     street_1?: (string | null);
     street_2?: (string | null);
@@ -191,14 +196,29 @@ export type UserPrivate = {
 };
 
 export type UserPublic = {
-    first_name: string;
-    last_name?: string;
+    display_name?: string;
 };
 
 export type UserSignupPayload = {
+    display_name?: string;
+    email: string;
     first_name: string;
     last_name?: string;
+    phone?: string;
+    street_1?: (string | null);
+    street_2?: (string | null);
+    city?: (string | null);
+    state?: (string | null);
+    zip_code?: (string | null);
+    country?: (string | null);
+    dob?: (string | null);
+};
+
+export type UserUpdate = {
+    display_name?: string;
     email: string;
+    first_name: string;
+    last_name?: string;
     phone?: string;
     street_1?: (string | null);
     street_2?: (string | null);
@@ -412,9 +432,17 @@ export type UserExistsUsersExistsGetResponse = (UserExistsResponse);
 
 export type UserExistsUsersExistsGetError = (HTTPValidationError);
 
-export type GetCurrentUserUsersCurrentGetResponse = (UserPrivate);
+export type GetCurrentUserInfoUsersCurrentGetResponse = (UserPrivate);
 
-export type GetCurrentUserUsersCurrentGetError = unknown;
+export type GetCurrentUserInfoUsersCurrentGetError = unknown;
+
+export type UpdateCurrentUserUsersCurrentPutData = {
+    body: UserUpdate;
+};
+
+export type UpdateCurrentUserUsersCurrentPutResponse = (UserPrivate);
+
+export type UpdateCurrentUserUsersCurrentPutError = (HTTPValidationError);
 
 export type GetUserPublicUsersUserIdGetData = {
     path: {

@@ -109,6 +109,16 @@
         bind:checked={preselectedEvent.leaderboard_enabled}
       />
 
+      <label class="label" for="demo_links_optional">
+        <span>Demo Links Optional</span>
+      </label>
+      <input
+        id="demo_links_optional"
+        type="checkbox"
+        class="checkbox"
+        bind:checked={preselectedEvent.demo_links_optional}
+      />
+
       <button class="btn btn-block mt-4 btn-primary" onclick={updateEvent}>
         Update Event
       </button>
