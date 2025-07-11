@@ -117,9 +117,7 @@
       <div class="flex-1">
         <a href="/" class="btn btn-ghost text-xl font-extrabold">Podium</a>
       </div>
-      <div class="flex-none">
-        <ThemeSwitcher />
-      </div>
+      <!-- ThemeSwitcher removed from here -->
     </div>
     <!-- Main Content -->
     <div class="flex-1 p-6">
@@ -220,9 +218,6 @@
       </div>
       <!-- Bottom Section -->
       <div class="p-4 border-t border-base-300">
-        <div class="hidden lg:block mb-4">
-          <ThemeSwitcher />
-        </div>
       </div>
     </div>
   </div>
@@ -233,9 +228,6 @@
   <div class="navbar bg-base-200">
     <div class="flex-1">
       <a href="/" class="btn btn-ghost text-xl font-extrabold">Podium</a>
-    </div>
-    <div class="flex-none">
-      <ThemeSwitcher />
     </div>
   </div>
   
@@ -251,6 +243,11 @@
   </div>
 </div>
 {/if}
+
+<!-- Global Theme Switcher (Bottom Left) -->
+<div class="fixed bottom-4 left-4 z-50">
+  <ThemeSwitcher />
+</div>
 
 <!-- Global Info Button -->
 <div class="fixed bottom-4 right-4 z-50">
