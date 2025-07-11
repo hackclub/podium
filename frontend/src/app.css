@@ -17,6 +17,7 @@
 @plugin "daisyui/theme" {
   name: "undercity";
   default: true;
+  prefersdark: true;
   --color-base-100: #2E2A54;
   --color-base-200: #272239;
   --color-base-300: rgba(86, 76, 173);
