@@ -1,6 +1,6 @@
 import os
 from dynaconf import Dynaconf, Validator
-from langchain_google_genai import ChatGoogleGenerativeAI
+from browser_use.llm import ChatGoogle
 from quality.models import QualitySettings
 from steel import Steel
 
@@ -76,7 +76,7 @@ quality_settings = QualitySettings(
     )
     if settings.get("steel_api_key")
     else None,
-    llm=ChatGoogleGenerativeAI(
+    llm=ChatGoogle(
         # https://ai.google.dev/gemini-api/docs/rate-limits
         # model="gemini-2.0-flash-exp",
         api_key=settings.gemini_api_key,

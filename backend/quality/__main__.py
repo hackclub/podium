@@ -2,7 +2,7 @@ import argparse
 import asyncio
 import os
 import warnings
-from langchain_google_genai import ChatGoogleGenerativeAI
+from browser_use.llm import ChatGoogle
 from podium.db.project import Project
 from quality.models import QualitySettings
 import rich
@@ -24,7 +24,7 @@ settings_group.add_argument(
 settings_group.add_argument(
     "--gemini-api-key",
     help="Gemini API key. The free tier should be sufficient.",
-    default=os.environ.get("GEMINI_API_KEY", ""),
+    default=os.environ.get("GOOGLE_API_KEY", ""),
 )
 parser.add_argument(
     "--headless",
@@ -45,7 +45,7 @@ async def main():
             )
     else:
         quality_settings = QualitySettings(
-            llm=ChatGoogleGenerativeAI(
+            llm=ChatGoogle(
                 api_key=args.gemini_api_key,
                 model="gemini-2.0-flash-lite",
             ),

@@ -2,10 +2,10 @@
 import asyncio
 from rich import print as pprint
 # import logging
-from browser_use import Agent, Browser, BrowserConfig, Controller
-from browser_use.browser.context import BrowserContext
+from browser_use import Controller
+from browser_use import BrowserSession, Agent
 
-# from langchain_openai import ChatOpenAI
+# from browser_use.llm import ChatOpenAI
 from string import Template
 import mimetypes
 import httpx
@@ -31,15 +31,13 @@ async def check_project(project: "Project", config: QualitySettings) -> Results:
 
             browser_cdp_url = f"wss://connect.steel.dev?apiKey={config.steel_client.steel_api_key}&sessionId={browser_session.id}"
 
-            browser = Browser(config=BrowserConfig(cdp_url=browser_cdp_url))
+            browser = BrowserSession(cdp_url=browser_cdp_url)
         else:
-            browser = Browser(
-                config=BrowserConfig(
-                    headless=config.headless,
-                )
+            browser = BrowserSession(
+                headless=config.headless  # type: ignore
             )
 
-        browser_context = BrowserContext(browser=browser)
+
 
         options = {
             "llm": config.llm,
@@ -57,7 +55,7 @@ async def check_project(project: "Project", config: QualitySettings) -> Results:
                         repo=project.repo,
                         demo=project.demo,
                     ),
-                    browser_context=browser_context,
+                    browser_session=browser,
                 ).run(max_steps=10)
             )
 
@@ -87,16 +85,12 @@ async def check_project(project: "Project", config: QualitySettings) -> Results:
                 source_code=Result(valid=False, reason="Validation error occurred", tested_url=project.repo),
             )
         finally:
-            # Close browser context
-            if browser_context:
-                await browser_context.close()
             # Close browser
             if browser:
                 await browser.close()
             # Release session if used
-            if config.steel_client:
-                if browser_session:
-                    config.steel_client.sessions.release(browser_session.id)
+            if config.steel_client and 'browser_session' in locals():
+                config.steel_client.sessions.release(browser_session.id)
 
         return Results(
             demo=result.demo,
@@ -155,7 +149,7 @@ async def main():
 #     use_vision=True,
 #     headless=False,
 #     steel_client=None
-#     llm=ChatGoogleGenerativeAI(
+#     llm=ChatGoogle(
 #         # https://ai.google.dev/gemini-api/docs/rate-limits
 #         # model="gemini-2.0-flash-exp",
 #         api_key=os.environ["GEMINI_API_KEY"],

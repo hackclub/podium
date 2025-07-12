@@ -2,7 +2,7 @@ import asyncio
 from typing import Optional
 from podium.constants import UrlField
 from pydantic import BaseModel, ConfigDict, computed_field
-from langchain.chat_models.base import BaseChatModel
+from browser_use.llm.base import BaseChatModel
 from steel import Steel
 
 
