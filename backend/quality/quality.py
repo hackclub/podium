@@ -2,7 +2,7 @@
 import asyncio
 from rich import print as pprint
 # import logging
-from browser_use import Controller
+from browser_use import BrowserProfile, Controller
 from browser_use import BrowserSession, Agent
 
 # from browser_use.llm import ChatOpenAI
@@ -33,15 +33,12 @@ async def check_project(project: "Project", config: QualitySettings) -> Results:
 
             browser = BrowserSession(cdp_url=browser_cdp_url)
         else:
-            browser_kwargs = {
-                "headless": config.headless  # type: ignore
-            }
-            
-            # Add recording directory if specified
-            if config.record_video_dir:
-                browser_kwargs["record_video_dir"] = config.record_video_dir
-                
-            browser = BrowserSession(**browser_kwargs)
+            browser = BrowserSession(
+                browser_profile=BrowserProfile(
+                    headless=config.headless,
+                    record_video_dir=config.record_video_dir,
+                ),
+            )
 
 
 
