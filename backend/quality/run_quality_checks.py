@@ -1,23 +1,25 @@
 # poetry run -- python -m quality.run_quality_checks
 
-# Constants
-RESULTS_FOLDER = 'quality_check_results'
-SAMPLE_PROJECTS_FILE = 'sample_projects.csv'
-DELAY_BETWEEN_PROJECTS = 1  # seconds
+# Configurable constants (can be overridden by environment variables)
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+RESULTS_FOLDER = os.environ.get('QUALITY_RESULTS_FOLDER', 'quality_check_results')
+SAMPLE_PROJECTS_FILE = os.environ.get('QUALITY_INPUT_FILE', 'sample_projects.csv')
+DELAY_BETWEEN_PROJECTS = float(os.environ.get('QUALITY_DELAY', 1))
+FORCE_OVERWRITE = os.environ.get('QUALITY_FORCE_OVERWRITE', 'false').lower() == 'true'
 
 import asyncio
 import csv
 import time
-import os
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Set
 from quality.quality import check_project
 from quality.models import QualitySettings
 from podium.db.project import Project
 from podium import config
-from dotenv import load_dotenv
 from browser_use.llm import ChatOpenAI
-load_dotenv()
 
 # llm = ChatOpenAI(
 #     model="llama-3.1-8b-instant",
@@ -111,6 +113,25 @@ async def process_project(project_data: Dict[str, str], index: int, quality_sett
             'judgement': project_data['judgement']
         }
 
+
+def get_processed_projects(output_file: str) -> Set[int]:
+    """Read existing output file and return set of already processed project indices."""
+    processed_projects = set()
+    
+    if os.path.exists(output_file):
+        try:
+            with open(output_file, 'r', encoding='utf-8') as file:
+                reader = csv.DictReader(file)
+                for row in reader:
+                    if 'project_index' in row and row['project_index'].isdigit():
+                        processed_projects.add(int(row['project_index']))
+            print(f"Found {len(processed_projects)} already processed projects")
+        except Exception as e:
+            print(f"Warning: Could not read existing output file: {e}")
+    
+    return processed_projects
+
+
 async def main():
     """Main function to process all projects in sample_projects.csv."""
     
@@ -121,18 +142,24 @@ async def main():
         for row in reader:
             projects.append(row)
     
-    print(f"Processing {len(projects)} projects...")
+    print(f"Found {len(projects)} projects in {SAMPLE_PROJECTS_FILE}")
     
-    # Create date-based folder structure
+    # Use date-based folder structure for output
     current_date = datetime.now().strftime('%Y-%m-%d')
     date_folder = os.path.join(RESULTS_FOLDER, current_date)
     os.makedirs(date_folder, exist_ok=True)
+    output_file = os.path.join(date_folder, 'results.csv')
     
     # Create recordings folder within the date folder
     recordings_folder = os.path.join(date_folder, 'recordings')
     os.makedirs(recordings_folder, exist_ok=True)
     
-    output_file = os.path.join(date_folder, 'results.csv')
+    # Check for existing results to enable resume functionality
+    if FORCE_OVERWRITE:
+        processed_projects = set()
+        print("Force mode: Starting fresh (will overwrite existing file)")
+    else:
+        processed_projects = get_processed_projects(output_file)
     
     # Create quality settings with LLM and recording directory
     quality_settings = QualitySettings(
@@ -151,17 +178,34 @@ async def main():
         'overall_valid', 'raw_result', 'judgement'
     ]
     
-    # Create/clear the CSV file and write header
-    with open(output_file, 'w', newline='', encoding='utf-8') as file:
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
-        writer.writeheader()
+    # Determine if we need to create a new file or append to existing
+    file_exists = os.path.exists(output_file) and not FORCE_OVERWRITE
+    
+    if not file_exists:
+        # Create new CSV file and write header
+        with open(output_file, 'w', newline='', encoding='utf-8') as file:
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writeheader()
+        print(f"Created new output file: {output_file}")
+    else:
+        print(f"Resuming from existing output file: {output_file}")
     
     # Process projects sequentially to avoid overwhelming the system
     results = []
+    processed_count = 0
+    skipped_count = 0
+    
     for i, project_data in enumerate(projects, 1):
+        # Skip if already processed
+        if i in processed_projects:
+            print(f"Skipping project {i}/{len(projects)} (already processed): {project_data['demo']}")
+            skipped_count += 1
+            continue
+        
         print(f"Processing project {i}/{len(projects)}: {project_data['demo']}")
         result = await process_project(project_data, i, quality_settings)
         results.append(result)
+        processed_count += 1
         
         # Write result to CSV immediately after each project
         with open(output_file, 'a', newline='', encoding='utf-8') as file:
@@ -178,15 +222,18 @@ async def main():
     print(f"Recordings saved to {recordings_folder}")
     
     # Print summary
-    total_projects = len(results)
+    total_projects = len(projects)
     successful_checks = sum(1 for r in results if r['overall_valid'])
     total_time = sum(r['execution_time_seconds'] for r in results)
     
     print(f"\nSummary:")
-    print(f"Total projects processed: {total_projects}")
+    print(f"Total projects in input: {total_projects}")
+    print(f"Projects skipped (already processed): {skipped_count}")
+    print(f"Projects processed in this run: {processed_count}")
     print(f"Successful quality checks: {successful_checks}")
-    print(f"Total execution time: {total_time:.2f} seconds")
-    print(f"Average time per project: {total_time/total_projects:.2f} seconds")
+    if processed_count > 0:
+        print(f"Total execution time: {total_time:.2f} seconds")
+        print(f"Average time per project: {total_time/processed_count:.2f} seconds")
 
 if __name__ == "__main__":
     asyncio.run(main()) 
