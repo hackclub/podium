@@ -1,17 +1,31 @@
+# poetry run -- python -m quality.run_quality_checks
+
+# Constants
+RESULTS_FOLDER = 'quality_check_results'
+SAMPLE_PROJECTS_FILE = 'sample_projects.csv'
+DELAY_BETWEEN_PROJECTS = 1  # seconds
+
 import asyncio
 import csv
 import time
+import os
+from datetime import datetime
 from typing import List, Dict, Any
 from quality.quality import check_project
 from quality.models import QualitySettings
 from podium.db.project import Project
 from podium import config
-import os
 from dotenv import load_dotenv
 from browser_use.llm import ChatOpenAI
-
-# Load environment variables
 load_dotenv()
+
+# llm = ChatOpenAI(
+#     model="llama-3.1-8b-instant",
+#     api_key=os.environ.get("GROQ_API_KEY"),
+#     base_url="https://api.groq.com/openai/v1"
+# )
+llm=config.quality_settings.llm
+
 
 async def process_project(project_data: Dict[str, str], index: int, quality_settings: QualitySettings) -> Dict[str, Any]:
     """Process a single project and return the results with timing information."""
@@ -100,35 +114,35 @@ async def process_project(project_data: Dict[str, str], index: int, quality_sett
 async def main():
     """Main function to process all projects in sample_projects.csv."""
     
-    # quality_settings = config.quality_settings
-    # Create OpenAI LLM configuration for OpenRouter
-    # openai_llm = ChatOpenAI(
-    #     model="google/gemini-2.0-flash-exp:free",  # Free Gemini model through OpenRouter
-    #     api_key=os.environ.get("OPENAI_API_KEY"),
-    #     base_url="http://localhost:3040/v1",
-    # )
-    
-    # Create quality settings with OpenAI LLM
-    quality_settings = QualitySettings(
-        # use_vision=True,
-        use_vision=False,
-        headless=False,
-        steel_client=None,
-        # llm=openai_llm,
-        llm=config.quality_settings.llm,  # Commented out podium LLM
-    )
-    
     # Read sample projects
     projects = []
-    with open('sample_projects.csv', 'r', encoding='utf-8') as file:
+    with open(SAMPLE_PROJECTS_FILE, 'r', encoding='utf-8') as file:
         reader = csv.DictReader(file)
         for row in reader:
             projects.append(row)
     
     print(f"Processing {len(projects)} projects...")
     
-    # Setup CSV output file
-    output_file = 'quality_check_results.csv'
+    # Create date-based folder structure
+    current_date = datetime.now().strftime('%Y-%m-%d')
+    date_folder = os.path.join(RESULTS_FOLDER, current_date)
+    os.makedirs(date_folder, exist_ok=True)
+    
+    # Create recordings folder within the date folder
+    recordings_folder = os.path.join(date_folder, 'recordings')
+    os.makedirs(recordings_folder, exist_ok=True)
+    
+    output_file = os.path.join(date_folder, 'results.csv')
+    
+    # Create quality settings with LLM and recording directory
+    quality_settings = QualitySettings(
+        use_vision=True,
+        headless=False,
+        steel_client=None,
+        llm=config.quality_settings.llm,
+        record_video_dir=recordings_folder,
+    )
+    
     fieldnames = [
         'project_index', 'demo', 'repo', 'image', 'execution_time_seconds',
         'demo_valid', 'demo_error', 'demo_explanation',
@@ -155,11 +169,13 @@ async def main():
             writer.writerow(result)
         
         print(f"  Result written to {output_file}")
+        print(f"  Recording saved to {recordings_folder}")
         
         # Small delay between projects to be respectful to the system
-        await asyncio.sleep(1)
+        await asyncio.sleep(DELAY_BETWEEN_PROJECTS)
     
     print(f"All results written to {output_file}")
+    print(f"Recordings saved to {recordings_folder}")
     
     # Print summary
     total_projects = len(results)

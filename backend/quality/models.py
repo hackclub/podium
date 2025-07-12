@@ -18,6 +18,7 @@ class QualitySettings(BaseModel):
     steel_client: Optional[Steel] = None
     prompts: Prompts = Prompts()
     session_semaphore: asyncio.Semaphore = asyncio.Semaphore(2)
+    record_video_dir: Optional[str] = None
 
     model_config = ConfigDict(
         arbitrary_types_allowed=True,

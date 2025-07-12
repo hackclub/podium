@@ -33,9 +33,15 @@ async def check_project(project: "Project", config: QualitySettings) -> Results:
 
             browser = BrowserSession(cdp_url=browser_cdp_url)
         else:
-            browser = BrowserSession(
-                headless=config.headless  # type: ignore
-            )
+            browser_kwargs = {
+                "headless": config.headless  # type: ignore
+            }
+            
+            # Add recording directory if specified
+            if config.record_video_dir:
+                browser_kwargs["record_video_dir"] = config.record_video_dir
+                
+            browser = BrowserSession(**browser_kwargs)
 
 
 

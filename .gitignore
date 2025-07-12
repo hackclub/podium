@@ -1,4 +1,4 @@
 .vercel
 tmp/
-quality_check_results.csv
-sample_projects.csv
+quality_check_results/
+sample_projects.csv 
