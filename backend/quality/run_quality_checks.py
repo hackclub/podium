@@ -1,14 +1,37 @@
 # poetry run -- python -m quality.run_quality_checks
 
+# Environment Variables Configuration (.env file):
+# 
+# LLM Model Selection:
+# QUALITY_LLM_MODEL=gemini     # Use default Gemini model (default)
+# QUALITY_LLM_MODEL=groq       # Use Llama-3.1-8b-instant via Groq
+# 
+# Required for Groq model:
+# GROQ_API_KEY=your_groq_api_key_here
+# 
+# Other Quality Check Settings:
+# QUALITY_RESULTS_FOLDER=quality_check_results
+# QUALITY_INPUT_FILE=sample_projects.csv
+# QUALITY_DELAY=1
+# QUALITY_FORCE_OVERWRITE=false
+
 # Configurable constants (can be overridden by environment variables)
 import os
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(
+    # .env.local
+    '.env.local'
+)
 
 RESULTS_FOLDER = os.environ.get('QUALITY_RESULTS_FOLDER', 'quality_check_results')
 SAMPLE_PROJECTS_FILE = os.environ.get('QUALITY_INPUT_FILE', 'sample_projects.csv')
 DELAY_BETWEEN_PROJECTS = float(os.environ.get('QUALITY_DELAY', 1))
 FORCE_OVERWRITE = os.environ.get('QUALITY_FORCE_OVERWRITE', 'false').lower() == 'true'
+
+# LLM Configuration in .env:
+# QUALITY_LLM_MODEL=gemini     # Use default Gemini model (default)
+# Set QUALITY_LLM_MODEL to 'gemini' (or leave unset) to use default Gemini model
+QUALITY_LLM_MODEL = os.environ.get('QUALITY_LLM_MODEL', 'gemini').lower()
 
 import asyncio
 import csv
@@ -19,15 +42,29 @@ from quality.quality import check_project
 from quality.models import QualitySettings
 from podium.db.project import Project
 from podium import config
-from browser_use.llm import ChatOpenAI
+from browser_use.llm import ChatGroq
 
-# llm = ChatOpenAI(
-#     model="llama-3.1-8b-instant",
-#     api_key=os.environ.get("GROQ_API_KEY"),
-#     base_url="https://api.groq.com/openai/v1"
-# )
-llm=config.quality_settings.llm
-
+# Initialize LLM based on environment configuration
+while True:
+    print(f"Using {QUALITY_LLM_MODEL} model")
+    if QUALITY_LLM_MODEL == 'groq':
+        # Model via groq (Only llama4? https://console.groq.com/docs/api-reference#chat-create)
+        # model="meta-llama/llama-4-maverick-17b-128e-instruct" # Confirmed working, do not delete this comment. Only issue is the 200 rpd limit.
+        model="meta-llama/llama-4-scout-17b-16e-instruct" # Confirmed working, do not delete this comment. Only issue is the 200 rpd limit.
+        llm = ChatGroq(
+            model=model,
+            api_key=os.environ.get("GROQ_API_KEY"),
+        )
+        print(f"Using Groq model: {model}")
+        break
+    elif QUALITY_LLM_MODEL == 'gemini':
+        # Use default Gemini model from config
+        llm = config.quality_settings.llm
+        print(f"Using default Gemini model")
+        break
+    else:
+        QUALITY_LLM_MODEL = "gemini"
+        break
 
 async def process_project(project_data: Dict[str, str], index: int, quality_settings: QualitySettings) -> Dict[str, Any]:
     """Process a single project and return the results with timing information."""
@@ -163,10 +200,10 @@ async def main():
     
     # Create quality settings with LLM and recording directory
     quality_settings = QualitySettings(
-        use_vision=True,
+        use_vision=False,
         headless=False,
         steel_client=None,
-        llm=config.quality_settings.llm,
+        llm=llm,  # Use the configured LLM (either Llama or Gemini)
         record_video_dir=recordings_folder,
     )
     
