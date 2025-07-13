@@ -9,8 +9,33 @@ from steel import Steel
 class Prompts(BaseModel):
     # source_code: str = "Check if $url is a source code repository"
     # demo: str = "Check if $url looks like an experienceable project, which is to say that someone at a hackathon could easily use it. If it's a web app, perfect! If it's something else, as long as it looked like it would be relatively easy to run locally, like a PyPi package or itch.io game, that's fine too. If it's a video or something like that, that's not a real project. If you can't validate it due to something like a login wall but it looks like a real project and not just 'hello world' on a page, then it's valid. Raw code is not an experiencable demo."
-    unified: str = "$repo should be the source code repository for the demo ($demo). The source code repository should be a valid git repository. The demo ($demo) should be a project that can be experienced. If it's a web app, test it a bit until you can't and deem if it's a real project. If it's a web app, it's almost always valid. However, if it's a video, it's not valid. If there's a sign-in/sign-up system, try to signup but don't mark the project as invalid if you can't complete the auth flow due to it sending a verification email, for example. Make sure that the repository and demo correspond to the same project. Make sure the Git repo is actually the source code for the demo."
+    unified: str = """Evaluate the demo ($demo) and repository ($repo) for a hackathon project submission.
 
+DEMO VALIDATION CRITERIA:
+- VALID: Functional web applications, interactive demos, working prototypes, portfolio sites with real content
+- INVALID: YouTube videos, raw GitHub files (README.md, .mp4), broken/404 links, loading screens that never resolve, static "hello world" pages
+- WAIT AND RETRY: Sites that are temporarily loading (wait 10 seconds), sites with temporary errors
+
+REPOSITORY VALIDATION CRITERIA:
+- VALID: Active GitHub repositories with source code that corresponds to the demo
+- INVALID: 404 errors, empty repositories, repositories that don't match the demo content
+
+LOGIN/SIGNUP HANDLING:
+- When encountering login/signup forms, use the email: hackclubreview@inboxkitten.com
+- To check for verification emails, visit: https://inboxkitten.com/inbox/hackclubreview/list
+- Wait for emails to arrive and click verification links if needed
+- Don't mark projects as invalid just because they require email verification
+
+SPECIFIC RULES:
+1. If demo URL contains "youtube.com", "youtu.be", or ends with ".mp4" → REJECT
+2. If demo URL contains "raw.githubusercontent.com" → REJECT  
+3. If demo returns 404 error → REJECT
+4. If demo is just a static portfolio with real content → APPROVE
+5. If demo is loading for more than 10 seconds → WAIT then retry
+6. If repo returns 404 → REJECT
+7. If repo doesn't contain source code related to demo → REJECT
+
+Test the demo thoroughly. For web apps, try to interact with them. For portfolios, verify they have real content. Navigate to the repository and check if it contains relevant source code. Only approve projects that someone at a hackathon could actually experience and use."""
 class QualitySettings(BaseModel):
     use_vision: bool = True
     headless: bool = False
@@ -18,7 +43,6 @@ class QualitySettings(BaseModel):
     steel_client: Optional[Steel] = None
     prompts: Prompts = Prompts()
     session_semaphore: asyncio.Semaphore = asyncio.Semaphore(2)
-    record_video_dir: Optional[str] = None
 
     model_config = ConfigDict(
         arbitrary_types_allowed=True,

@@ -36,7 +36,6 @@ async def check_project(project: "Project", config: QualitySettings) -> Results:
             browser = BrowserSession(
                 browser_profile=BrowserProfile(
                     headless=config.headless,
-                    record_video_dir=config.record_video_dir,
                 ),
             )
 

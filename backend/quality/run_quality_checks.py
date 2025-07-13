@@ -5,6 +5,7 @@
 # LLM Model Selection:
 # QUALITY_LLM_MODEL=gemini     # Use default Gemini model (default)
 # QUALITY_LLM_MODEL=groq       # Use Llama-3.1-8b-instant via Groq
+# QUALITY_LLM_MODEL=ollama     # Use Ollama with mistral-nemo model
 # 
 # Required for Groq model:
 # GROQ_API_KEY=your_groq_api_key_here
@@ -34,11 +35,14 @@ RETRY_DELAY = float(os.environ.get('QUALITY_RETRY_DELAY', 5.0))
 
 # LLM Configuration in .env:
 # QUALITY_LLM_MODEL=gemini     # Use default Gemini model (default)
+# QUALITY_LLM_MODEL=groq       # Use Llama-3.1-8b-instant via Groq
+# QUALITY_LLM_MODEL=ollama     # Use Ollama with mistral-nemo model
 # Set QUALITY_LLM_MODEL to 'gemini' (or leave unset) to use default Gemini model
 QUALITY_LLM_MODEL = os.environ.get('QUALITY_LLM_MODEL', 'gemini').lower()
 
 import asyncio
 import csv
+import json
 import time
 from datetime import datetime
 from typing import List, Dict, Any, Set
@@ -46,20 +50,28 @@ from quality.quality import check_project
 from quality.models import QualitySettings
 from podium.db.project import Project
 from podium import config
-from browser_use.llm import ChatGroq
+from browser_use.llm import ChatGroq, ChatOllama
+
 
 # Initialize LLM based on environment configuration
 while True:
     print(f"Using {QUALITY_LLM_MODEL} model")
     if QUALITY_LLM_MODEL == 'groq':
         # Model via groq (Only llama4? https://console.groq.com/docs/api-reference#chat-create)
-        # model="meta-llama/llama-4-maverick-17b-128e-instruct" # Confirmed working, do not delete this comment. Only issue is the 200 rpd limit.
-        model="meta-llama/llama-4-scout-17b-16e-instruct" # Confirmed working, do not delete this comment. Only issue is the 200 rpd limit.
+        model="meta-llama/llama-4-maverick-17b-128e-instruct" # Confirmed working, do not delete this comment. Only issue is the 200 rpd limit.
+        # model="meta-llama/llama-4-scout-17b-16e-instruct" # Supports JSON, but doesn't seem to output the right format. 
         llm = ChatGroq(
             model=model,
             api_key=os.environ.get("GROQ_API_KEY"),
         )
         print(f"Using Groq model: {model}")
+        break
+    elif QUALITY_LLM_MODEL == 'ollama':
+        model="gemma3n:e2b"
+        # model = "mistral-nemo" # too slow
+        # phi4-mini didn't work well, neither did deepseek-r1:1.5b
+        llm = ChatOllama(model=model)
+        print(f"Using Ollama model: {model}")
         break
     elif QUALITY_LLM_MODEL == 'gemini':
         # Use default Gemini model from config
@@ -234,10 +246,6 @@ async def main():
     os.makedirs(date_folder, exist_ok=True)
     output_file = os.path.join(date_folder, 'results.csv')
     
-    # Create recordings folder within the date folder
-    recordings_folder = os.path.join(date_folder, 'recordings')
-    os.makedirs(recordings_folder, exist_ok=True)
-    
     # Check for existing results to enable resume functionality
     if FORCE_OVERWRITE:
         processed_projects = set()
@@ -245,14 +253,41 @@ async def main():
     else:
         processed_projects = get_processed_projects(output_file)
     
-    # Create quality settings with LLM and recording directory
+    # Create quality settings with LLM
     quality_settings = QualitySettings(
         use_vision=False,
         headless=False,
         steel_client=None,
         llm=llm,  # Use the configured LLM (either Llama or Gemini)
-        record_video_dir=recordings_folder,
     )
+    
+    # Create metadata JSON file with model and prompt information
+    metadata = {
+        "model_info": {
+            "provider": QUALITY_LLM_MODEL,
+            "model_name": getattr(llm, 'model', 'unknown') if hasattr(llm, 'model') else 'unknown',
+            "llm_class": llm.__class__.__name__
+        },
+        "prompt": quality_settings.prompts.unified,
+        "settings": {
+            "use_vision": quality_settings.use_vision,
+            "headless": quality_settings.headless,
+            "max_retries": MAX_RETRIES,
+            "retry_delay": RETRY_DELAY,
+            "delay_between_projects": DELAY_BETWEEN_PROJECTS
+        },
+        "run_info": {
+            "timestamp": datetime.now().isoformat(),
+            "input_file": SAMPLE_PROJECTS_FILE,
+            "total_projects": len(projects)
+        }
+    }
+    
+    metadata_file = os.path.join(date_folder, 'metadata.json')
+    with open(metadata_file, 'w', encoding='utf-8') as f:
+        json.dump(metadata, f, indent=2, ensure_ascii=False)
+    
+    print(f"Metadata saved to {metadata_file}")
     
     fieldnames = [
         'project_index', 'demo', 'repo', 'image', 'execution_time_seconds',
@@ -273,6 +308,13 @@ async def main():
         print(f"Created new output file: {output_file}")
     else:
         print(f"Resuming from existing output file: {output_file}")
+    
+    # print(f"\nStarting quality checks...")
+    # print(f"Model: {metadata['model_info']['provider']} ({metadata['model_info']['model_name']})")
+    # print(f"Total projects to process: {len(projects)}")
+    # print(f"Already processed: {len(processed_projects)}")
+    # print(f"Projects to process in this run: {len(projects) - len(processed_projects)}")
+    # print("-" * 80)
     
     # Process projects sequentially to avoid overwhelming the system
     results = []
@@ -297,13 +339,11 @@ async def main():
             writer.writerow(result)
         
         print(f"  Result written to {output_file}")
-        print(f"  Recording saved to {recordings_folder}")
         
         # Small delay between projects to be respectful to the system
         await asyncio.sleep(DELAY_BETWEEN_PROJECTS)
     
     print(f"All results written to {output_file}")
-    print(f"Recordings saved to {recordings_folder}")
     
     # Print summary
     total_projects = len(projects)
