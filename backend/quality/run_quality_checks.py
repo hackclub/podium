@@ -14,6 +14,8 @@
 # QUALITY_INPUT_FILE=sample_projects.csv
 # QUALITY_DELAY=1
 # QUALITY_FORCE_OVERWRITE=false
+# QUALITY_MAX_RETRIES=3        # Number of retries for validation errors
+# QUALITY_RETRY_DELAY=5.0      # Delay in seconds between retries
 
 # Configurable constants (can be overridden by environment variables)
 import os
@@ -27,6 +29,8 @@ RESULTS_FOLDER = os.environ.get('QUALITY_RESULTS_FOLDER', 'quality_check_results
 SAMPLE_PROJECTS_FILE = os.environ.get('QUALITY_INPUT_FILE', 'sample_projects.csv')
 DELAY_BETWEEN_PROJECTS = float(os.environ.get('QUALITY_DELAY', 1))
 FORCE_OVERWRITE = os.environ.get('QUALITY_FORCE_OVERWRITE', 'false').lower() == 'true'
+MAX_RETRIES = int(os.environ.get('QUALITY_MAX_RETRIES', 3))
+RETRY_DELAY = float(os.environ.get('QUALITY_RETRY_DELAY', 5.0))
 
 # LLM Configuration in .env:
 # QUALITY_LLM_MODEL=gemini     # Use default Gemini model (default)
@@ -66,7 +70,7 @@ while True:
         QUALITY_LLM_MODEL = "gemini"
         break
 
-async def process_project(project_data: Dict[str, str], index: int, quality_settings: QualitySettings) -> Dict[str, Any]:
+async def process_project(project_data: Dict[str, str], index: int, quality_settings: QualitySettings, max_retries: int = 3, retry_delay: float = 5.0) -> Dict[str, Any]:
     """Process a single project and return the results with timing information."""
     start_time = time.time()
     
@@ -82,73 +86,116 @@ async def process_project(project_data: Dict[str, str], index: int, quality_sett
         owner=["recsample"],
     )
     
-    try:
-        # Run quality check
-        results = await check_project(project, quality_settings)
-        execution_time = time.time() - start_time
-        
-        # Extract raw result for debugging
-        raw_result = {
-            "demo": {
-                "valid": results.demo.valid,
-                "reason": results.demo.reason,
-                "tested_url": results.demo.tested_url
-            },
-            "source_code": {
-                "valid": results.source_code.valid,
-                "reason": results.source_code.reason,
-                "tested_url": results.source_code.tested_url
-            },
-            "image_url": {
-                "valid": results.image_url.valid,
-                "reason": results.image_url.reason,
-                "tested_url": results.image_url.tested_url
+    for attempt in range(max_retries):
+        try:
+            # Run quality check
+            results = await check_project(project, quality_settings)
+            execution_time = time.time() - start_time
+            
+            # Check if we got validation errors
+            has_validation_error = (
+                (not results.demo.valid and "Validation error occurred" in results.demo.reason) or
+                (not results.source_code.valid and "Validation error occurred" in results.source_code.reason) or
+                (not results.image_url.valid and "Validation error occurred" in results.image_url.reason)
+            )
+            
+            # If validation error and we have more retries, wait and retry
+            if has_validation_error and attempt < max_retries - 1:
+                print(f"  Validation error on attempt {attempt + 1}/{max_retries}, waiting {retry_delay}s before retry...")
+                await asyncio.sleep(retry_delay)
+                continue
+            
+            # Extract raw result for debugging
+            raw_result = {
+                "demo": {
+                    "valid": results.demo.valid,
+                    "reason": results.demo.reason,
+                    "tested_url": results.demo.tested_url
+                },
+                "source_code": {
+                    "valid": results.source_code.valid,
+                    "reason": results.source_code.reason,
+                    "tested_url": results.source_code.tested_url
+                },
+                "image_url": {
+                    "valid": results.image_url.valid,
+                    "reason": results.image_url.reason,
+                    "tested_url": results.image_url.tested_url
+                }
             }
-        }
-        
-        return {
-            'project_index': index,
-            'demo': project_data['demo'],
-            'repo': project_data['repo'],
-            'image': project_data['image'],
-            'execution_time_seconds': round(execution_time, 2),
-            'demo_valid': results.demo.valid,
-            'demo_error': results.demo.reason if not results.demo.valid else '',
-            'demo_explanation': results.demo.reason if results.demo.valid else '',
-            'repo_valid': results.source_code.valid,
-            'repo_error': results.source_code.reason if not results.source_code.valid else '',
-            'repo_explanation': results.source_code.reason if results.source_code.valid else '',
-            'image_valid': results.image_url.valid,
-            'image_error': results.image_url.reason if not results.image_url.valid else '',
-            'image_explanation': results.image_url.reason if results.image_url.valid else '',
-            'overall_valid': results.valid,
-            'raw_result': str(raw_result),
-            'judgement': project_data['judgement']
-        }
-        
-    except Exception as e:
-        execution_time = time.time() - start_time
-        print(f"Error processing project {index}: {e}")
-        
-        return {
-            'project_index': index,
-            'demo': project_data['demo'],
-            'repo': project_data['repo'],
-            'image': project_data['image'],
-            'execution_time_seconds': round(execution_time, 2),
-            'demo_valid': False,
-            'demo_error': f"Exception: {str(e)}",
-            'demo_explanation': '',
-            'repo_valid': False,
-            'repo_error': f"Exception: {str(e)}",
-            'repo_explanation': '',
-            'image_valid': False,
-            'image_error': f"Exception: {str(e)}",
-            'image_explanation': '',
-            'overall_valid': False,
-            'raw_result': f"Exception: {str(e)}",
-            'judgement': project_data['judgement']
-        }
+            
+            return {
+                'project_index': index,
+                'demo': project_data['demo'],
+                'repo': project_data['repo'],
+                'image': project_data['image'],
+                'execution_time_seconds': round(execution_time, 2),
+                'demo_valid': results.demo.valid,
+                'demo_error': results.demo.reason if not results.demo.valid else '',
+                'demo_explanation': results.demo.reason if results.demo.valid else '',
+                'repo_valid': results.source_code.valid,
+                'repo_error': results.source_code.reason if not results.source_code.valid else '',
+                'repo_explanation': results.source_code.reason if results.source_code.valid else '',
+                'image_valid': results.image_url.valid,
+                'image_error': results.image_url.reason if not results.image_url.valid else '',
+                'image_explanation': results.image_url.reason if results.image_url.valid else '',
+                'overall_valid': results.valid,
+                'raw_result': str(raw_result),
+                'judgement': project_data['judgement']
+            }
+            
+        except Exception as e:
+            execution_time = time.time() - start_time
+            print(f"Error processing project {index} (attempt {attempt + 1}/{max_retries}): {e}")
+            
+            # If this is not the last attempt, wait and retry
+            if attempt < max_retries - 1:
+                print(f"  Waiting {retry_delay}s before retry...")
+                await asyncio.sleep(retry_delay)
+                continue
+            
+            # If this was the last attempt, return error result
+            return {
+                'project_index': index,
+                'demo': project_data['demo'],
+                'repo': project_data['repo'],
+                'image': project_data['image'],
+                'execution_time_seconds': round(execution_time, 2),
+                'demo_valid': False,
+                'demo_error': f"Exception after {max_retries} attempts: {str(e)}",
+                'demo_explanation': '',
+                'repo_valid': False,
+                'repo_error': f"Exception after {max_retries} attempts: {str(e)}",
+                'repo_explanation': '',
+                'image_valid': False,
+                'image_error': f"Exception after {max_retries} attempts: {str(e)}",
+                'image_explanation': '',
+                'overall_valid': False,
+                'raw_result': f"Exception after {max_retries} attempts: {str(e)}",
+                'judgement': project_data['judgement']
+            }
+    
+    # This should never be reached, but just in case
+    execution_time = time.time() - start_time
+    return {
+        'project_index': index,
+        'demo': project_data['demo'],
+        'repo': project_data['repo'],
+        'image': project_data['image'],
+        'execution_time_seconds': round(execution_time, 2),
+        'demo_valid': False,
+        'demo_error': f"Unexpected: loop completed without return",
+        'demo_explanation': '',
+        'repo_valid': False,
+        'repo_error': f"Unexpected: loop completed without return",
+        'repo_explanation': '',
+        'image_valid': False,
+        'image_error': f"Unexpected: loop completed without return",
+        'image_explanation': '',
+        'overall_valid': False,
+        'raw_result': f"Unexpected: loop completed without return",
+        'judgement': project_data['judgement']
+    }
 
 
 def get_processed_projects(output_file: str) -> Set[int]:
@@ -240,7 +287,7 @@ async def main():
             continue
         
         print(f"Processing project {i}/{len(projects)}: {project_data['demo']}")
-        result = await process_project(project_data, i, quality_settings)
+        result = await process_project(project_data, i, quality_settings, MAX_RETRIES, RETRY_DELAY)
         results.append(result)
         processed_count += 1
         
