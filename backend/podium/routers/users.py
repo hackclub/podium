@@ -1,3 +1,4 @@
+import time
 from typing import Annotated
 from pydantic import BaseModel, EmailStr
 from podium import db
@@ -14,6 +15,10 @@ from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH
 from requests import HTTPError
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+
+# Dictionary cache for user_id -> (user_data, timestamp) lookups with 5 second expiration
+user_cache: dict[str, tuple[dict, float]] = {}
 
 
 class UserExistsResponse(BaseModel):
@@ -58,10 +63,23 @@ def update_current_user(
 
 
 # It's important that this is under /current since otherwise /users/current will be be passed to this and `current` will be interpreted as a user_id
+
 @router.get("/{user_id}")
 def get_user_public(
     user_id: Annotated[str, Path(title="User Airtable ID")],
 ) -> UserPublic:
+    current_time = time.time()
+    
+    # Check cache first (O(1) lookup)
+    if user_id in user_cache:
+        cached_user, timestamp = user_cache[user_id]
+        # Check if cache entry is still valid (5 seconds)
+        if current_time - timestamp < 5:
+            return UserPublic.model_validate(cached_user)
+        else:
+            # Remove expired entry
+            del user_cache[user_id]
+    
     try:
         user = db.users.get(user_id)
     except HTTPError as e:
@@ -71,6 +89,9 @@ def get_user_public(
             else e
         )
 
+    # Cache the result for future lookups
+    user_cache[user_id] = (user["fields"], current_time)
+    
     return UserPublic.model_validate(user["fields"])
 
 
