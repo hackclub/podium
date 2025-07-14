@@ -123,7 +123,7 @@
     <div class="flex-1 p-6">
       <div class="bg-info text-center rounded-xl max-w-2xl mx-auto mb-6 p-4">
         <p class="text-info-content">
-          Podium isn't working and need urgent help? DM @Angad Behl on Slack or call +1 (415) 570-4995.
+          If Podium isn't working and you need urgent help, DM @Angad Behl on Slack or call +1 (415) 570-4995.
         </p>
       </div>
       {#if navigating.to && navigating.type != "form"}
