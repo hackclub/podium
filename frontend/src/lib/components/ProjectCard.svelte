@@ -34,20 +34,21 @@
       });
       if (err) {
         handleError(err);
-      } else if (data) {
-        // If the last name isn't empty, make it "first last" Otherwise just use the first name
-        if (data.last_name) {
-          names.push(`${data.first_name} ${data.last_name}`);
-        } else {
-          names.push(data.first_name);
-        }
-        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/ListFormat/ListFormat#parameters
-        const formatter = new Intl.ListFormat("en", {
-          style: "short",
-          type: "conjunction",
-        });
-        credits = formatter.format(names);
+      } else if (data && data.display_name) {
+        names.push(data.display_name);
       }
+    }
+    
+    // Only format if we have valid names
+    if (names.length > 0) {
+      // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/ListFormat/ListFormat#parameters
+      const formatter = new Intl.ListFormat("en", {
+        style: "short",
+        type: "conjunction",
+      });
+      credits = formatter.format(names);
+    } else {
+      credits = "Unknown contributors";
     }
     loadingCredits = false;
   });
