@@ -2,6 +2,7 @@ import random
 from fastapi import APIRouter, Path
 from typing import Annotated, Union, List
 from fastapi import Depends, HTTPException, Query
+from fastapi_cache.decorator import cache
 from podium.db.event import InternalEvent, PrivateEvent
 from podium.db.vote import CreateVotes, VoteCreate
 from pyairtable.formulas import match
@@ -295,7 +296,8 @@ def get_leaderboard(event_id: Annotated[str, Path(title="Event ID")]) -> List[Pr
 
 
 @router.get("/{event_id}/projects")
-def get_event_projects(
+@cache(expire=30, namespace="events")
+async def get_event_projects(
     event_id: Annotated[str, Path(title="Event ID")],
 ) -> List[Project]:
     """
@@ -321,28 +323,19 @@ def get_event_projects(
     return projects
 
 
-# Dictionary cache for slug -> airtable_id lookups (much faster than list)
-slug_cache: dict[str, str] = {}
-
 @router.get("/id/{slug}")
-def get_at_id(
+@cache(expire=60, namespace="events")
+async def get_at_id(
     slug: Annotated[Slug, Path(title="Event Slug")],
 ) -> str:
     """
     Get an event's Airtable ID by its slug.
     """
-    # Check cache first (O(1) lookup)
-    if slug in slug_cache:
-        return slug_cache[slug]
-
-    # If not in cache, query database
+    # Query database
     event = db.events.first(formula=match({"slug": slug}))
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     
     event = InternalEvent.model_validate(event["fields"])
-    
-    # Cache the result for future lookups
-    slug_cache[slug] = event.id
     
     return event.id

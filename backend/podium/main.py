@@ -4,6 +4,10 @@ from pathlib import Path
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
 import sentry_sdk
 
 
@@ -17,7 +21,13 @@ sentry_sdk.init(
 )
 
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    FastAPICache.init(InMemoryBackend())
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 origins = ["*"]
 

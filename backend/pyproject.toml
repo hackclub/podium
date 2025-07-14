@@ -21,7 +21,8 @@ dependencies = [
     "httpx (>=0.28.1,<0.29.0)",
     "browser-use (>=0.1.41,<0.2.0)",
     "steel-sdk (>=0.1.0,<0.2.0)",
-    "python-slugify (>=8.0.4,<9.0.0)"
+    "python-slugify (>=8.0.4,<9.0.0)",
+    "fastapi-cache2[memcache] (>=0.2.2,<0.3.0)"
 ]
 
 [project.optional-dependencies]
