@@ -43,8 +43,8 @@
     <!-- User Info Card -->
     <div class="card bg-base-100 shadow-lg">
       <div class="card-body">
-        <div class="flex items-center justify-between">
-          <div>
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div class="w-full">
             <h2 class="text-xl font-semibold">Account</h2>
             <p class="text-base-content/70">
               Signed in as <strong>{getAuthenticatedUser().user.email}</strong>
@@ -53,7 +53,7 @@
               Display name: <strong>{getAuthenticatedUser().user.display_name || `${getAuthenticatedUser().user.first_name} ${getAuthenticatedUser().user.last_name?.[0] || ''}`}</strong>
             </p>
           </div>
-          <div class="flex gap-2">
+          <div class="flex gap-2 w-full sm:w-auto justify-end">
             <UpdateUser user={getAuthenticatedUser().user} />
             <button class="btn btn-outline btn-sm" onclick={signOut}>Sign out</button>
           </div>
