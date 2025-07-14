@@ -5,7 +5,7 @@ from fastapi import Depends, HTTPException, Query
 from podium.db.event import InternalEvent, PrivateEvent
 from podium.db.vote import CreateVotes, VoteCreate
 from pyairtable.formulas import match
-
+from pydantic import BaseModel
 from secrets import token_urlsafe
 
 
@@ -321,6 +321,9 @@ def get_event_projects(
     return projects
 
 
+# Dictionary cache for slug -> airtable_id lookups (much faster than list)
+slug_cache: dict[str, str] = {}
+
 @router.get("/id/{slug}")
 def get_at_id(
     slug: Annotated[Slug, Path(title="Event Slug")],
@@ -328,8 +331,18 @@ def get_at_id(
     """
     Get an event's Airtable ID by its slug.
     """
+    # Check cache first (O(1) lookup)
+    if slug in slug_cache:
+        return slug_cache[slug]
+
+    # If not in cache, query database
     event = db.events.first(formula=match({"slug": slug}))
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
+    
     event = InternalEvent.model_validate(event["fields"])
+    
+    # Cache the result for future lookups
+    slug_cache[slug] = event.id
+    
     return event.id
