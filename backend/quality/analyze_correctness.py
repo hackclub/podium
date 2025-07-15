@@ -6,7 +6,7 @@ Usage:
     poetry run python -m quality.analyze_correctness
 """
 
-PRINT_SPECIFICS = False
+PRINT_SPECIFICS = True
 
 import os
 import csv

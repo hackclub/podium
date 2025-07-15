@@ -58,7 +58,7 @@ async def check_project(project: "Project", config: QualitySettings) -> Results:
                         demo=project.demo,
                     ),
                     browser_session=browser,
-                ).run(max_steps=10)
+                ).run()
             )
 
             results_raw = await asyncio.gather(agent_task)
