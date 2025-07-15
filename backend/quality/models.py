@@ -9,41 +9,27 @@ from steel import Steel
 class Prompts(BaseModel):
     # source_code: str = "Check if $url is a source code repository"
     # demo: str = "Check if $url looks like an experienceable project, which is to say that someone at a hackathon could easily use it. If it's a web app, perfect! If it's something else, as long as it looked like it would be relatively easy to run locally, like a PyPi package or itch.io game, that's fine too. If it's a video or something like that, that's not a real project. If you can't validate it due to something like a login wall but it looks like a real project and not just 'hello world' on a page, then it's valid. Raw code is not an experiencable demo."
-    unified: str = """Evaluate hackathon project demo ($demo) and repository ($repo).
+    unified: str = """Evaluate a project with the demo at ($demo) and repository at ($repo).
+For the demo, it has to be a real, experiencable project. That means it should be easy to run and use. Here's examples of what's valid:
+    - A web app
+    - A PyPi package
+    - An itch.io game
+    - An NPM package
+    - A website with real content, no placeholder or lorem ipsum content
+    Here's examples of what's not valid:
+    - A video
+    - A login-protected app
+    - A raw code repository
+    - A placeholder page
+    - A 404 page
 
-## VALIDATION CRITERIA
+Do some basic checks on the demo to ensure you can click around and what not. If it's a game, and you can tell it probably functions, don't attempt to play it.
+If you encounter a login wall, don't reject the submission just because of that, try to test the public features.
 
-### ✅ ACCEPTED PROJECT TYPES:
-- Web applications (React, Vue, Svelte, etc.)
-- Interactive demos and prototypes
-- Working software with real functionality
-- Portfolios with substantial content
-- PyPi/npm packages
-- Itch.io games and interactive experiences
-- Mobile apps with web demos
+The repository should contain the source code for the demo. If it does, it's valid. If the repository does not exist or is empty, it's not valid.
 
-### ❌ REJECTION CRITERIA:
-- YouTube videos or video content
-- Raw GitHub files (README.md, .py files, etc.)
-- 404 errors or broken links
-- Static "hello world" pages
-- Empty or placeholder content
-- URLs containing: "youtube.com", "youtu.be", ".mp4", "raw.githubusercontent.com"
-
-### 🔍 EVALUATION PROCESS:
-1. **Demo Check**: Verify the demo is functional and interactive
-    - If you're unable to interact with the demo due to issues with calling browser APIs, but it looks functional, mark as valid.
-2. **Repository Check**: Confirm source code exists and relates to the demo
-3. **Content Check**: Ensure substantial, non-placeholder content
-4. **Accessibility**: For login-protected apps, test public features only
-
-### 📋 REQUIREMENTS:
-- Demo must be experienceable (someone can use it at a hackathon)
-- Repository must contain relevant source code
-- Project must demonstrate real functionality
-- No placeholder or template content
-
-Provide clear reasoning for your decision. Ensure you have checked both the demo and repository."""
+Before completing your evaluation, make sure both the demo and repository have been completely reviewed.
+"""
 class QualitySettings(BaseModel):
     use_vision: bool = True
     headless: bool = False

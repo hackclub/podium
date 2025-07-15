@@ -80,6 +80,6 @@ quality_settings = QualitySettings(
         # https://ai.google.dev/gemini-api/docs/rate-limits
         # model="gemini-2.0-flash-exp",
         api_key=settings.gemini_api_key,
-        model="gemini-2.0-flash-lite",
+        model="gemini-2.5-flash",
     ),
 )

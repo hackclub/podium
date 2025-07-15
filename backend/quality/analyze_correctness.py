@@ -154,11 +154,10 @@ def main():
     
     # Calculate percentages
     results = calculate_percentage_correct(sample_data, quality_results)
-    
-    # Output results
     print(f"Unified validation correct: {results['unified_percent']:.1f}%")
     print(f"Total projects analyzed: {results['total_matched']}")
     
+    # Output results
     # Show incorrect predictions
     if results['incorrect_predictions'] and PRINT_SPECIFICS:
         print(f"\nIncorrect Predictions ({len(results['incorrect_predictions'])} total):")
@@ -191,6 +190,7 @@ def main():
                 print(f"   Repo error: {pred['repo_error']}")
             
             print("-" * 80)
+    
     
     # Print comprehensive stats after per-project details
     print(f"\n=== COMPREHENSIVE STATISTICS ===")
