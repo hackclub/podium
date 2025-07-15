@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# watch -- poetry.exe run python -m quality.analyze_correctness
 """
 Simple script to analyze correctness percentage from quality check results.
 
