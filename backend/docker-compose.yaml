@@ -1,11 +1,11 @@
-version: '3.8'
+version: "3.8"
 
 services:
   podium:
     container_name: podium
     build: .
-    # ports:
-      # - "8000:8000"
+    ports:
+      - "8000:8000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
       interval: 30s
@@ -15,5 +15,4 @@ services:
     volumes:
       - ./settings.toml:/app/settings.toml:ro
       - ./.secrets.toml:/app/.secrets.toml:ro
-
 # docker run --rm -it -v "$(pwd)/settings.toml:/app/settings.toml:ro" -v "$(pwd)/.secrets.toml:/app/.secrets.toml:ro" -p 8000:8000 podium

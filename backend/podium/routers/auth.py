@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-
+import os
 # import smtplib
 # from email.mime.text import MIMEText
 from typing import Annotated
@@ -23,7 +23,7 @@ SECRET_KEY = settings.jwt_secret
 ALGORITHM = str(settings.jwt_algorithm)
 ACCESS_TOKEN_EXPIRE_MINUTES: int = settings.jwt_expire_minutes # type: ignore
 MAGIC_LINK_EXPIRE_MINUTES = 15
-
+magic_urls= []
 
 DEBUG_EMAIL = "angad+debug@hackclub.com"
 
@@ -48,6 +48,9 @@ def create_access_token(
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+def get_mail():
+    """ kinda like /letter_box but in python or smt."""
+    return magic_urls
 
 async def send_magic_link(email: str, redirect: str = ""):
     token_data = {"sub": email}
@@ -58,7 +61,8 @@ async def send_magic_link(email: str, redirect: str = ""):
     magic_link = f"{settings.production_url}/login?token={token}"
     if redirect:
         magic_link += f"&redirect={redirect}"
-
+    if  os.environ.get("NODE_ENV") != "production":
+      magic_urls.append([email, magic_link])
     if settings.sendgrid_api_key:
         message = Mail(
             from_email=settings.sendgrid_from_email,
@@ -79,6 +83,21 @@ async def send_magic_link(email: str, redirect: str = ""):
     print(
         f"Token for {email}: {token} | magic_link: {settings.production_url}/login?token={token} | local magic_link: http://localhost:5173/login?token={token}"
     )
+
+
+@router.get("/letter_box")
+async def letter_box():
+    """
+    This is a temporary endpoint to get the magic links that have been sent.
+    """
+    return get_mail()
+    # get_mail()
+@router.get("/hi")
+def say_hi() -> str:
+    """
+    Simple endpoint that returns 'hi'
+    """
+    return "hi"
 
 
 @router.post("/request-login")
@@ -165,7 +184,6 @@ async def protected_route(
     if db.user.get_user_record_id_by_email(current_user.email) is None:
         raise BAD_AUTH
     return current_user
-
 
 if __name__ == "__main__":
     # create a dev access JWT and  a magic link JWT

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { defaultUser, getAuthenticatedUser } from "$lib/user.svelte";
   import { toast, Toaster } from "svelte-sonner";
+  import AdminButton from "$lib/components/Admin/Button.svelte";
   import { onMount } from "svelte";
   import { validateToken } from "$lib/user.svelte";
   import { AuthService, UsersService } from "$lib/client/sdk.gen";
@@ -11,12 +12,12 @@
   import { countries } from "countries-list";
   // rest is the extra props passed to the component
   let { ...rest } = $props();
-
+  const isDev = import.meta.env.NODE_ENV !== "production";
   let isLoading = $state(false);
   let showSignupFields = $state(false);
   let expandedDueTo = "";
   let userInfo: UserSignupPayload = $state({
-...defaultUser
+    ...defaultUser,
   });
   $inspect(userInfo);
   let redirectUrl: string;
@@ -40,49 +41,49 @@
 
   async function checkUserExists(): Promise<boolean> {
     isLoading = true;
-      const { data, error: err } = await UsersService.userExistsUsersExistsGet({
-        query: { email: userInfo.email },
-        throwOnError: false,
-      });
-      isLoading = false;
-      if (err) {
-        handleError(err);
-        return false;
-      }
-      if (data.exists) {
-        showSignupFields = false;
-        return true;
-      } else {
-        return false;
-        // If the user doesn't exist, login() will toast and show the signup fields
-      }
+    const { data, error: err } = await UsersService.userExistsUsersExistsGet({
+      query: { email: userInfo.email },
+      throwOnError: false,
+    });
+    isLoading = false;
+    if (err) {
+      handleError(err);
+      return false;
+    }
+    if (data.exists) {
+      showSignupFields = false;
+      return true;
+    } else {
+      return false;
+      // If the user doesn't exist, login() will toast and show the signup fields
+    }
   }
 
   // Function to handle login
   async function login() {
     isLoading = true;
     // Even though error handling is done in the API, the try-finally block is used to ensure the loading state is reset
-      const userExists = await checkUserExists();
-      if (userExists) {
-        // Request magic link for the provided email if the user exists
-        const  { error: err } = await AuthService.requestLoginRequestLoginPost({
-          body: { email: userInfo.email },
-          query: { redirect: redirectUrl ?? "" },
-          throwOnError: false,
-        });
-        isLoading = false;
-        if (err) {
-          handleError(err);
-          return;
-        }
-        toast.success(`Magic link sent to ${userInfo.email}`);
-        // Clear field
-        userInfo.email = "";
-      } else {
-        toast.error("You don't exist (yet)! Let's change that.");
-        expandedDueTo = userInfo.email;
-        showSignupFields = true;
+    const userExists = await checkUserExists();
+    if (userExists) {
+      // Request magic link for the provided email if the user exists
+      const { error: err } = await AuthService.requestLoginRequestLoginPost({
+        body: { email: userInfo.email },
+        query: { redirect: redirectUrl ?? "" },
+        throwOnError: false,
+      });
+      isLoading = false;
+      if (err) {
+        handleError(err);
+        return;
       }
+      toast.success(`Magic link sent to ${userInfo.email}`);
+      // Clear field
+      userInfo.email = "";
+    } else {
+      toast.error("You don't exist (yet)! Let's change that.");
+      expandedDueTo = userInfo.email;
+      showSignupFields = true;
+    }
   }
 
   // Function to handle signup and login
@@ -91,24 +92,26 @@
     // Generate display name if not provided or only whitespace
     if (!userInfo.display_name || userInfo.display_name.trim() === "") {
       const first = userInfo.first_name?.trim() || "";
-      const lastInitial = userInfo.last_name?.trim() ? userInfo.last_name.trim()[0] + "." : "";
+      const lastInitial = userInfo.last_name?.trim()
+        ? userInfo.last_name.trim()[0] + "."
+        : "";
       userInfo.display_name = `${first} ${lastInitial}`.trim();
     }
-    const {error: err} = await UsersService.createUserUsersPost({
-        body: userInfo,
-        throwOnError: false,
-      });
-      isLoading = false;
-      if (err) {
-        handleError(err)
-        return;
-      }
-      await login();
-      // toast(`Signed up! Check your email for a magic link!`);
-      // Clear values
-      userInfo = {
-        ...defaultUser,
-      };
+    const { error: err } = await UsersService.createUserUsersPost({
+      body: userInfo,
+      throwOnError: false,
+    });
+    isLoading = false;
+    if (err) {
+      handleError(err);
+      return;
+    }
+    await login();
+    // toast(`Signed up! Check your email for a magic link!`);
+    // Clear values
+    userInfo = {
+      ...defaultUser,
+    };
   }
 
   // Function to handle verification link
@@ -227,7 +230,7 @@
           bind:value={userInfo.last_name}
         />
 
-          <!-- Display name; if it's not set, use first name and last initial -->
+        <!-- Display name; if it's not set, use first name and last initial -->
         <label class="label flex justify-between" for="display_name">
           <span>Display Name</span>
           <span>Optional, default is First Name + Last Initial</span>
@@ -329,14 +332,17 @@
         />
       {/if}
 
-      <div class="flex justify-center">
+      <div class="flex justify-center mt-4">
         <button
-          class="btn btn-primary mt-4"
+          class="btn btn-primary mr-2"
           disabled={isLoading}
           onclick={eitherLoginOrSignUp}
         >
           Login / Sign Up
         </button>
+        {#if isDev}
+          <a href="/letter_box"><AdminButton text="Letter Box" /></a>
+        {/if}
       </div>
     </fieldset>
   {/if}
