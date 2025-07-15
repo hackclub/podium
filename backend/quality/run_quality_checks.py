@@ -32,7 +32,6 @@ DELAY_BETWEEN_PROJECTS = float(os.environ.get('QUALITY_DELAY', 1))
 FORCE_OVERWRITE = os.environ.get('QUALITY_FORCE_OVERWRITE', 'false').lower() == 'true'
 MAX_RETRIES = int(os.environ.get('QUALITY_MAX_RETRIES', 3))
 RETRY_DELAY = float(os.environ.get('QUALITY_RETRY_DELAY', 5.0))
-USE_VISION = os.environ.get('QUALITY_USE_VISION', 'true').lower() == 'true'
 
 # LLM Configuration in .env:
 # QUALITY_LLM_MODEL=gemini     # Use default Gemini model (default)
@@ -256,7 +255,7 @@ async def main():
     
     # Create quality settings with LLM
     quality_settings = QualitySettings(
-        use_vision=USE_VISION,
+        use_vision=False,
         headless=False,
         steel_client=None,
         llm=llm,  # Use the configured LLM (either Llama or Gemini)
