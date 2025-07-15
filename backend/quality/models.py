@@ -1,9 +1,8 @@
 import asyncio
 from typing import Optional
-
-from browser_use.llm.base import BaseChatModel
 from podium.constants import UrlField
 from pydantic import BaseModel, ConfigDict, computed_field
+from browser_use.llm.base import BaseChatModel
 from steel import Steel
 
 
@@ -51,24 +50,19 @@ class QualitySettings(BaseModel):
 
 
 
-
-
-class ResultResponse(BaseModel):
+class Result(BaseModel):
     valid: bool
     reason: str
-
-class Result(ResultResponse):
     tested_url: str
 
+
 class ResultsResponse(BaseModel):
-    demo: ResultResponse
-    source_code: ResultResponse
+    demo: Result
+    source_code: Result
     # Computed field to compile all the reasons into a single string
 
 
 class Results(ResultsResponse):
-    demo: Result
-    source_code: Result
     image_url: Result
     @computed_field
     @property
