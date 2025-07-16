@@ -1,4 +1,6 @@
 # poetry run -- python -m quality.run_quality_checks
+# poetry.exe run python -m quality.analyze_correctnes # wsl
+# watch -- poetry.exe run python -m quality.analyze_correctness # wsl 
 import os
 from dotenv import load_dotenv
 from steel import Steel
@@ -12,13 +14,15 @@ load_dotenv(
 
 RESULTS_FOLDER = os.environ.get('QUALITY_RESULTS_FOLDER', 'quality_check_results')
 SAMPLE_PROJECTS_FILE = os.environ.get('QUALITY_INPUT_FILE', 'sample_projects.csv')
-DELAY_BETWEEN_PROJECTS = float(os.environ.get('QUALITY_DELAY', 1))
+DELAY_BETWEEN_PROJECTS = float(os.environ.get('QUALITY_DELAY', 0.01))
 FORCE_OVERWRITE = os.environ.get('QUALITY_FORCE_OVERWRITE', 'false').lower() == 'true'
-MAX_RETRIES = int(os.environ.get('QUALITY_MAX_RETRIES', 3))
-RETRY_DELAY = float(os.environ.get('QUALITY_RETRY_DELAY', 5.0))
+MAX_RETRIES = int(os.environ.get('QUALITY_MAX_RETRIES', 2))
+RETRY_DELAY = float(os.environ.get('QUALITY_RETRY_DELAY', 2.0))
 USE_VISION = os.environ.get('QUALITY_USE_VISION', 'true').lower() == 'true'
 STEEL_API_KEY = os.environ.get('QUALITY_STEEL_API_KEY')
+FORCE_STEEL_ONLY = os.environ.get('QUALITY_FORCE_STEEL_ONLY', 'false').lower() == 'true'
 MAX_CONCURRENT_CHECKS = int(os.environ.get('QUALITY_MAX_CONCURRENT_CHECKS', 10))
+RANDOM_ORDER = os.environ.get('QUALITY_RANDOM_ORDER', 'true').lower() == 'true'
 
 # LLM Configuration in .env:
 # QUALITY_LLM_MODEL=gemini     # Use default Gemini model (default)
@@ -27,12 +31,16 @@ MAX_CONCURRENT_CHECKS = int(os.environ.get('QUALITY_MAX_CONCURRENT_CHECKS', 10))
 # Set QUALITY_LLM_MODEL to 'gemini' (or leave unset) to use default Gemini model
 QUALITY_LLM_MODEL = os.environ.get('QUALITY_LLM_MODEL', 'gemini').lower()
 
+# Processing Configuration:
+# QUALITY_RANDOM_ORDER=true    # Process projects in random order (default: false)
+
 import asyncio
 import csv
 import json
 import time
 import signal
 import sys
+import random
 from datetime import datetime
 from typing import List, Dict, Any, Set
 from quality.quality import check_project
@@ -89,7 +97,7 @@ while True:
         print(f"Using Groq model: {model}")
         break
     elif QUALITY_LLM_MODEL == 'ollama':
-        model="gemma3n:e2b"
+        model="qwen3:0.6b"
         # model = "mistral-nemo" # too slow
         # phi4-mini didn't work well, neither did deepseek-r1:1.5b
         llm = ChatOllama(model=model)
@@ -289,8 +297,21 @@ async def main():
             session_semaphore=asyncio.Semaphore(MAX_CONCURRENT_CHECKS),
         )
         
+        # Randomize project order if enabled
+        if RANDOM_ORDER:
+            # Add original indices before shuffling
+            for i, project_data in enumerate(projects, 1):
+                project_data['original_index'] = i
+            random.shuffle(projects)
+            print(f"Projects will be processed in random order (RANDOM_ORDER={RANDOM_ORDER})")
+        else:
+            # Add original indices for consistency
+            for i, project_data in enumerate(projects, 1):
+                project_data['original_index'] = i
+            print(f"Projects will be processed in original order (RANDOM_ORDER={RANDOM_ORDER})")
+        
         # Create metadata JSON file with model and prompt information
-        metadata = {
+        current_run_metadata = {
             "model_info": {
                 "provider": QUALITY_LLM_MODEL,
                 "model_name": getattr(llm, 'model', 'unknown') if hasattr(llm, 'model') else 'unknown',
@@ -303,7 +324,8 @@ async def main():
                 "max_retries": MAX_RETRIES,
                 "retry_delay": RETRY_DELAY,
                 "delay_between_projects": DELAY_BETWEEN_PROJECTS,
-                "max_concurrent_checks": MAX_CONCURRENT_CHECKS
+                "max_concurrent_checks": MAX_CONCURRENT_CHECKS,
+                "random_order": RANDOM_ORDER
             },
             "run_info": {
                 "timestamp": datetime.now().isoformat(),
@@ -313,10 +335,29 @@ async def main():
         }
         
         metadata_file = os.path.join(date_folder, 'metadata.json')
+        
+        # Load existing metadata or create new structure
+        if os.path.exists(metadata_file) and not FORCE_OVERWRITE:
+            try:
+                with open(metadata_file, 'r', encoding='utf-8') as f:
+                    metadata = json.load(f)
+                # Ensure metadata has runs list
+                if 'runs' not in metadata:
+                    metadata['runs'] = []
+            except Exception as e:
+                print(f"Warning: Could not read existing metadata file: {e}")
+                metadata = {'runs': []}
+        else:
+            metadata = {'runs': []}
+        
+        # Add current run to metadata
+        metadata['runs'].append(current_run_metadata)
+        
+        # Save updated metadata
         with open(metadata_file, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, indent=2, ensure_ascii=False)
         
-        print(f"Metadata saved to {metadata_file}")
+        print(f"Metadata saved to {metadata_file} (run {len(metadata['runs'])} of {len(metadata['runs'])})")
         
         fieldnames = [
             'project_index', 'demo', 'repo', 'image', 'execution_time_seconds',
@@ -353,17 +394,20 @@ async def main():
         # Create tasks for all projects that need processing
         tasks = []
         for i, project_data in enumerate(projects, 1):
-            # Skip if already processed
-            if i in processed_projects:
-                print(f"Skipping project {i}/{len(projects)} (already processed): {project_data['demo']}")
+            # Get the original index from the project data if available, otherwise use current position
+            original_index = int(project_data.get('original_index', i))
+            
+            # Skip if already processed (use original index for checking)
+            if original_index in processed_projects:
+                print(f"Skipping project {original_index}/{len(projects)} (already processed): {project_data['demo']}")
                 skipped_count += 1
                 continue
             
-            # Create task for this project
+            # Create task for this project (pass original index to maintain consistency)
             task = asyncio.create_task(
-                process_project(project_data, i, quality_settings, MAX_RETRIES, RETRY_DELAY)
+                process_project(project_data, original_index, quality_settings, MAX_RETRIES, RETRY_DELAY)
             )
-            tasks.append((i, task))
+            tasks.append((original_index, task))
         
         # Process tasks as they complete
         for task in asyncio.as_completed([task for _, task in tasks]):
