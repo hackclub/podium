@@ -26,6 +26,7 @@ APPROVE projects that:
 - Have educational or entertainment value
 - Demonstrate real problem-solving or creativity
 - Are complete and working, even if basic
+- Are packages on PyPi, NPM, Crates, etc.
 
 REJECT projects that:
 - Are completely broken or non-functional
@@ -51,6 +52,8 @@ TESTING GUIDELINES:
 - Focus on whether someone would find it useful
 - If it's functional and demonstrates learning, approve it
 - Only reject if it's clearly broken or non-functional
+- For games, if leaning towards rejection due to it being unfunctional, depend on if the source code looks legitimate to make the call, and if on paper, the game should be easily run.
+- If a page does not load, depend on the source code to make the call.
 
 IMPORTANT: Be practical and fair. If a project works, provides value, and shows effort, approve it. Only reject projects that are clearly broken, non-functional, or lack any real value. Err on the side of approval for functional projects."""
 class QualitySettings(BaseModel):
