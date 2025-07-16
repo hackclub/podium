@@ -27,15 +27,21 @@ APPROVE projects that:
 - Demonstrate real problem-solving or creativity
 - Are complete and working, even if basic
 - Are packages on PyPi, NPM, Crates, etc.
+- Are documentation pages for legitimate packages/libraries
+- Are static sites that provide substantial educational or informational value
+- Have deployment issues but the repo clearly shows a legitimate, functional project
 
 REJECT projects that:
 - Are completely broken or non-functional
-- Are just static pages with no interactivity
+- Are just static pages with no interactivity (unless they provide substantial value)
 - Are placeholder/template sites with no real content
 - Are videos, images, or non-interactive files
-- Have 404 errors or fail to load
+- Have 404 errors or fail to load (unless repo shows legitimate project)
 - Are just raw code repositories without demos
 - Are clearly incomplete or abandoned
+- Are just source code files without a working demo
+- Are basic applications without substantial features (simple calculators, basic music players, etc.)
+- Are blank pages or completely non-functional
 
 REPOSITORY VALIDATION:
 The repository must:
@@ -54,6 +60,11 @@ TESTING GUIDELINES:
 - Only reject if it's clearly broken or non-functional
 - For games, if leaning towards rejection due to it being unfunctional, depend on if the source code looks legitimate to make the call, and if on paper, the game should be easily run.
 - If a page does not load, depend on the source code to make the call.
+- If an app is on an app store, it's valid.
+- For documentation pages: If they're for legitimate packages/libraries, approve them
+- For static sites: Make sure they are not just a placeholder or template site and hold some value.
+- For deployment issues: If the repo shows a legitimate, functional project, approve it despite demo issues
+- For basic tools: Reject simple calculators, basic music players, etc. unless they have advanced features or educational value
 
 IMPORTANT: Be practical and fair. If a project works, provides value, and shows effort, approve it. Only reject projects that are clearly broken, non-functional, or lack any real value. Err on the side of approval for functional projects."""
 class QualitySettings(BaseModel):
