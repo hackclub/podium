@@ -7,9 +7,10 @@
   import { AuthService, UsersService } from "$lib/client/sdk.gen";
   import { goto } from "$app/navigation";
   import type { HTTPValidationError } from "$lib/client/types.gen";
-  import { handleError } from "$lib/misc";
+  import { handleError, generateUser } from "$lib/misc";
   import type { UserSignupPayload } from "$lib/client/types.gen";
   import { countries } from "countries-list";
+  // import { }
   // rest is the extra props passed to the component
   let { ...rest } = $props();
   const isDev = import.meta.env.NODE_ENV !== "production";
@@ -341,7 +342,21 @@
           Login / Sign Up
         </button>
         {#if isDev}
-          <a href="/letter_box"><AdminButton text="Letter Box" /></a>
+          <a href="/letter_box" class="mr-5"
+            ><AdminButton text="Letter Box" /></a
+          >
+          {#if showSignupFields}
+            <button
+              onclick={() => {
+                // todo call info func
+                const randomInfo = generateUser();
+                randomInfo.email = userInfo.email; // keep the email
+                // fill in the fields
+                userInfo = randomInfo;
+                // user must hit submit button
+              }}><AdminButton text="Fill signup with random data" /></button
+            >
+          {/if}
         {/if}
       </div>
     </fieldset>
