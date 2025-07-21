@@ -7,66 +7,24 @@ from steel import Steel
 
 
 class Prompts(BaseModel):
-    # source_code: str = "Check if $url is a source code repository"
-    # demo: str = "Check if $url looks like an experienceable project, which is to say that someone at a hackathon could easily use it. If it's a web app, perfect! If it's something else, as long as it looked like it would be relatively easy to run locally, like a PyPi package or itch.io game, that's fine too. If it's a video or something like that, that's not a real project. If you can't validate it due to something like a login wall but it looks like a real project and not just 'hello world' on a page, then it's valid. Raw code is not an experiencable demo."
-    unified: str = """Evaluate a project with the demo at ($demo) and repository at ($repo).
+    unified: str = """Evaluate if the project at ($demo) with repo at ($repo) is a valid hackathon submission.
 
-DEMO VALIDATION:
-The demo must be a real, experiencable project that demonstrates functionality and value. To be VALID, the demo must:
-- Be functional and interactive (web app, game, tool, etc.)
-- Demonstrate clear functionality that provides value
-- Be accessible and usable
-- Show genuine effort and learning
+APPROVE if:
+- Demo is functional and interactive (web app, game, tool, etc.)
+- Shows real functionality and provides value
+- Repo exists and contains source code
+- Demonstrates effort and learning
 
-APPROVE projects that:
-- Have working functionality and provide clear value
-- Are interactive and demonstrate real features
-- Show effort and learning, even if simple
-- Are functional web applications, games, tools, or utilities
-- Have educational or entertainment value
-- Demonstrate real problem-solving or creativity
-- Are complete and working, even if basic
-- Are packages on PyPi, NPM, Crates, etc.
-- Are documentation pages for legitimate packages/libraries
-- Are static sites that provide substantial educational or informational value
-- Have deployment issues but the repo clearly shows a legitimate, functional project
+REJECT if:
+- Completely broken or non-functional
+- Just static pages without interactivity (unless educational)
+- Videos, images, or non-interactive files
+- Basic tools without advanced features
+- Raw code without working demo
 
-REJECT projects that:
-- Are completely broken or non-functional
-- Are just static pages with no interactivity (unless they provide substantial value)
-- Are placeholder/template sites with no real content
-- Are videos, images, or non-interactive files
-- Have 404 errors or fail to load (unless repo shows legitimate project)
-- Are just raw code repositories without demos
-- Are clearly incomplete or abandoned
-- Are just source code files without a working demo
-- Are basic applications without substantial features (simple calculators, basic music players, etc.)
-- Are blank pages or completely non-functional
+For deployment issues, check the repo - if it shows a legitimate project, approve."""
 
-REPOSITORY VALIDATION:
-The repository must:
-- Exist and be accessible
-- Contain source code for the project
-- Be the repository homepage
-- Have some documentation or evidence it's the right repo
 
-TESTING GUIDELINES:
-- Test if the project actually works and provides value
-- Look for real functionality, not just appearance
-- Be practical - if it works and has value, approve it
-- Don't be overly strict about "advanced features"
-- Focus on whether someone would find it useful
-- If it's functional and demonstrates learning, approve it
-- Only reject if it's clearly broken or non-functional
-- For games, if leaning towards rejection due to it being unfunctional, depend on if the source code looks legitimate to make the call, and if on paper, the game should be easily run.
-- If a page does not load, depend on the source code to make the call.
-- If an app is on an app store, it's valid.
-- For documentation pages: If they're for legitimate packages/libraries, approve them
-- For static sites: Make sure they are not just a placeholder or template site and hold some value.
-- For deployment issues: If the repo shows a legitimate, functional project, approve it despite demo issues
-- For basic tools: Reject simple calculators, basic music players, etc. unless they have advanced features or educational value
-
-IMPORTANT: Be practical and fair. If a project works, provides value, and shows effort, approve it. Only reject projects that are clearly broken, non-functional, or lack any real value. Err on the side of approval for functional projects."""
 class QualitySettings(BaseModel):
     use_vision: bool = True
     headless: bool = False
@@ -80,31 +38,14 @@ class QualitySettings(BaseModel):
     )
 
 
-
-class Result(BaseModel):
+class ResultsResponse(BaseModel):
     valid: bool
     reason: str
-    tested_url: str
 
 
-class ResultsResponse(BaseModel):
-    demo: Result
-    source_code: Result
-    # Computed field to compile all the reasons into a single string
-
-
-class Results(ResultsResponse):
-    image_url: Result
-    @computed_field
-    @property
-    def reasons(self) -> str:
-        individual_reasons = []
-        for name, check in zip(["demo", "source_code", "image_url"], [self.demo, self.source_code, self.image_url]):
-            if not check.valid and check.reason:
-                individual_reasons.append(f"{name}: {check.reason}")
-        return "\n".join(individual_reasons)
-
-    @computed_field
-    @property
-    def valid(self) -> bool:
-        return self.demo.valid and self.source_code.valid and self.image_url.valid
+class Results(BaseModel):
+    demo_url: str
+    repo_url: str
+    image_url: str
+    valid: bool
+    reason: str

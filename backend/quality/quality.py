@@ -10,7 +10,7 @@ from string import Template
 import mimetypes
 import httpx
 from podium import config 
-from quality.models import QualitySettings, Result, ResultsResponse, Results
+from quality.models import QualitySettings, ResultsResponse, Results
 from pydantic import ValidationError
 from podium.db.project import Project
 
@@ -68,25 +68,19 @@ async def check_project(project: "Project", config: QualitySettings) -> Results:
             final_json = agent_result.final_result()
             pprint(final_json)
             if final_json is not None:
-                # Only use demo and source_code from agent result
-                agent_results = ResultsResponse.model_validate_json(final_json).model_dump()
-
-                demo_result = agent_results.get("demo") or {"valid": False, "reason": "Agent did not return a result", "url": project.demo}
-                source_code_result = agent_results.get("source_code") or {"valid": False, "reason": "Agent did not return a result", "url": project.repo}
+                # Parse the agent result
+                result = ResultsResponse.model_validate_json(final_json)
             else:
-                demo_result = {"valid": False, "reason": "Agent did not return a result", "url": project.demo}
-                source_code_result = {"valid": False, "reason": "Agent did not return a result", "url": project.repo}
-
-            result = ResultsResponse(
-                demo=Result(**demo_result),
-                source_code=Result(**source_code_result),
-            )
+                result = ResultsResponse(
+                    valid=False,
+                    reason="Agent did not return a result"
+                )
 
         except ValidationError as e:
             print(f"Validation error occurred: {e}")
             result = ResultsResponse(
-                demo=Result(valid=False, reason="Validation error occurred", tested_url=project.demo),
-                source_code=Result(valid=False, reason="Validation error occurred", tested_url=project.repo),
+                valid=False,
+                reason="Validation error occurred"
             )
         finally:
             # Close browser
@@ -96,14 +90,19 @@ async def check_project(project: "Project", config: QualitySettings) -> Results:
             if config.steel_client and 'browser_session' in locals():
                 config.steel_client.sessions.release(browser_session.id)
 
+        # Check image validation
+        image_valid = await is_raw_image(project.image_url)
+        
         return Results(
-            demo=result.demo,
-            source_code=result.source_code,
-            image_url=await is_raw_image(project.image_url),
+            demo_url=project.demo,
+            repo_url=project.repo,
+            image_url=project.image_url,
+            valid=result.valid and image_valid,
+            reason=result.reason + ("; Image is not a raw image" if not image_valid else "")
         )
 
 
-async def is_raw_image(url: str) -> Result:
+async def is_raw_image(url: str) -> bool:
     """
     Check if the given URL points to a raw image file.
     This is done by checking the file extension or the Content-Type header.
@@ -111,30 +110,17 @@ async def is_raw_image(url: str) -> Result:
     # Check file extension
     mime_type, _ = mimetypes.guess_type(url)
     if mime_type and mime_type.startswith("image/"):
-        return Result(
-            valid=True,
-            reason="",
-            tested_url=url,
-        )
+        return True
 
     # Check Content-Type header
     try:
         async with httpx.AsyncClient() as client:
             response = await client.head(url, timeout=5)
             content_type = response.headers.get("Content-Type", "")
-            is_image_type = content_type.startswith("image/")
-            return Result(
-                valid=is_image_type,
-                reason="" if is_image_type else "Content-Type is not an image",
-                tested_url=url,
-            )
+            return content_type.startswith("image/")
     except Exception as e:
         print(f"Error checking image URL: {e}")
-        return Result(
-            valid=False,
-            reason="Image URL is not a raw image",
-            tested_url=url,
-        )
+        return False
 
 
 async def main():
@@ -155,14 +141,13 @@ async def main():
 #     steel_client=None
 #     llm=ChatGoogle(
 #         # https://ai.google.dev/gemini-api/docs/rate-limits
-#         # model="gemini-2.0-flash-exp",
+#         # model="gemini-2.0-flash-exp",   
 #         api_key=os.environ["GEMINI_API_KEY"],
 #         model="gemini-2.0-flash-lite",
 #     ),
 # )
         config=config.quality_settings,
-    )
-    # {
+    ) 
     #     "id": "123",
     #     "name": "Podium",
     #     "demo": "https://podium.hackclub.com",

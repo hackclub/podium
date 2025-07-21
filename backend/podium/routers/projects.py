@@ -1,7 +1,7 @@
 from secrets import token_urlsafe
 from typing import Annotated
 from quality import quality
-from quality.models import Results, Result
+from quality.models import Results
 from requests import HTTPError
 from podium import db
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -183,21 +183,19 @@ async def check_project(project: Project) -> quality.Results:
     # Skip whatever checks have the same cached url as the current project
     if not isinstance(project.cached_auto_quality, EmptyModel):
         if (
-            (project.cached_auto_quality.source_code.tested_url == project.repo)
-            and (project.cached_auto_quality.demo.tested_url == project.demo)
-            and (project.cached_auto_quality.image_url.tested_url == project.image_url)
+            (project.cached_auto_quality.repo_url == project.repo)
+            and (project.cached_auto_quality.demo_url == project.demo)
+            and (project.cached_auto_quality.image_url == project.image_url)
         ):
             # Apply demo links optional logic to cached results
-            if demo_links_optional and not project.cached_auto_quality.demo.valid:
+            if demo_links_optional and not project.cached_auto_quality.valid:
                 # Create a modified result where demo is considered valid if only demo fails
                 modified_result = quality.Results(
-                    demo=quality.Result(
-                        valid=True,
-                        reason="Demo link validation skipped (optional for this event)",
-                        tested_url=project.cached_auto_quality.demo.tested_url
-                    ),
-                    source_code=project.cached_auto_quality.source_code,
-                    image_url=project.cached_auto_quality.image_url
+                    demo_url=project.cached_auto_quality.demo_url,
+                    repo_url=project.cached_auto_quality.repo_url,
+                    image_url=project.cached_auto_quality.image_url,
+                    valid=True,
+                    reason="Demo link validation skipped (optional for this event)"
                 )
                 return modified_result
             return project.cached_auto_quality
@@ -208,16 +206,14 @@ async def check_project(project: Project) -> quality.Results:
     )
     
     # Apply demo links optional logic to new results
-    if demo_links_optional and not project.cached_auto_quality.demo.valid:
+    if demo_links_optional and not project.cached_auto_quality.valid:
         # Create a modified result where demo is considered valid if only demo fails
         modified_result = quality.Results(
-            demo=quality.Result(
-                valid=True,
-                reason="Demo link validation skipped (optional for this event)",
-                tested_url=project.cached_auto_quality.demo.tested_url
-            ),
-            source_code=project.cached_auto_quality.source_code,
-            image_url=project.cached_auto_quality.image_url
+            demo_url=project.cached_auto_quality.demo_url,
+            repo_url=project.cached_auto_quality.repo_url,
+            image_url=project.cached_auto_quality.image_url,
+            valid=True,
+            reason="Demo link validation skipped (optional for this event)"
         )
         # Store the original result but return the modified one
         db.projects.update(

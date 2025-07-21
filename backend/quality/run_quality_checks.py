@@ -1,6 +1,7 @@
-# poetry run -- python -m quality.run_quality_checks
-# poetry.exe run python -m quality.analyze_correctnes # wsl
-# watch -- poetry.exe run python -m quality.analyze_correctness # wsl 
+# uv run python -m quality.run_quality_checks
+# uv run python -m quality.analyze_correctness # wsl
+# watch -- uv run python -m quality.analyze_correctness # wsl 
+
 import os
 from dotenv import load_dotenv
 from steel import Steel
@@ -137,9 +138,7 @@ async def process_project(project_data: Dict[str, str], index: int, quality_sett
             
             # Check if we got validation errors
             has_validation_error = (
-                (not results.demo.valid and "Validation error occurred" in results.demo.reason) or
-                (not results.source_code.valid and "Validation error occurred" in results.source_code.reason) or
-                (not results.image_url.valid and "Validation error occurred" in results.image_url.reason)
+                not results.valid and "Validation error occurred" in results.reason
             )
             
             # If validation error and we have more retries, wait and retry
@@ -150,21 +149,11 @@ async def process_project(project_data: Dict[str, str], index: int, quality_sett
             
             # Extract raw result for debugging
             raw_result = {
-                "demo": {
-                    "valid": results.demo.valid,
-                    "reason": results.demo.reason,
-                    "tested_url": results.demo.tested_url
-                },
-                "source_code": {
-                    "valid": results.source_code.valid,
-                    "reason": results.source_code.reason,
-                    "tested_url": results.source_code.tested_url
-                },
-                "image_url": {
-                    "valid": results.image_url.valid,
-                    "reason": results.image_url.reason,
-                    "tested_url": results.image_url.tested_url
-                }
+                "demo_url": results.demo_url,
+                "repo_url": results.repo_url,
+                "image_url": results.image_url,
+                "valid": results.valid,
+                "reason": results.reason
             }
             
             return {
@@ -173,16 +162,9 @@ async def process_project(project_data: Dict[str, str], index: int, quality_sett
                 'repo': project_data['repo'],
                 'image': project_data['image'],
                 'execution_time_seconds': round(execution_time, 2),
-                'demo_valid': results.demo.valid,
-                'demo_error': results.demo.reason if not results.demo.valid else '',
-                'demo_explanation': results.demo.reason if results.demo.valid else '',
-                'repo_valid': results.source_code.valid,
-                'repo_error': results.source_code.reason if not results.source_code.valid else '',
-                'repo_explanation': results.source_code.reason if results.source_code.valid else '',
-                'image_valid': results.image_url.valid,
-                'image_error': results.image_url.reason if not results.image_url.valid else '',
-                'image_explanation': results.image_url.reason if results.image_url.valid else '',
-                'overall_valid': results.valid,
+                'valid': results.valid,
+                'error': results.reason if not results.valid else '',
+                'explanation': results.reason if results.valid else '',
                 'raw_result': str(raw_result),
                 'judgement': project_data['judgement']
             }
@@ -204,16 +186,9 @@ async def process_project(project_data: Dict[str, str], index: int, quality_sett
                 'repo': project_data['repo'],
                 'image': project_data['image'],
                 'execution_time_seconds': round(execution_time, 2),
-                'demo_valid': False,
-                'demo_error': f"Exception after {max_retries} attempts: {str(e)}",
-                'demo_explanation': '',
-                'repo_valid': False,
-                'repo_error': f"Exception after {max_retries} attempts: {str(e)}",
-                'repo_explanation': '',
-                'image_valid': False,
-                'image_error': f"Exception after {max_retries} attempts: {str(e)}",
-                'image_explanation': '',
-                'overall_valid': False,
+                'valid': False,
+                'error': f"Exception after {max_retries} attempts: {str(e)}",
+                'explanation': '',
                 'raw_result': f"Exception after {max_retries} attempts: {str(e)}",
                 'judgement': project_data['judgement']
             }
@@ -226,16 +201,9 @@ async def process_project(project_data: Dict[str, str], index: int, quality_sett
         'repo': project_data['repo'],
         'image': project_data['image'],
         'execution_time_seconds': round(execution_time, 2),
-        'demo_valid': False,
-        'demo_error': f"Unexpected: loop completed without return",
-        'demo_explanation': '',
-        'repo_valid': False,
-        'repo_error': f"Unexpected: loop completed without return",
-        'repo_explanation': '',
-        'image_valid': False,
-        'image_error': f"Unexpected: loop completed without return",
-        'image_explanation': '',
-        'overall_valid': False,
+        'valid': False,
+        'error': f"Unexpected: loop completed without return",
+        'explanation': '',
         'raw_result': f"Unexpected: loop completed without return",
         'judgement': project_data['judgement']
     }
@@ -361,10 +329,8 @@ async def main():
         
         fieldnames = [
             'project_index', 'demo', 'repo', 'image', 'execution_time_seconds',
-            'demo_valid', 'demo_error', 'demo_explanation',
-            'repo_valid', 'repo_error', 'repo_explanation',
-            'image_valid', 'image_error', 'image_explanation',
-            'overall_valid', 'raw_result', 'judgement'
+            'valid', 'error', 'explanation',
+            'raw_result', 'judgement'
         ]
         
         # Determine if we need to create a new file or append to existing
@@ -433,7 +399,7 @@ async def main():
         
         # Print summary
         total_projects = len(projects)
-        successful_checks = sum(1 for r in results if r['overall_valid'])
+        successful_checks = sum(1 for r in results if r['valid'])
         total_time = sum(r['execution_time_seconds'] for r in results)
         
         print(f"\nSummary:")
