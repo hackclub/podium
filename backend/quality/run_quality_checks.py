@@ -147,15 +147,6 @@ async def process_project(project_data: Dict[str, str], index: int, quality_sett
                 await asyncio.sleep(retry_delay)
                 continue
             
-            # Extract raw result for debugging
-            raw_result = {
-                "demo_url": results.demo_url,
-                "repo_url": results.repo_url,
-                "image_url": results.image_url,
-                "valid": results.valid,
-                "reason": results.reason
-            }
-            
             return {
                 'project_index': index,
                 'demo': project_data['demo'],
@@ -165,7 +156,6 @@ async def process_project(project_data: Dict[str, str], index: int, quality_sett
                 'valid': results.valid,
                 'error': results.reason if not results.valid else '',
                 'explanation': results.reason if results.valid else '',
-                'raw_result': str(raw_result),
                 'judgement': project_data['judgement']
             }
             
@@ -189,24 +179,8 @@ async def process_project(project_data: Dict[str, str], index: int, quality_sett
                 'valid': False,
                 'error': f"Exception after {max_retries} attempts: {str(e)}",
                 'explanation': '',
-                'raw_result': f"Exception after {max_retries} attempts: {str(e)}",
                 'judgement': project_data['judgement']
             }
-    
-    # This should never be reached, but just in case
-    execution_time = time.time() - start_time
-    return {
-        'project_index': index,
-        'demo': project_data['demo'],
-        'repo': project_data['repo'],
-        'image': project_data['image'],
-        'execution_time_seconds': round(execution_time, 2),
-        'valid': False,
-        'error': f"Unexpected: loop completed without return",
-        'explanation': '',
-        'raw_result': f"Unexpected: loop completed without return",
-        'judgement': project_data['judgement']
-    }
 
 
 def get_processed_projects(output_file: str) -> Set[int]:
@@ -419,5 +393,8 @@ async def main():
         # Always cleanup browser sessions
         await cleanup_browser_sessions()
 
+def cmd():
+    asyncio.run(main())
+
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    cmd()

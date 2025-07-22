@@ -14,15 +14,23 @@ APPROVE if:
 - Shows real functionality and provides value
 - Repo exists and contains source code
 - Demonstrates effort and learning
+- Projects with minor technical issues but clear effort and learning
+- Static sites that demonstrate coding skills and creativityf
 
 REJECT if:
 - Completely broken or non-functional
-- Just static pages without interactivity (unless educational)
-- Videos, images, or non-interactive files
-- Basic tools without advanced features
-- Raw code without working demo
+- Just videos, images, or non-interactive files without code
+- Basic tools without any advanced features or learning
+- Raw code without any working demo or documentation
+- Projects that show no effort or learning
 
-For deployment issues, check the repo - if it shows a legitimate project, approve."""
+Be more lenient with:
+- Portfolio sites (approve if they show multiple projects and effort)
+- Projects with minor deployment issues but good code
+- Projects with partial functionality but clear learning
+- Static sites that demonstrate web development skills
+
+For deployment issues, check the repo - if it shows a legitimate project with effort, approve. If the demo is deemed non-functional, check if the source code is legit and shows effort to determine if the project should be rejected, as in some cases, the demo is functional unbenownstly."""
 
 
 class QualitySettings(BaseModel):

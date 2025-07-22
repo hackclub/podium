@@ -42,6 +42,7 @@ build-backend = "hatchling.build"
 [project.scripts]
 podium = "podium.__main__:main"
 quality = "quality.__main__:cmd"
+quality-batch = "quality.run_quality_checks:cmd"
 
 [tool.ruff]
 lint.extend-select= ["FIX002"]

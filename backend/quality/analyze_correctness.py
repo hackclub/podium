@@ -83,9 +83,8 @@ def calculate_percentage_correct(sample_data, quality_results):
             continue
         
         sample_approved = sample_data[demo_url] == 'approved'
-        demo_valid = result.get('demo_valid', '').lower() == 'true'
-        repo_valid = result.get('repo_valid', '').lower() == 'true'
-        overall_valid = result.get('overall_valid', '').lower() == 'true'
+        # Use the 'valid' field from the current CSV structure
+        system_valid = result.get('valid', '').lower() == 'true'
         
         total_matched += 1
         
@@ -95,28 +94,25 @@ def calculate_percentage_correct(sample_data, quality_results):
         else:
             total_rejected_in_sample += 1
         
-        # Only check unified validation against sample judgement
-        if overall_valid == sample_approved:
+        # Compare system validation against sample judgement
+        if system_valid == sample_approved:
             unified_correct += 1
         else:
-            if sample_approved and not overall_valid:
+            if sample_approved and not system_valid:
                 unified_false_rejections += 1
-            elif not sample_approved and overall_valid:
+            elif not sample_approved and system_valid:
                 unified_false_approvals += 1
         
         # Collect incorrect predictions for detailed analysis
-        if overall_valid != sample_approved:
+        if system_valid != sample_approved:
             incorrect_predictions.append({
                 'demo_url': demo_url,
                 'project_index': result.get('project_index', ''),
-                'demo_valid': demo_valid,
-                'repo_valid': repo_valid,
-                'overall_valid': overall_valid,
+                'system_valid': system_valid,
                 'sample_approved': sample_approved,
-                'demo_error': result.get('demo_error', ''),
-                'demo_explanation': result.get('demo_explanation', ''),
-                'repo_error': result.get('repo_error', ''),
-                'repo_explanation': result.get('repo_explanation', '')
+                'error': result.get('error', ''),
+                'explanation': result.get('explanation', ''),
+                'raw_result': result.get('raw_result', '')
             })
     
     # Calculate percentages
@@ -166,28 +162,15 @@ def main():
         for i, pred in enumerate(results['incorrect_predictions'], 1):
             print(f"\n{i}. Project {pred['project_index']}: {pred['demo_url']}")
             print(f"   Real result: {'Approved' if pred['sample_approved'] else 'Rejected'}")
-            print(f"   Program output: Demo={'Valid' if pred['demo_valid'] else 'Invalid'}, Repo={'Valid' if pred['repo_valid'] else 'Invalid'}, Overall={'Valid' if pred['overall_valid'] else 'Invalid'}")
-            
-            # Show what was incorrect
-            incorrect_components = []
-            if pred['demo_valid'] != pred['sample_approved']:
-                incorrect_components.append("Demo")
-            if pred['repo_valid'] != pred['sample_approved']:
-                incorrect_components.append("Repo")
-            if pred['overall_valid'] != pred['sample_approved']:
-                incorrect_components.append("Overall")
-            
-            print(f"   Incorrect components: {', '.join(incorrect_components)}")
+            print(f"   System output: {'Valid' if pred['system_valid'] else 'Invalid'}")
             
             # Show reasoning
-            if pred['demo_explanation']:
-                print(f"   Demo reasoning: {pred['demo_explanation']}")
-            if pred['demo_error']:
-                print(f"   Demo error: {pred['demo_error']}")
-            if pred['repo_explanation']:
-                print(f"   Repo reasoning: {pred['repo_explanation']}")
-            if pred['repo_error']:
-                print(f"   Repo error: {pred['repo_error']}")
+            if pred['explanation']:
+                print(f"   System reasoning: {pred['explanation']}")
+            if pred['error']:
+                print(f"   System error: {pred['error']}")
+            if pred['raw_result']:
+                print(f"   Raw result: {pred['raw_result']}")
             
             print("-" * 80)
     
