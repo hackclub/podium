@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-# watch -- poetry.exe run python -m quality.analyze_correctness
+# watch -- uv run python -m quality.analyze_correctness
 """
 Simple script to analyze correctness percentage from quality check results.
 
 Usage:
-    poetry run python -m quality.analyze_correctness
+    uv run python -m quality.analyze_correctness
 """
 
 PRINT_SPECIFICS = True
