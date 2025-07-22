@@ -16,6 +16,7 @@ APPROVE if:
 - Demonstrates effort and learning
 - Projects with minor technical issues but clear effort and learning
 - Static sites that demonstrate coding skills and creativity
+- Packages on PyPi, NPM, Crates, etc.
 
 REJECT if:
 - Completely broken or non-functional
@@ -30,7 +31,7 @@ Be more lenient with:
 - Projects with partial functionality but clear learning
 - Static sites that demonstrate web development skills
 
-If the demo is deemed non-functional (a button doesn't work, for example) but still loads, check if the source code is legit and shows effort to determine if the project should be rejected, as in some cases, the demo is functional but it's a issue with the browser."""
+If the demo is deemed non-functional (a button doesn't work, for example) but still loads, check if the source code is legit and shows effort to determine if the project should be rejected, as in some cases, the demo is functional but it's a issue with the browser. The demo should still load at least, though."""
 
 
 class QualitySettings(BaseModel):
