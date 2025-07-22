@@ -97,8 +97,9 @@ async def check_project(project: "Project", config: QualitySettings) -> Results:
             demo_url=project.demo,
             repo_url=project.repo,
             image_url=project.image_url,
-            valid=result.valid and image_valid,
-            reason=result.reason + ("; Image is not a raw image" if not image_valid else "")
+            valid=result.valid,
+            reason=result.reason,
+            image_valid=image_valid
         )
 
 

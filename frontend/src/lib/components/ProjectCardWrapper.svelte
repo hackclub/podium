@@ -45,7 +45,7 @@
       <div class="grid grid-cols-3 gap-3 text-sm">
         <!-- Join Code -->
         <div class="flex flex-col items-center">
-          <span class="text-xs text-base-content/70 mb-1">Project Join Code</span>
+          <span class="text-xs text-base-content/70 mb-1">Join Code</span>
           <span class="badge badge-accent font-mono text-sm px-3 py-1">
             {project.join_code}
           </span>
@@ -65,7 +65,7 @@
                 </span>
               {:else}
                 <button
-                  class="badge text-sm px-3 py-1 underline cursor-pointer {projectQualityResults[project.id]?.valid
+                  class="badge text-sm px-3 py-1 underline cursor-pointer {projectQualityResults[project.id]?.valid && projectQualityResults[project.id]?.image_valid
                     ? 'badge-success'
                     : 'badge-warning'}"
                   onclick={() => {
@@ -76,55 +76,53 @@
                   {#if !projectQualityResults[project.id]}
                     <span class="loading loading-dots loading-xs"></span>
                   {:else}
-                    {#if projectQualityResults[project.id]?.valid}
-                      <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                      </svg>
-                      Valid
+                    {#if projectQualityResults[project.id]?.valid && projectQualityResults[project.id]?.image_valid}
+                      ✅ Valid
                     {:else}
-                      <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                      </svg>
-                      Invalid
+                      ❌ Invalid
                     {/if}
                   {/if}
                 </button>
+                
                 {#if projectQualityResults[project.id]}
                   <!-- Quality Details Modal -->
                   <Modal
                     title="Project Quality"
                     bind:this={projectModalState[project.id]}
                   >
-                    <table class="table w-full table-zebra">
-                      <thead>
-                        <tr>
-                          <th>Validity</th>
-                          <th>Reason</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td>
-                            {#if projectQualityResults[project.id]?.valid}
-                              <div class="flex items-center">
-                                <svg class="w-4 h-4 mr-2 text-success" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                </svg>
-                                Valid
-                              </div>
-                            {:else}
-                              <div class="flex items-center">
-                                <svg class="w-4 h-4 mr-2 text-error" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                                </svg>
-                                Invalid
-                              </div>
-                            {/if}
-                          </td>
-                          <td>{projectQualityResults[project.id]?.reason}</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                    <div class="space-y-4">
+                      <!-- Quality Validation Section -->
+                      <div>
+                        <h3 class="font-semibold mb-2">Quality Validation</h3>
+                        <div class="flex items-center gap-2 mb-2">
+                          {#if projectQualityResults[project.id]?.valid}
+                            <span class="text-success">✅ Valid</span>
+                          {:else}
+                            <span class="text-error">❌ Invalid</span>
+                          {/if}
+                        </div>
+                        <p class="text-sm text-base-content/70">{projectQualityResults[project.id]?.reason}</p>
+                      </div>
+                      
+                      <!-- Image Validation Section -->
+                      <div>
+                        <h3 class="font-semibold mb-2">Image Validation</h3>
+                        <div class="flex items-center gap-2 mb-2">
+                          {#if projectQualityResults[project.id]?.image_valid}
+                            <span class="text-success">✅ Valid</span>
+                          {:else}
+                            <span class="text-error">❌ Invalid</span>
+                          {/if}
+                        </div>
+                        <p class="text-sm text-base-content/70">
+                          {#if projectQualityResults[project.id]?.image_valid}
+                            Image URL points to a valid image file
+                          {:else}
+                            Image URL does not point to a valid image file
+                          {/if}
+                        </p>
+                      </div>
+                    </div>
                   </Modal>
                 {/if}
               {/if}

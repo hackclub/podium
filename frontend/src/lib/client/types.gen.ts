@@ -149,6 +149,7 @@ export type Results = {
     image_url: string;
     valid: boolean;
     reason: string;
+    image_valid: boolean;
 };
 
 /**

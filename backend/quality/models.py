@@ -58,3 +58,4 @@ class Results(BaseModel):
     image_url: str
     valid: bool
     reason: str
+    image_valid: bool
