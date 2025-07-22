@@ -1,10 +1,10 @@
 <script lang="ts">
   import { UsersService } from "$lib/client";
-  import type { PrivateProject } from "$lib/client/types.gen";
+  import type { PrivateProject, Project } from "$lib/client/types.gen";
   import { handleError } from "$lib/misc";
   import { onMount } from "svelte";
   interface Props {
-    project: PrivateProject;
+    project: PrivateProject | Project;
     isSelected: boolean;
     toggle: () => void;
     selectable?: boolean;
@@ -20,7 +20,7 @@
       ...(project.collaborators || []),
       ...(project.owner || []),
     ];
-    let names = [];
+    let names: string[] = [];
     for (const userId of allUserIds) {
       const {
         data,
@@ -35,11 +35,8 @@
       if (err) {
         handleError(err);
       } else if (data) {
-        // If the last name isn't empty, make it "first last" Otherwise just use the first name
-        if (data.last_name) {
-          names.push(`${data.first_name} ${data.last_name}`);
-        } else {
-          names.push(data.first_name);
+        if (data.display_name) {
+          names.push(data.display_name);
         }
         // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/ListFormat/ListFormat#parameters
         const formatter = new Intl.ListFormat("en", {

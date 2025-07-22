@@ -2,8 +2,23 @@
 # uv run python -m quality.analyze_correctness # wsl
 # watch -- uv run python -m quality.analyze_correctness # wsl 
 
+import asyncio
+import csv
+from datetime import datetime
+import json
 import os
+import random
+import signal
+import sys
+import time
+from typing import Any, Dict, Set
+
+from browser_use.llm import ChatGroq, ChatOllama
 from dotenv import load_dotenv
+from podium import config
+from podium.db.project import Project
+from quality.models import QualitySettings
+from quality.quality import check_project
 from steel import Steel
 load_dotenv(
     # .env.local
@@ -35,20 +50,7 @@ QUALITY_LLM_MODEL = os.environ.get('QUALITY_LLM_MODEL', 'gemini').lower()
 # Processing Configuration:
 # QUALITY_RANDOM_ORDER=true    # Process projects in random order (default: false)
 
-import asyncio
-import csv
-import json
-import time
-import signal
-import sys
-import random
-from datetime import datetime
-from typing import List, Dict, Any, Set
-from quality.quality import check_project
-from quality.models import QualitySettings
-from podium.db.project import Project
-from podium import config
-from browser_use.llm import ChatGroq, ChatOllama
+
 
 # Global variable to track if we need to cleanup
 cleanup_needed = False

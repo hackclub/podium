@@ -76,7 +76,17 @@
                   {#if !projectQualityResults[project.id]}
                     <span class="loading loading-dots loading-xs"></span>
                   {:else}
-                    {projectQualityResults[project.id]?.valid ? "Valid" : "Invalid"}
+                    {#if projectQualityResults[project.id]?.valid}
+                      <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                      </svg>
+                      Valid
+                    {:else}
+                      <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                      </svg>
+                      Invalid
+                    {/if}
                   {/if}
                 </button>
                 {#if projectQualityResults[project.id]}
@@ -88,52 +98,30 @@
                     <table class="table w-full table-zebra">
                       <thead>
                         <tr>
-                          <th>Check</th>
-                          <th>Result</th>
+                          <th>Validity</th>
+                          <th>Reason</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr>
-                          <td>Demo</td>
                           <td>
-                            {#if projectQualityResults[project.id]?.demo.valid}
-                              ✅
+                            {#if projectQualityResults[project.id]?.valid}
+                              <div class="flex items-center">
+                                <svg class="w-4 h-4 mr-2 text-success" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                                Valid
+                              </div>
                             {:else}
-                              {#if event.demo_links_optional}
-                                ⚠️ {@html formatReasons(
-                                  projectQualityResults[project.id]?.demo.reason,
-                                )} <span class="text-sm text-base-content/70">(Optional for this event)</span>
-                              {:else}
-                                ❌ {@html formatReasons(
-                                  projectQualityResults[project.id]?.demo.reason,
-                                )}
-                              {/if}
+                              <div class="flex items-center">
+                                <svg class="w-4 h-4 mr-2 text-error" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                </svg>
+                                Invalid
+                              </div>
                             {/if}
                           </td>
-                        </tr>
-                        <tr>
-                          <td>Source Code</td>
-                          <td>
-                            {#if projectQualityResults[project.id]?.source_code.valid}
-                              ✅
-                            {:else}
-                              ❌ {@html formatReasons(
-                                projectQualityResults[project.id]?.source_code.reason,
-                              )}
-                            {/if}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td>Image URL</td>
-                          <td>
-                            {#if projectQualityResults[project.id]?.image_url.valid}
-                              ✅
-                            {:else}
-                              ❌ {@html formatReasons(
-                                projectQualityResults[project.id]?.image_url.reason,
-                              )}
-                            {/if}
-                          </td>
+                          <td>{projectQualityResults[project.id]?.reason}</td>
                         </tr>
                       </tbody>
                     </table>
