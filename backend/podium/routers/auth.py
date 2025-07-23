@@ -23,7 +23,7 @@ SECRET_KEY = settings.jwt_secret
 ALGORITHM = str(settings.jwt_algorithm)
 ACCESS_TOKEN_EXPIRE_MINUTES: int = settings.jwt_expire_minutes # type: ignore
 MAGIC_LINK_EXPIRE_MINUTES = 15
-magic_urls= []
+magic_urls = []
 
 DEBUG_EMAIL = "angad+debug@hackclub.com"
 
