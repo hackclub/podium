@@ -73,7 +73,7 @@ export async function customInvalidateAll() {
   await invalidateUser();
 }
 
-function randomFromArray(arr: any[]) {
+function randomFromArray<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
