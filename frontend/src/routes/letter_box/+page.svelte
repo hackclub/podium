@@ -31,7 +31,7 @@
         <ul class="list-disc pl-5">
           {#each data as letter}
             <li class="mb-2">
-              <strong>{letter[0]}:</strong>:
+              <strong>{letter[0]}:</strong>
               <a href={new URL(letter[1]).pathname + new URL(letter[1]).search}
                 >{letter[1]}</a
               >

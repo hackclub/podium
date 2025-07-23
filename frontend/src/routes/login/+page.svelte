@@ -10,10 +10,9 @@
   import { handleError, generateUser } from "$lib/misc";
   import type { UserSignupPayload } from "$lib/client/types.gen";
   import { countries } from "countries-list";
-  // import { }
   // rest is the extra props passed to the component
   let { ...rest } = $props();
-  const isDev = import.meta.env.NODE_ENV !== "production";
+  const isDev = import.meta.env.DEV;
   let isLoading = $state(false);
   let showSignupFields = $state(false);
   let expandedDueTo = "";
