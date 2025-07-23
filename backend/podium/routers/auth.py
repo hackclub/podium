@@ -91,7 +91,6 @@ async def letter_box():
     This is a temporary endpoint to get the magic links that have been sent.
     """
     return get_mail()
-    # get_mail()
 @router.get("/hi")
 def say_hi() -> str:
     """

@@ -24,8 +24,7 @@
     eventName = "";
     eventDescription = "";
     // redirect to /events
-    window.location.pathname = "/events";
-    window.location.reload();
+    await goto('/events');
   }
 </script>
 
