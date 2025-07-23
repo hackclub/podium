@@ -32,9 +32,8 @@
           {#each data as letter}
             <li class="mb-2">
               <strong>{letter[0]}:</strong>
-              <a href={new URL(letter[1]).pathname + new URL(letter[1]).search}
-                >{letter[1]}</a
-              >
+              {#let url = new URL(letter[1])}
+              <a href={url.pathname + url.search}>{letter[1]}</a>
             </li>
           {/each}
         </ul>
