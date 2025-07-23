@@ -62,7 +62,7 @@ async def send_magic_link(email: str, redirect: str = ""):
     if redirect:
         magic_link += f"&redirect={redirect}"
     if os.environ.get("NODE_ENV") != "production":
-      magic_urls.append([email, magic_link])
+      magic_urls.append(MagicLink(email=email, magic_link=magic_link))
     if settings.sendgrid_api_key:
         message = Mail(
             from_email=settings.sendgrid_from_email,
