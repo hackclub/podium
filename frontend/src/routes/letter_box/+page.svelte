@@ -13,8 +13,13 @@
       data = json;
       console.log(data);
     } else {
-      //        handleError(res);
+      handleError(res);
     }
+  };
+  
+  const handleError = (res: Response) => {
+    console.error(`Error: ${res.status} - ${res.statusText}`);
+    alert("Failed to load data. Please try again later.");
   };
   reload();
 </script>
