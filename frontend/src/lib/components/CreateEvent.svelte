@@ -9,20 +9,22 @@
 
   // Function to create a new event
   async function createEvent() {
-      const event = { name: eventName, description: eventDescription };
-      const {error: err} = await EventsService.createEventEventsPost({
-        body: event,
-        throwOnError: false,
-      });
-      if  (err) {
-          handleError(err);
-          return;
-      }
-      toast.success("Event created successfully");
-      await invalidateEvents();
-      // Clear the form
-      eventName = "";
-      eventDescription = "";
+    const event = { name: eventName, description: eventDescription };
+    const { error: err } = await EventsService.createEventEventsPost({
+      body: event,
+      throwOnError: false,
+    });
+    if (err) {
+      handleError(err);
+      return;
+    }
+    toast.success("Event created successfully");
+    await invalidateEvents();
+    // Clear the form
+    eventName = "";
+    eventDescription = "";
+    // redirect to /events
+    await goto('/events');
   }
 </script>
 
