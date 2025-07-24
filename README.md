@@ -38,6 +38,22 @@ To set up your event, go to the events dashboard from the homepage, and create a
 
 There's a SvelteKit frontend and a FastAPI backend.
 
+#### Frontend
+
+```zsh
+cd frontend
+bun install
+bun dev
+```
+
+#### Backend
+
+```zsh
+cd backend
+uv sync
+uv run podium
+```
+
 For secrets, you need the following as environment variables or in the `backend/` folder in `.secrets.toml` or `.env` files:
 
 - `airtable_token`
