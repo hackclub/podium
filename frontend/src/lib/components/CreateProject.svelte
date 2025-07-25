@@ -162,7 +162,7 @@
 
     <label class="label" for="hours_spent">Rough estimate of hours spent</label>
     <input
-      id="hours_spent"
+    id="hours_spent"
       type="number"
       bind:value={project.hours_spent}
       placeholder="Hours spent"
@@ -170,8 +170,8 @@
       min="0"
     />
 
-    <button class="btn btn-block btn-primary mt-4" onclick={createProject}>
-      Create Project
+    <button class="btn btn-accent btn-lg mt-4 btn-block hover:btn-xl transition-all duration-300" onclick={createProject}>
+      Ship it!
     </button>
   </fieldset>
   <!-- </form> -->

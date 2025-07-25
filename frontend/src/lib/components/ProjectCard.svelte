@@ -34,17 +34,21 @@
       });
       if (err) {
         handleError(err);
-      } else if (data) {
-        if (data.display_name) {
-          names.push(data.display_name);
-        }
-        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/ListFormat/ListFormat#parameters
-        const formatter = new Intl.ListFormat("en", {
-          style: "short",
-          type: "conjunction",
-        });
-        credits = formatter.format(names);
+      } else if (data && data.display_name) {
+        names.push(data.display_name);
       }
+    }
+    
+    // Only format if we have valid names
+    if (names.length > 0) {
+      // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/ListFormat/ListFormat#parameters
+      const formatter = new Intl.ListFormat("en", {
+        style: "short",
+        type: "conjunction",
+      });
+      credits = formatter.format(names);
+    } else {
+      credits = "Unknown contributors";
     }
     loadingCredits = false;
   });

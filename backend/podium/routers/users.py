@@ -2,6 +2,8 @@ from typing import Annotated
 from pydantic import BaseModel, EmailStr
 from podium import db
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from fastapi_cache.decorator import cache
+from fastapi_cache import FastAPICache
 from podium.db.user import (
     UserSignupPayload,
     UserPrivate,
@@ -14,6 +16,9 @@ from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH
 from requests import HTTPError
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+
+
 
 
 class UserExistsResponse(BaseModel):
@@ -37,7 +42,7 @@ def get_current_user_info(
 
 
 @router.put("/current")
-def update_current_user(
+async def update_current_user(
     user_update: UserUpdate,
     current_user: Annotated[UserPrivate, Depends(get_current_user)],
 ) -> UserPrivate:
@@ -54,12 +59,18 @@ def update_current_user(
         raise HTTPException(status_code=400, detail="No fields to update")
     
     updated_user = db.users.update(current_user.id, update_data)
+    
+    # Clear the cache for this user's public profile
+    await FastAPICache.clear(namespace="users")
+    
     return UserPrivate.model_validate(updated_user["fields"])
 
 
 # It's important that this is under /current since otherwise /users/current will be be passed to this and `current` will be interpreted as a user_id
+
 @router.get("/{user_id}")
-def get_user_public(
+@cache(expire=5, namespace="users")
+async def get_user_public(
     user_id: Annotated[str, Path(title="User Airtable ID")],
 ) -> UserPublic:
     try:
@@ -70,7 +81,7 @@ def get_user_public(
             if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
             else e
         )
-
+    
     return UserPublic.model_validate(user["fields"])
 
 
