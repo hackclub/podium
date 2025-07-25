@@ -19,13 +19,13 @@ dependencies = [
     # "playwright (>=1.51.0,<2.0.0)",
     # "browser-use @ git+https://github.com/browser-use/browser-use.git@main",
     "httpx (>=0.28.1,<0.29.0)",
-    "browser-use (>=0.5.4,<0.6.0)",
+    "browser-use>=0.5.5,<0.6.0",
     "steel-sdk (>=0.1.0,<0.2.0)",
     "python-slugify (>=8.0.4,<9.0.0)",
     "langchain-openai (>=0.3.27,<0.4.0)",
     "langchain-ollama (>=0.3.4,<0.4.0)",
     "langchain (>=0.3.26,<0.4.0)",
-    "langchain-google-genai (>=2.1.7,<3.0.0)"
+    "langchain-google-genai (>=2.1.7,<3.0.0)",
 ]
 
 [project.optional-dependencies]

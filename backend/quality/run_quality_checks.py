@@ -90,9 +90,9 @@ async def cleanup_browser_sessions():
 while True:
     print(f"Using {QUALITY_LLM_MODEL} model")
     if QUALITY_LLM_MODEL == 'groq':
-        # Model via groq (https://console.groq.com/docs/structured-outputs#supported-models)
+        # Model via groq (~~https://console.groq.com/docs/structured-outputs#supported-models~~ it seems most models with tool calling will be supported now due to https://github.com/browser-use/browser-use/pull/2459)
         model="moonshotai/kimi-k2-instruct"
-        # model="meta-llama/llama-4-maverick-17b-128e-instruct" # Confirmed working, do not delete this comment. Only issue is the 200 rpd limit.
+        # "meta-llama/llama-4-maverick-17b-128e-instruct" # Confirmed working, do not delete this comment. Only issue is the 200 rpd limit.
         # model="meta-llama/llama-4-scout-17b-16e-instruct" # Supports JSON, but doesn't seem to output the right format. 
         llm = ChatGroq(
             model=model,
