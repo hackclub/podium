@@ -45,7 +45,7 @@
       <div class="grid grid-cols-3 gap-3 text-sm">
         <!-- Join Code -->
         <div class="flex flex-col items-center">
-          <span class="text-xs text-base-content/70 mb-1">Project Join Code</span>
+          <span class="text-xs text-base-content/70 mb-1">Join Code</span>
           <span class="badge badge-accent font-mono text-sm px-3 py-1">
             {project.join_code}
           </span>
@@ -65,7 +65,7 @@
                 </span>
               {:else}
                 <button
-                  class="badge text-sm px-3 py-1 underline cursor-pointer {projectQualityResults[project.id]?.valid
+                  class="badge text-sm px-3 py-1 underline cursor-pointer {projectQualityResults[project.id]?.valid && projectQualityResults[project.id]?.image_valid
                     ? 'badge-success'
                     : 'badge-warning'}"
                   onclick={() => {
@@ -76,67 +76,53 @@
                   {#if !projectQualityResults[project.id]}
                     <span class="loading loading-dots loading-xs"></span>
                   {:else}
-                    {projectQualityResults[project.id]?.valid ? "Valid" : "Invalid"}
+                    {#if projectQualityResults[project.id]?.valid && projectQualityResults[project.id]?.image_valid}
+                      ✅ Valid
+                    {:else}
+                      ❌ Invalid
+                    {/if}
                   {/if}
                 </button>
+                
                 {#if projectQualityResults[project.id]}
                   <!-- Quality Details Modal -->
                   <Modal
                     title="Project Quality"
                     bind:this={projectModalState[project.id]}
                   >
-                    <table class="table w-full table-zebra">
-                      <thead>
-                        <tr>
-                          <th>Check</th>
-                          <th>Result</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td>Demo</td>
-                          <td>
-                            {#if projectQualityResults[project.id]?.demo.valid}
-                              ✅
-                            {:else}
-                              {#if event.demo_links_optional}
-                                ⚠️ {@html formatReasons(
-                                  projectQualityResults[project.id]?.demo.reason,
-                                )} <span class="text-sm text-base-content/70">(Optional for this event)</span>
-                              {:else}
-                                ❌ {@html formatReasons(
-                                  projectQualityResults[project.id]?.demo.reason,
-                                )}
-                              {/if}
-                            {/if}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td>Source Code</td>
-                          <td>
-                            {#if projectQualityResults[project.id]?.source_code.valid}
-                              ✅
-                            {:else}
-                              ❌ {@html formatReasons(
-                                projectQualityResults[project.id]?.source_code.reason,
-                              )}
-                            {/if}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td>Image URL</td>
-                          <td>
-                            {#if projectQualityResults[project.id]?.image_url.valid}
-                              ✅
-                            {:else}
-                              ❌ {@html formatReasons(
-                                projectQualityResults[project.id]?.image_url.reason,
-                              )}
-                            {/if}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
+                    <div class="space-y-4">
+                      <!-- Quality Validation Section -->
+                      <div>
+                        <h3 class="font-semibold mb-2">Quality Validation</h3>
+                        <div class="flex items-center gap-2 mb-2">
+                          {#if projectQualityResults[project.id]?.valid}
+                            <span class="text-success">✅ Valid</span>
+                          {:else}
+                            <span class="text-error">❌ Invalid</span>
+                          {/if}
+                        </div>
+                        <p class="text-sm text-base-content/70">{projectQualityResults[project.id]?.reason}</p>
+                      </div>
+                      
+                      <!-- Image Validation Section -->
+                      <div>
+                        <h3 class="font-semibold mb-2">Image Validation</h3>
+                        <div class="flex items-center gap-2 mb-2">
+                          {#if projectQualityResults[project.id]?.image_valid}
+                            <span class="text-success">✅ Valid</span>
+                          {:else}
+                            <span class="text-error">❌ Invalid</span>
+                          {/if}
+                        </div>
+                        <p class="text-sm text-base-content/70">
+                          {#if projectQualityResults[project.id]?.image_valid}
+                            Image URL points to a valid image file
+                          {:else}
+                            Image URL does not point to a valid image file
+                          {/if}
+                        </p>
+                      </div>
+                    </div>
                   </Modal>
                 {/if}
               {/if}

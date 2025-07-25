@@ -1,10 +1,10 @@
 <script lang="ts">
   import { UsersService } from "$lib/client";
-  import type { PrivateProject } from "$lib/client/types.gen";
+  import type { PrivateProject, Project } from "$lib/client/types.gen";
   import { handleError } from "$lib/misc";
   import { onMount } from "svelte";
   interface Props {
-    project: PrivateProject;
+    project: PrivateProject | Project;
     isSelected: boolean;
     toggle: () => void;
     selectable?: boolean;
@@ -20,7 +20,7 @@
       ...(project.collaborators || []),
       ...(project.owner || []),
     ];
-    let names = [];
+    let names: string[] = [];
     for (const userId of allUserIds) {
       const {
         data,

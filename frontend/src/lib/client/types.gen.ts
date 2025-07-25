@@ -143,18 +143,13 @@ export type PublicProjectCreationPayload = {
     hours_spent?: number;
 };
 
-export type Result = {
+export type Results = {
+    demo_url: string;
+    repo_url: string;
+    image_url: string;
     valid: boolean;
     reason: string;
-    tested_url: string;
-};
-
-export type Results = {
-    demo: Result;
-    source_code: Result;
-    image_url: Result;
-    readonly reasons: string;
-    readonly valid: boolean;
+    image_valid: boolean;
 };
 
 /**
