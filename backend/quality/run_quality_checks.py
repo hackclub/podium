@@ -20,13 +20,9 @@ from podium.db.project import Project
 from quality.models import QualitySettings
 from quality.quality import check_project
 from steel import Steel
-load_dotenv(
-    # .env.local
-    '.env.local'
-)
-load_dotenv(
-    '.env'
-)  
+# .env.local
+load_dotenv('.env.local')
+load_dotenv('.env')
 
 RESULTS_FOLDER = os.environ.get('QUALITY_RESULTS_FOLDER', 'quality_check_results')
 SAMPLE_PROJECTS_FILE = os.environ.get('QUALITY_INPUT_FILE', 'sample_projects.csv')
