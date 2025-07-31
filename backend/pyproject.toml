@@ -27,6 +27,7 @@ dependencies = [
     "langchain-ollama (>=0.3.4,<0.4.0)",
     "langchain (>=0.3.26,<0.4.0)",
     "langchain-google-genai (>=2.1.7,<3.0.0)",
+    "datamodel-code-generator[openapi]>=0.32.0",
 ]
 
 [project.optional-dependencies]
@@ -42,8 +43,6 @@ build-backend = "hatchling.build"
 
 [project.scripts]
 podium = "podium.__main__:main"
-quality = "quality.__main__:cmd"
-quality-batch = "quality.run_quality_checks:cmd"
 
 [tool.ruff]
 lint.extend-select= ["FIX002"]

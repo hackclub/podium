@@ -1,8 +1,9 @@
 from __future__ import annotations
 from podium.constants import EmptyModel, SingleRecordField, MultiRecordField, UrlField
-from quality.models import Results
+from podium.generated.review_factory_models import Results
 from pydantic import BaseModel, Field, StringConstraints, field_validator
 from typing import Annotated, Optional
+import httpx
 
 
 class ProjectBase(BaseModel):
@@ -64,3 +65,26 @@ class InternalProject(PrivateProject):
             except Exception:
                 return EmptyModel()
         return v
+
+
+class ReviewFactoryClient:
+    """Simple HTTP client for Review Factory API"""
+    
+    def __init__(self, base_url: str, token: str):
+        self.base_url = base_url.rstrip('/')
+        self.token = token
+        self.headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
+    
+    async def check_project(self, project: "Project") -> Results:
+        """Check a project using the Review Factory API"""
+        async with httpx.AsyncClient(timeout=300.0) as client:  # 5 minute timeout
+            response = await client.post(
+                f"{self.base_url}/check",
+                json=project.model_dump(),
+                headers=self.headers,
+            )
+            response.raise_for_status()
+            return Results.model_validate(response.json())

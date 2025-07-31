@@ -144,12 +144,12 @@ export type PublicProjectCreationPayload = {
 };
 
 export type Results = {
-    demo_url: string;
-    repo_url: string;
+    demo: string;
+    repo: string;
     image_url: string;
-    valid: boolean;
     reason: string;
     image_valid: boolean;
+    valid: boolean;
 };
 
 /**
@@ -188,10 +188,6 @@ export type UserPrivate = {
     owned_events?: Array<(string)>;
     attending_events?: Array<(string)>;
     referral?: Array<(string)>;
-};
-
-export type UserPublic = {
-    display_name?: string;
 };
 
 export type UserSignupPayload = {
@@ -339,7 +335,7 @@ export type GetEventProjectsEventsEventIdProjectsGetData = {
     };
 };
 
-export type GetEventProjectsEventsEventIdProjectsGetResponse = (Array<Project>);
+export type GetEventProjectsEventsEventIdProjectsGetResponse = (unknown);
 
 export type GetEventProjectsEventsEventIdProjectsGetError = (HTTPValidationError);
 
@@ -349,7 +345,7 @@ export type GetAtIdEventsIdSlugGetData = {
     };
 };
 
-export type GetAtIdEventsIdSlugGetResponse = (string);
+export type GetAtIdEventsIdSlugGetResponse = (unknown);
 
 export type GetAtIdEventsIdSlugGetError = (HTTPValidationError);
 
@@ -445,7 +441,7 @@ export type GetUserPublicUsersUserIdGetData = {
     };
 };
 
-export type GetUserPublicUsersUserIdGetResponse = (UserPublic);
+export type GetUserPublicUsersUserIdGetResponse = (unknown);
 
 export type GetUserPublicUsersUserIdGetError = (HTTPValidationError);
 
