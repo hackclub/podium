@@ -13,7 +13,7 @@ from podium.db.project import (
     Project,
     PublicProjectCreationPayload,
 )
-from podium.generated.review_factory_models import Project as ReviewFactoryProject, Results as ReviewFactoryResults
+from podium.generated.review_factory_models import Project as ReviewFactoryProject, Result as ReviewFactoryResult
 from podium.db.project import ReviewFactoryClient
 from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH, BAD_ACCESS, EmptyModel
 
@@ -165,7 +165,7 @@ def get_project(project_id: Annotated[str, Path(pattern=r"^rec\w*$")]):
 
 
 @router.post("/check")
-async def check_project(project: Project) -> ReviewFactoryResults:
+async def check_project(project: Project) -> ReviewFactoryResult:
     # TODO: add a parameter to force a recheck or request human review. This could just trigger a Slack webhook
 
     # Check if the review factory token is set, and if it isn't, return a 500 error

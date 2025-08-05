@@ -143,7 +143,7 @@ export type PublicProjectCreationPayload = {
     hours_spent?: number;
 };
 
-export type Results = {
+export type Result = {
     demo: string;
     repo: string;
     image_url: string;
@@ -409,7 +409,7 @@ export type CheckProjectProjectsCheckPostData = {
     body: Project;
 };
 
-export type CheckProjectProjectsCheckPostResponse = (Results);
+export type CheckProjectProjectsCheckPostResponse = (Result);
 
 export type CheckProjectProjectsCheckPostError = (HTTPValidationError);
 
