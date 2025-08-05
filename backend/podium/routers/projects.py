@@ -191,8 +191,8 @@ async def check_project(project: Project) -> ReviewFactoryResults:
     # Check if what was before is the same as what we have now. Might be better to replace with proper caching later
     if not isinstance(project.cached_auto_quality, EmptyModel):
         if (
-            (project.cached_auto_quality.repo_url == project.repo)
-            and (project.cached_auto_quality.demo_url == project.demo)
+            (project.cached_auto_quality.repo == project.repo)
+            and (project.cached_auto_quality.demo == project.demo)
             and (project.cached_auto_quality.image_url == project.image_url)
         ):
             # If it's all the same, return the cached stuff

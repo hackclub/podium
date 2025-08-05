@@ -3,6 +3,8 @@ from dynaconf import Dynaconf, Validator
 from browser_use.llm import ChatGoogle
 from steel import Steel
 
+# type: ignore
+
 print(f"Using environment: {os.getenv('ENV_FOR_DYNACONF', '')}")
 settings = Dynaconf(
     envvar_prefix="PODIUM",
