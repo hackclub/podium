@@ -4,7 +4,8 @@
   import type { PageData } from "./$types";
   import ProjectCardWrapper from "$lib/components/ProjectCardWrapper.svelte";
   import { onMount } from "svelte";
-  import { ProjectsService, type Results } from "$lib/client";
+  import { checkProjectQuality } from "$lib/async";
+  import type { Result } from "$lib/client";
   import Modal from "$lib/components/Modal.svelte";
   let { data }: { data: PageData } = $props();
 
@@ -16,21 +17,13 @@
     return DOMPurify.sanitize(reasons.replace(/\n/g, "<br>"));
   }
 
-  let projectQualityResults: Record<string, Results> = $state({});
+  let projectQualityResults: Record<string, Result> = $state({});
+  
   onMount(async () => {
     for (const project of data.projects) {
-      const {
-        data: qualityData,
-        response,
-        error: err,
-      } = await ProjectsService.checkProjectProjectsCheckPost({
-        body: { ...project },
-        throwOnError: false,
-      });
-      if (err || !qualityData) {
-        console.error(err, response);
-      } else {
-        if (qualityData) projectQualityResults[project.id] = qualityData;
+      const result = await checkProjectQuality(project);
+      if (result) {
+        projectQualityResults[project.id] = result;
       }
     }
   });

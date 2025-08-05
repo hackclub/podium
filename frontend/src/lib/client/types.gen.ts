@@ -6,6 +6,16 @@ export type AuthenticatedUser = {
     user: UserPrivate;
 };
 
+export type CheckStatus = {
+    check_id: string;
+    status: Status;
+    created_at: string;
+    started_at?: (string | null);
+    completed_at?: (string | null);
+    result?: (Result | null);
+    error?: (string | null);
+};
+
 export type CreateVotes = {
     projects: Array<(string)>;
     event: string;
@@ -151,6 +161,8 @@ export type Result = {
     image_valid: boolean;
     valid: boolean;
 };
+
+export type Status = 'pending' | 'running' | 'completed' | 'failed';
 
 /**
  * Return information regarding what the events the user owns and what events they are attending. If they are only attending an event, don't return sensitive information like participants.
@@ -412,6 +424,24 @@ export type CheckProjectProjectsCheckPostData = {
 export type CheckProjectProjectsCheckPostResponse = (Result);
 
 export type CheckProjectProjectsCheckPostError = (HTTPValidationError);
+
+export type StartProjectCheckProjectsCheckStartPostData = {
+    body: Project;
+};
+
+export type StartProjectCheckProjectsCheckStartPostResponse = (CheckStatus);
+
+export type StartProjectCheckProjectsCheckStartPostError = (HTTPValidationError);
+
+export type PollProjectCheckProjectsCheckCheckIdGetData = {
+    path: {
+        check_id: string;
+    };
+};
+
+export type PollProjectCheckProjectsCheckCheckIdGetResponse = (CheckStatus);
+
+export type PollProjectCheckProjectsCheckCheckIdGetError = (HTTPValidationError);
 
 export type UserExistsUsersExistsGetData = {
     query: {
