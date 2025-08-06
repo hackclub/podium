@@ -1,21 +1,23 @@
 from secrets import token_urlsafe
 from typing import Annotated
-from quality import quality
-from quality.models import Results, Result
+from datetime import datetime
+from podium import settings
 from requests import HTTPError
 from podium import db
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pyairtable.formulas import EQ, RECORD_ID, match
 from podium.routers.auth import get_current_user
 from podium.db.user import UserPrivate
+import httpx
 from podium.db.project import (
     InternalProject,
     PrivateProject,
     Project,
     PublicProjectCreationPayload,
 )
+from podium.generated.review_factory_models import Project as ReviewFactoryProject, Result as ReviewFactoryResult, CheckStatus
+from podium.db.project import ReviewFactoryClient
 from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH, BAD_ACCESS, EmptyModel
-from podium.config import quality_settings
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -61,6 +63,7 @@ def create_project(
 
     # If the owner is not part of the event that the project is going to be associated with, raise a 403
     # Might be good to put a try/except block here to check for a 404 but shouldn't be necessary as the event isn't user-provided, it's in the DB
+    # TODO: replace with pydantic model
     event_attendees = db.events.get(project.event[0])["fields"].get("attendees", [])
     if not any(i in event_attendees for i in owner):
         raise HTTPException(status_code=403, detail="Owner not part of event")
@@ -106,6 +109,7 @@ def join_project(
         )
 
     # Ensure the user is part of the event that the project is associated with
+    # TODO: replace with pydantic model
     event_attendees = db.events.get(project.event[0])["fields"].get("attendees", [])
     if user.id not in event_attendees:
         raise BAD_ACCESS
@@ -161,74 +165,111 @@ def get_project(project_id: Annotated[str, Path(pattern=r"^rec\w*$")]):
     return Project.model_validate(project["fields"])
 
 
+
 @router.post("/check")
-async def check_project(project: Project) -> quality.Results:
+async def check_project(project: Project) -> ReviewFactoryResult:
     # TODO: add a parameter to force a recheck or request human review. This could just trigger a Slack webhook
+
+    # Check if the review factory token is set, and if it isn't, return a 500 error
+    if not settings.review_factory_token:
+        raise HTTPException(status_code=500, detail="Review Factory token not set on backend")
+
+    # Only check if the project exists in the DB
     try:
         # Don't trust the user to provide accurate cached_auto_quality data
         project = InternalProject.model_validate(db.projects.get(project.id)["fields"])
     except HTTPError as e:
         if e.response.status_code not in AIRTABLE_NOT_FOUND_CODES:
             raise e
-        return await quality.check_project(project, config=quality_settings)
+        raise HTTPException(status_code=404, detail="Project not found")
 
-    # Get the event to check if demo links are optional
-    try:
-        event = db.events.get(project.event[0])
-        demo_links_optional = event["fields"].get("demo_links_optional", False)
-    except HTTPError:
-        # If we can't fetch the event, assume demo links are required
-        demo_links_optional = False
-
-    # Skip whatever checks have the same cached url as the current project
+    # Check if what was before is the same as what we have now. Might be better to replace with proper caching later
     if not isinstance(project.cached_auto_quality, EmptyModel):
         if (
-            (project.cached_auto_quality.source_code.tested_url == project.repo)
-            and (project.cached_auto_quality.demo.tested_url == project.demo)
-            and (project.cached_auto_quality.image_url.tested_url == project.image_url)
+            (project.cached_auto_quality.repo == project.repo)
+            and (project.cached_auto_quality.demo == project.demo)
+            and (project.cached_auto_quality.image_url == project.image_url)
         ):
-            # Apply demo links optional logic to cached results
-            if demo_links_optional and not project.cached_auto_quality.demo.valid:
-                # Create a modified result where demo is considered valid if only demo fails
-                modified_result = quality.Results(
-                    demo=quality.Result(
-                        valid=True,
-                        reason="Demo link validation skipped (optional for this event)",
-                        tested_url=project.cached_auto_quality.demo.tested_url
-                    ),
-                    source_code=project.cached_auto_quality.source_code,
-                    image_url=project.cached_auto_quality.image_url
-                )
-                return modified_result
+            # If it's all the same, return the cached stuff
             return project.cached_auto_quality
-
+            
     # Recheck the project and update cached data
-    project.cached_auto_quality = await quality.check_project(
-        project, config=quality_settings
+    client = ReviewFactoryClient(
+        base_url=settings.review_factory_url,
+        token=settings.review_factory_token,
     )
-    
-    # Apply demo links optional logic to new results
-    if demo_links_optional and not project.cached_auto_quality.demo.valid:
-        # Create a modified result where demo is considered valid if only demo fails
-        modified_result = quality.Results(
-            demo=quality.Result(
-                valid=True,
-                reason="Demo link validation skipped (optional for this event)",
-                tested_url=project.cached_auto_quality.demo.tested_url
-            ),
-            source_code=project.cached_auto_quality.source_code,
-            image_url=project.cached_auto_quality.image_url
-        )
-        # Store the original result but return the modified one
-        db.projects.update(
-            project.id,
-            {"cached_auto_quality": project.cached_auto_quality.model_dump_json()},
-        )
-        return modified_result
-    
+    # Convert our Project to ReviewFactoryProject format
+    review_factory_project = ReviewFactoryProject(
+        repo=str(project.repo),
+        demo=str(project.demo),
+    )
+    project.cached_auto_quality = await client.check_project(review_factory_project)
     db.projects.update(
         project.id,
         {"cached_auto_quality": project.cached_auto_quality.model_dump_json()},
     )
     return project.cached_auto_quality
+
+
+@router.post("/check/start")
+async def start_project_check(project: Project) -> CheckStatus:
+    """Start an asynchronous project check"""
+    if not settings.review_factory_token:
+        raise HTTPException(status_code=500, detail="Review Factory token not set on backend")
+
+    try:
+        project = InternalProject.model_validate(db.projects.get(project.id)["fields"])
+    except HTTPError as e:
+        if e.response.status_code not in AIRTABLE_NOT_FOUND_CODES:
+            raise e
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # If we have cached results, return them immediately
+    if not isinstance(project.cached_auto_quality, EmptyModel):
+        return CheckStatus(
+            check_id="cached",
+            status="completed",
+            created_at=datetime.now(),
+            result=project.cached_auto_quality
+        )
+
+    # Start the check
+    async with httpx.AsyncClient(timeout=30.0) as client_http:
+        response = await client_http.post(
+            f"{settings.review_factory_url}/start-check",
+            json={
+                "repo": str(project.repo),
+                "image_url": str(project.image_url) if project.image_url else "",
+                "demo": str(project.demo)
+            },
+            headers={
+                "Authorization": f"Bearer {settings.review_factory_token}",
+                "Content-Type": "application/json",
+            },
+        )
+        response.raise_for_status()
+        return CheckStatus.model_validate(response.json())
+
+
+@router.get("/check/{check_id}")
+async def poll_project_check(check_id: str) -> CheckStatus:
+    """Poll the status of a project check"""
+    if not settings.review_factory_token:
+        raise HTTPException(status_code=500, detail="Review Factory token not set on backend")
+
+    # Handle cached results
+    if check_id == "cached":
+        raise HTTPException(status_code=404, detail="Cached results should be returned immediately")
+
+    # Poll the Review Factory API
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.get(
+            f"{settings.review_factory_url}/poll-check/{check_id}",
+            headers={
+                "Authorization": f"Bearer {settings.review_factory_token}",
+                "Content-Type": "application/json",
+            },
+        )
+        response.raise_for_status()
+        return CheckStatus.model_validate(response.json())
 

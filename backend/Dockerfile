@@ -1,15 +1,20 @@
-FROM python:3.13
+FROM python:3.13-slim
 
-RUN pip install poetry
+ENV UV_LINK_MODE=copy
 
-
-RUN mkdir /app
+ADD . /app
 WORKDIR /app
 
-COPY . /app
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync
+ENV PATH="/app/.venv/bin:$PATH"
 
-RUN ["poetry", "install"]
+RUN ["uv", "run", "--", "playwright", "install"]
 
-RUN ["poetry", "run", "--", "playwright","install"]
-ENTRYPOINT ["poetry", "run", "--", "python", "-m", "uvicorn", "podium.main:app", "--host", "0.0.0.0", "--port", "8000"]
-# CMD ["poetry", "run", "python", "-m", "uvicorn", "podium.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "python", "-m", "uvicorn", "podium.main:app", "--host", "0.0.0.0", "--port", "8000"]
+EXPOSE 8000
+
+# To debug:
+# docker build -t podium .
+# docker run -it --rm --env-file .env -v $(pwd)/.secrets.toml:/app/.secrets.toml -p 7001:8000 podium bash -c "ls"

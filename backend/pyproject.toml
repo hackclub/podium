@@ -18,36 +18,31 @@ dependencies = [
     "sentry-sdk[fastapi] (>=2.22.0,<3.0.0)",
     # "playwright (>=1.51.0,<2.0.0)",
     # "browser-use @ git+https://github.com/browser-use/browser-use.git@main",
-    "httpx (>=0.28.1,<0.29.0)",
-    "browser-use (>=0.1.41,<0.2.0)",
+    "httpx>=0.28.1,<0.29.0",
+    "browser-use>=0.5.5,<0.6.0",
     "steel-sdk (>=0.1.0,<0.2.0)",
     "python-slugify (>=8.0.4,<9.0.0)",
-    "fastapi-cache2[memcache] (>=0.2.2,<0.3.0)"
+    "fastapi-cache2[memcache] (>=0.2.2,<0.3.0)",
+    "langchain-openai (>=0.3.27,<0.4.0)",
+    "langchain-ollama (>=0.3.4,<0.4.0)",
+    "langchain (>=0.3.26,<0.4.0)",
+    "langchain-google-genai (>=2.1.7,<3.0.0)",
+    "datamodel-code-generator[openapi]>=0.32.0",
 ]
 
 [project.optional-dependencies]
-# poetry install --extras "dev"
+# uv sync --extra dev
 dev = [
     "aiosmtpd (>=1.4.6,<2.0.0)",
     "ruff (>=0.8.1,<1.0.0)"
 ]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project.scripts]
 podium = "podium.__main__:main"
-quality = "quality.__main__:cmd"
-
-[tool.poetry]
-# Needed for Poetry to find both packages
-packages = [
-    { include = "podium" },
-    { include = "quality" }
-]
-
-
 
 [tool.ruff]
 lint.extend-select= ["FIX002"]

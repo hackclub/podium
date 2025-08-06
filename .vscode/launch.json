@@ -2,18 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "quality",
-      "type": "debugpy",
-      "request": "launch",
-      // Can sometimes cause a threading error when exiting, although this can be ignored. 
-      "module": "quality.quality",
-      "cwd": "${workspaceFolder}/backend",
-      "env": {
-        "ENV_FOR_DYNACONF": "development"
-      },
-    },
-    {
-      "command": "npm run dev",
+      "command": "bun run dev",
       "name": "frontend",
       "request": "launch",
       "type": "node-terminal",

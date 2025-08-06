@@ -1,12 +1,13 @@
 import os
 from dynaconf import Dynaconf, Validator
-from langchain_google_genai import ChatGoogleGenerativeAI
-from quality.models import QualitySettings
+from browser_use.llm import ChatGoogle
 from steel import Steel
 
-environment = os.getenv("PYTHON_ENV", "development")
+# type: ignore
 
+environment = os.getenv("PYTHON_ENV", "development")
 print(f"Using environment: {environment}")
+
 settings = Dynaconf(
     envvar_prefix="PODIUM",
     load_dotenv=True,
@@ -65,23 +66,15 @@ settings.validators.register(
             # 2 days. People can always log in again
             default=2880,
         ),
+        Validator(
+            "review_factory_url",
+            default="https://review-factory-backend.hackclub.com",
+        ),
+        Validator(
+            "review_factory_token",
+            default="",
+        ),
     ],
 )
 
 settings.validators.validate()
-
-quality_settings = QualitySettings(
-    use_vision=True,
-    headless=False,
-    steel_client=Steel(
-        steel_api_key=settings.steel_api_key,
-    )
-    if settings.get("steel_api_key")
-    else None,
-    llm=ChatGoogleGenerativeAI(
-        # https://ai.google.dev/gemini-api/docs/rate-limits
-        # model="gemini-2.0-flash-exp",
-        api_key=settings.gemini_api_key,
-        model="gemini-2.0-flash-lite",
-    ),
-)

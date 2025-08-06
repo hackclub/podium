@@ -6,6 +6,16 @@ export type AuthenticatedUser = {
     user: UserPrivate;
 };
 
+export type CheckStatus = {
+    check_id: string;
+    status: Status;
+    created_at: string;
+    started_at?: (string | null);
+    completed_at?: (string | null);
+    result?: (Result | null);
+    error?: (string | null);
+};
+
 export type CreateVotes = {
     projects: Array<(string)>;
     event: string;
@@ -144,18 +154,15 @@ export type PublicProjectCreationPayload = {
 };
 
 export type Result = {
-    valid: boolean;
+    demo: string;
+    repo: string;
+    image_url: string;
     reason: string;
-    tested_url: string;
+    image_valid: boolean;
+    valid: boolean;
 };
 
-export type Results = {
-    demo: Result;
-    source_code: Result;
-    image_url: Result;
-    readonly reasons: string;
-    readonly valid: boolean;
-};
+export type Status = 'pending' | 'running' | 'completed' | 'failed';
 
 /**
  * Return information regarding what the events the user owns and what events they are attending. If they are only attending an event, don't return sensitive information like participants.
@@ -193,10 +200,6 @@ export type UserPrivate = {
     owned_events?: Array<(string)>;
     attending_events?: Array<(string)>;
     referral?: Array<(string)>;
-};
-
-export type UserPublic = {
-    display_name?: string;
 };
 
 export type UserSignupPayload = {
@@ -344,7 +347,7 @@ export type GetEventProjectsEventsEventIdProjectsGetData = {
     };
 };
 
-export type GetEventProjectsEventsEventIdProjectsGetResponse = (Array<Project>);
+export type GetEventProjectsEventsEventIdProjectsGetResponse = (unknown);
 
 export type GetEventProjectsEventsEventIdProjectsGetError = (HTTPValidationError);
 
@@ -354,7 +357,7 @@ export type GetAtIdEventsIdSlugGetData = {
     };
 };
 
-export type GetAtIdEventsIdSlugGetResponse = (string);
+export type GetAtIdEventsIdSlugGetResponse = (unknown);
 
 export type GetAtIdEventsIdSlugGetError = (HTTPValidationError);
 
@@ -418,9 +421,27 @@ export type CheckProjectProjectsCheckPostData = {
     body: Project;
 };
 
-export type CheckProjectProjectsCheckPostResponse = (Results);
+export type CheckProjectProjectsCheckPostResponse = (Result);
 
 export type CheckProjectProjectsCheckPostError = (HTTPValidationError);
+
+export type StartProjectCheckProjectsCheckStartPostData = {
+    body: Project;
+};
+
+export type StartProjectCheckProjectsCheckStartPostResponse = (CheckStatus);
+
+export type StartProjectCheckProjectsCheckStartPostError = (HTTPValidationError);
+
+export type PollProjectCheckProjectsCheckCheckIdGetData = {
+    path: {
+        check_id: string;
+    };
+};
+
+export type PollProjectCheckProjectsCheckCheckIdGetResponse = (CheckStatus);
+
+export type PollProjectCheckProjectsCheckCheckIdGetError = (HTTPValidationError);
 
 export type UserExistsUsersExistsGetData = {
     query: {
@@ -450,7 +471,7 @@ export type GetUserPublicUsersUserIdGetData = {
     };
 };
 
-export type GetUserPublicUsersUserIdGetResponse = (UserPublic);
+export type GetUserPublicUsersUserIdGetResponse = (unknown);
 
 export type GetUserPublicUsersUserIdGetError = (HTTPValidationError);
 

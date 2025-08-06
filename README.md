@@ -38,6 +38,22 @@ To set up your event, go to the events dashboard from the homepage, and create a
 
 There's a SvelteKit frontend and a FastAPI backend.
 
+#### Frontend
+
+```zsh
+cd frontend
+bun install
+bun dev
+```
+
+#### Backend
+
+```zsh
+cd backend
+uv sync
+uv run podium
+```
+
 For secrets, you need the following as environment variables or in the `backend/` folder in `.secrets.toml` or `.env` files:
 
 - `airtable_token`
@@ -85,62 +101,3 @@ If running the project evaluation locally, ensure you run `poetry run playwright
     * `content` - single line text
     * `user` - link to another record in the Users table
     * `event` - link to another record in the Events table -->
-
-# Quality evaluation
-
-Podium includes automated quality evaluation. It utilizes a multimodal browser agent to ensure the project demo and repository are valid. However, it can also be used as a standalone CLI tool or as a library. It's found in `backend/quality` and can be installed directly with `pip install git+https://github.com/hackclub/podium.git@main#egg=podium&subdirectory=backend`. This command will install the entire Podium backend, but also the `quality` module, which is what you need.  
-The image is simply checked by ensuring it's a URL pointing to a raw image file.
-
-To use it as a CLI, you can run the following command:
-
-```bash
-quality --demo "https://podium.hackclub.com" --repo "https://github.com/hackclub/podium" --image "https://assets.hackclub.com/icon-rounded.png" --gemini-api-key <GEMINI_API_KEY>
-```
-
-(you can optionally pass `--headless` to run the browser in headless mode, this may, however, be detected by some sites and cause issues)
-
-## Using as a library
-
-```python
-from langchain_google_genai import ChatGoogleGenerativeAI
-from podium.db.project import Project
-from quality.models import QualitySettings
-from quality.quality import check_project
-import rich
-
-GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"
-
-quality_settings = QualitySettings(
-        # You should be able to use most Langchain LLMs here
-        llm=ChatGoogleGenerativeAI(
-            api_key=GEMINI_API_KEY,
-            model="gemini-2.0-flash-lite",
-        ),
-        use_vision=True,  # Setting to true will use the multimodal capabilities the LLM. Disable if the model does not support multimodal input.
-        headless=False, # Set to True to run the browser in headless mode
-        session_semaphore=asyncio.Semaphore(2), # This limits the max number of browser sessions. Steel's free tier, at the time of writing, allows 2 concurrent sessions.
-
-
-        # prompts=YourClass(), # You can customize the prompts used for evaluation by creating a class that inherits from `backend.quality.models.Prompts` and overriding the fields
-        # steel_client=Steel(steel_api_key=settings.steel_api_key),             # Optionally, you can use steel.dev to spin up a browser running in the cloud for each evaluation. Ensure you import it with `from steel import Steel`.
-    )
-
-project = Project(
-    id="recPLACEHOLDER",
-    name="placeholder",
-    demo="https://podium.hackclub.com", # replace with the demo URL to evaluate
-    repo="https://github.com/hackclub/podium", # replace with the repository URL to evaluate
-    description="placeholder",
-    image_url="https://assets.hackclub.com/flag-standalone.svg", # replace with the image URL to evaluate
-    event=["recPLACEHOLDER"],
-    owner=["recPLACEHOLDER"],
-)
-
-# Run the evaluation and pretty print the results as JSON
-results = await check_project(project, config=quality_settings)
-
-# Print the results
-rich.print_json(
-    json=results.model_dump_json(),
-)
-```
