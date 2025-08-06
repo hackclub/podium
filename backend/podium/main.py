@@ -1,5 +1,4 @@
 import importlib
-import os
 from pathlib import Path
 import uvicorn
 from fastapi import FastAPI
@@ -9,11 +8,11 @@ from fastapi_cache.backends.inmemory import InMemoryBackend
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 import sentry_sdk
-
+from podium.config import environment
 
 sentry_sdk.init(
     dsn=""
-    if os.getenv("ENV_FOR_DYNACONF") == "development"
+    if environment == "development"
     else "https://489f4a109d07aeadfd13387bcd3197ab@o4508979744210944.ingest.de.sentry.io/4508979747553360",
     # Add data like request headers and IP for users,
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info

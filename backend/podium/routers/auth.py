@@ -1,10 +1,9 @@
 from datetime import datetime, timedelta, timezone
-import os
 # import smtplib
 # from email.mime.text import MIMEText
 from typing import Annotated
 
-from podium import db, settings
+from podium import db, settings, environment
 
 from fastapi import APIRouter, HTTPException, Query, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -61,7 +60,7 @@ async def send_magic_link(email: str, redirect: str = ""):
     magic_link = f"{settings.production_url}/login?token={token}"
     if redirect:
         magic_link += f"&redirect={redirect}"
-    if os.environ.get("NODE_ENV") != "production":
+    if environment == "development":
       magic_urls.append(MagicLink(email=email, magic_link=magic_link))
     if settings.sendgrid_api_key:
         message = Mail(
@@ -91,13 +90,6 @@ async def letter_box():
     This is a temporary endpoint to get the magic links that have been sent.
     """
     return get_mail()
-@router.get("/hi")
-def say_hi() -> str:
-    """
-    Simple endpoint that returns 'hi'
-    """
-    return "hi"
-
 
 @router.post("/request-login")
 # https://fastapi.tiangolo.com/tutorial/query-param-models/

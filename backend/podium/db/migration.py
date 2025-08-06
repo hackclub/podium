@@ -1,5 +1,5 @@
 # python -m podium.db.migration | Tee-Object -FilePath migration.txt                                                                                
-# $env:ENV_FOR_DYNACONF="production"                                                                               
+# $env:PYTHON_ENV="production"                                                                               
 # $env:PYTHONIOENCODING="utf-8"
 from podium.db import users
 from podium.db.user import UserPrivate, UserSignupPayload
