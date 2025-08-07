@@ -295,7 +295,8 @@ def get_leaderboard(event_id: Annotated[str, Path(title="Event ID")]) -> List[Pr
     return projects
 
 
-@router.get("/{event_id}/projects")
+# The reason we're specifying response_model here is because of https://github.com/long2ice/fastapi-cache/issues/384
+@router.get("/{event_id}/projects", response_model=List[Project])
 @cache(expire=30, namespace="events")
 async def get_event_projects(
     event_id: Annotated[str, Path(title="Event ID")],
@@ -322,8 +323,8 @@ async def get_event_projects(
     random.shuffle(projects)
     return projects
 
-
-@router.get("/id/{slug}")
+# The reason we're specifying response_model here is because of https://github.com/long2ice/fastapi-cache/issues/384
+@router.get("/id/{slug}", response_model=str) 
 @cache(expire=60, namespace="events")
 async def get_at_id(
     slug: Annotated[Slug, Path(title="Event Slug")],

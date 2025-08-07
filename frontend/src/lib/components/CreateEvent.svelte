@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { handleError, invalidateEvents } from "$lib/misc";
+  import { customInvalidateAll, handleError } from "$lib/misc";
   import { EventsService } from "$lib/client";
   import { toast } from "svelte-sonner";
   import { invalidate } from "$app/navigation";
@@ -19,7 +19,7 @@
           return;
       }
       toast.success("Event created successfully");
-      await invalidateEvents();
+      await customInvalidateAll();
       // Clear the form
       eventName = "";
       eventDescription = "";

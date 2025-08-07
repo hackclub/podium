@@ -1,7 +1,7 @@
 <script lang="ts">
   import { EventsService } from "$lib/client/sdk.gen";
   import { toast } from "svelte-sonner";
-  import { handleError, invalidateEvents } from "$lib/misc";
+  import { customInvalidateAll, handleError } from "$lib/misc";
   import type { AttendEventEventsAttendPostData } from "$lib/client";
   import { afterNavigate, goto, invalidate } from "$app/navigation";
   import { onMount } from "svelte";
@@ -20,7 +20,7 @@
         throwOnError: true,
       });
       toast.success("Joined event successfully");
-      await invalidateEvents();
+      await customInvalidateAll();
       // Reset
       toSend.query.join_code = "";
       toSend.query.referral = "";

@@ -2,7 +2,7 @@
   import { EventsService } from "$lib/client/sdk.gen";
   import type { Event } from "$lib/client";
   import { toast } from "svelte-sonner";
-  import { customInvalidateAll, handleError, invalidateEvents } from "$lib/misc";
+  import { customInvalidateAll, handleError } from "$lib/misc";
   import type { EventUpdate } from "$lib/client/types.gen";
   import { fade } from "svelte/transition";
   import Modal from "$lib/components/Modal.svelte";
@@ -54,7 +54,7 @@
         throwOnError: true,
       });
       toast.success("Event updated successfully");
-      await invalidateEvents();
+      await customInvalidateAll();
       updateModal.closeModal();
     } catch (err) {
       handleError(err);

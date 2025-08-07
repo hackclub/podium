@@ -156,17 +156,6 @@ async def get_current_user(
 
     return UserPrivate.model_validate(user["fields"])
 
-
-@router.get("/protected-route")
-async def protected_route(
-    current_user: Annotated[UserPrivate, Depends(get_current_user)],
-) -> UserPrivate:
-    # Check if the user exists
-    if db.user.get_user_record_id_by_email(current_user.email) is None:
-        raise BAD_AUTH
-    return current_user
-
-
 if __name__ == "__main__":
     # create a dev access JWT and  a magic link JWT
     debug_access = create_access_token(

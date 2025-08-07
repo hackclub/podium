@@ -8,15 +8,16 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
   client.setConfig({ fetch });
   const { event } = await parent();
   try {
-    const projects =
+    const { data: projects, error: projectsError, response: projectsResponse} =
       await EventsService.getEventProjectsEventsEventIdProjectsGet({
         path: {
           event_id: event.id,
         },
-        throwOnError: true,
+        throwOnError: false,
       });
-    if (!projects.data) {
-      throw error(404, "No projects found");
+    if (!projects || projectsError) {
+    console.error(projectsError, projectsResponse);
+    throw error(projectsResponse.status, JSON.stringify(projectsError));
     }
     let toSelect = event.max_votes_per_user;
 
@@ -26,7 +27,7 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
     const userVotesInEvent = (getAuthenticatedUser().user.votes || []).filter(
       (vote) => {
         // A project was voted for if project.votes contains the vote ID.
-        return projects.data.some((project) => {
+        return projects.some((project) => {
           return (project.votes ?? []).includes(vote);
         });
       },
@@ -43,7 +44,7 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
     console.debug(
       `User has ${userVotesInEvent} votes in event ${event.id}, can select ${toSelect} more projects`,
     );
-    return { projects: projects.data, toSelect, alreadyVoted };
+    return { projects: projects, toSelect, alreadyVoted };
   } catch (err) {
     console.error(err);
     throw error(500, "Failed to load projects");
