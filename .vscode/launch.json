@@ -20,11 +20,9 @@
       "type": "debugpy",
       "request": "launch",
       "module": "uvicorn",
-      // --reload seems to cause issues with browser-use
       "args": ["podium.main:app", "--reload"],
-      // "args": ["podium.main:app"],
       "env": {
-        "ENV_FOR_DYNACONF": "development"
+        "PYTHON_ENV": "development"
       },
       "cwd": "${workspaceFolder}/backend",
       "justMyCode": true

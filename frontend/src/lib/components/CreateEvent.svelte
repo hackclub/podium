@@ -23,6 +23,7 @@
       // Clear the form
       eventName = "";
       eventDescription = "";
+      await goto('/events');
   }
 </script>
 
