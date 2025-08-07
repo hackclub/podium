@@ -123,7 +123,7 @@ export type Project = {
     ];
 };
 
-export type ProjectUpdate = {
+export type ProjectCreationPayload = {
     name: string;
     repo: string;
     image_url: string;
@@ -138,7 +138,7 @@ export type ProjectUpdate = {
     hours_spent?: number;
 };
 
-export type PublicProjectCreationPayload = {
+export type ProjectUpdate = {
     name: string;
     repo: string;
     image_url: string;
@@ -331,19 +331,15 @@ export type VoteEventsVotePostResponse = (unknown);
 
 export type VoteEventsVotePostError = (HTTPValidationError);
 
-export type GetLeaderboardEventsEventIdLeaderboardGetData = {
-    path: {
-        event_id: string;
-    };
-};
-
-export type GetLeaderboardEventsEventIdLeaderboardGetResponse = (Array<Project>);
-
-export type GetLeaderboardEventsEventIdLeaderboardGetError = (HTTPValidationError);
-
 export type GetEventProjectsEventsEventIdProjectsGetData = {
     path: {
         event_id: string;
+    };
+    query: {
+        /**
+         * If true, and the event has a leaderboard enabled, the projects will be returned in order of points. Otherwise, they will be returned in random order
+         */
+        leaderboard: boolean;
     };
 };
 
@@ -366,7 +362,7 @@ export type GetProjectsProjectsMineGetResponse = (Array<PrivateProject>);
 export type GetProjectsProjectsMineGetError = unknown;
 
 export type CreateProjectProjectsPostData = {
-    body: PublicProjectCreationPayload;
+    body: ProjectCreationPayload;
 };
 
 export type CreateProjectProjectsPostResponse = (unknown);

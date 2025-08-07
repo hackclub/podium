@@ -1,6 +1,6 @@
 import random
 from fastapi import APIRouter, Path
-from typing import Annotated, Union, List
+from typing import Annotated, Optional, Union, List
 from fastapi import Depends, HTTPException, Query
 from fastapi_cache.decorator import cache
 from podium.db.event import InternalEvent, PrivateEvent
@@ -257,41 +257,30 @@ def vote(votes: CreateVotes, user: Annotated[UserPrivate, Depends(get_current_us
         db.votes.create(vote.model_dump())
 
 
-@router.get("/{event_id}/leaderboard")
-def get_leaderboard(event_id: Annotated[str, Path(title="Event ID")]) -> List[Project]:
-    """
-    Return a sorted list of projects in the event
-    """
-    try:
-        event = db.events.get(event_id)
-    except HTTPError as e:
-        raise (
-            HTTPException(status_code=404, detail="Event not found")
-            if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
-            else e
-        )
-    event = PrivateEvent.model_validate(event["fields"])
-    if not event.leaderboard_enabled:
-        raise HTTPException(
-            status_code=403, detail="Leaderboard is not enabled for this event"
-        )
-    projects = []
-    for project_id in event.projects:
+def get_projects_for_event(event_id: str, shuffle, event: Optional[InternalEvent]) -> List[Project]:
+    if event is None:
         try:
-            project = db.projects.get(project_id)
-            projects.append(project)
+            event = InternalEvent.model_validate(
+                db.events.get(event_id)["fields"]
+            )
         except HTTPError as e:
-            if e.response.status_code in AIRTABLE_NOT_FOUND_CODES:
-                print(
-                    f"WARNING: Project {project_id} not found when getting leaderboard for event {event_id}"
-                )
-            else:
-                raise e
+            raise (
+                HTTPException(status_code=404, detail="Event not found")
+                if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
+                else e
+            )
 
-    # Sort the projects by the number of votes they have received
-    projects.sort(key=lambda project: project["fields"].get("points", 0), reverse=True)
-
-    projects = [Project.model_validate(project["fields"]) for project in projects]
+    projects = [
+        Project.model_validate(project["fields"])
+        for project in [
+            db.projects.get(project_id)
+            for project_id in event.projects
+        ]
+    ]
+    if shuffle:
+        random.shuffle(projects)
+    else:
+        projects.sort(key=lambda project: project.points, reverse=True)
     return projects
 
 
@@ -300,28 +289,36 @@ def get_leaderboard(event_id: Annotated[str, Path(title="Event ID")]) -> List[Pr
 @cache(expire=30, namespace="events")
 async def get_event_projects(
     event_id: Annotated[str, Path(title="Event ID")],
+    leaderboard: Annotated[
+        bool,
+        Query(
+            title="Leaderboard",
+            description="If true, and the event has a leaderboard enabled, the projects will be returned in order of points. Otherwise, they will be returned in random order",
+        ),
+    ],
 ) -> List[Project]:
     """
     Get the projects for a specific event in a random order
     """
-    try:
-        event = db.events.get(event_id)
-    except HTTPError as e:
-        raise (
-            HTTPException(status_code=404, detail="Event not found")
-            if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
-            else e
-        )
 
-    projects = [
-        Project.model_validate(project["fields"])
-        for project in [
-            db.projects.get(project_id)
-            for project_id in event["fields"].get("projects", [])
-        ]
-    ]
-    random.shuffle(projects)
-    return projects
+    if leaderboard:
+        try:
+            event = InternalEvent.model_validate(
+                db.events.get(event_id)["fields"]
+            )
+        except HTTPError as e:
+            raise (
+                HTTPException(status_code=404, detail="Event not found")
+                if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
+                else e
+            )
+        if not event.leaderboard_enabled:
+            raise HTTPException(
+                status_code=403, detail="Leaderboard is not enabled for this event"
+            )
+
+    return get_projects_for_event(event_id, shuffle=not leaderboard, event=event)
+
 
 # The reason we're specifying response_model here is because of https://github.com/long2ice/fastapi-cache/issues/384
 @router.get("/id/{slug}", response_model=str) 

@@ -33,12 +33,11 @@ class ProjectBase(BaseModel):
         return data
 
 
-class PublicProjectCreationPayload(ProjectBase): ...
+class ProjectCreationPayload(ProjectBase): ...
 
 
 class ProjectUpdate(ProjectBase): ...
-
-
+    
 class Project(ProjectBase):
     id: str
     points: int = 0

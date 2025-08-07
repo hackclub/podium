@@ -13,7 +13,7 @@ from podium.db.project import (
     InternalProject,
     PrivateProject,
     Project,
-    PublicProjectCreationPayload,
+    ProjectCreationPayload,
 )
 from podium.generated.review_factory_models import CheckStatus
 from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH, BAD_ACCESS, EmptyModel
@@ -44,7 +44,7 @@ def get_projects(
 # It's up to the client to provide the event record ID
 @router.post("/")
 def create_project(
-    project: PublicProjectCreationPayload,
+    project: ProjectCreationPayload,
     user: Annotated[UserPrivate, Depends(get_current_user)],
 ):
     """

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { EventsService, ProjectsService } from "$lib/client/sdk.gen";
-  import type { PublicProjectCreationPayload, Event } from "$lib/client";
+  import type { ProjectCreationPayload, Event } from "$lib/client";
   import { toast } from "svelte-sonner";
   import { customInvalidateAll, handleError } from "$lib/misc";
   import Modal from "$lib/components/Modal.svelte";
@@ -8,7 +8,7 @@
   // Accept callback prop for when project is successfully created
   let { onProjectCreated }: { onProjectCreated?: () => void } = $props();
 
-  let project: PublicProjectCreationPayload = $state({
+  let project: ProjectCreationPayload = $state({
     name: "",
     repo: "",
     demo: "",
