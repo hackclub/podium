@@ -202,6 +202,10 @@ export type UserPrivate = {
     referral?: Array<(string)>;
 };
 
+export type UserPublic = {
+    display_name?: string;
+};
+
 export type UserSignupPayload = {
     display_name?: string;
     email: string;
@@ -258,10 +262,6 @@ export type VerifyTokenVerifyGetData = {
 export type VerifyTokenVerifyGetResponse = (AuthenticatedUser);
 
 export type VerifyTokenVerifyGetError = (HTTPValidationError);
-
-export type ProtectedRouteProtectedRouteGetResponse = (UserPrivate);
-
-export type ProtectedRouteProtectedRouteGetError = unknown;
 
 export type GetEventEventsEventIdGetData = {
     path: {
@@ -347,7 +347,7 @@ export type GetEventProjectsEventsEventIdProjectsGetData = {
     };
 };
 
-export type GetEventProjectsEventsEventIdProjectsGetResponse = (unknown);
+export type GetEventProjectsEventsEventIdProjectsGetResponse = (Array<Project>);
 
 export type GetEventProjectsEventsEventIdProjectsGetError = (HTTPValidationError);
 
@@ -357,7 +357,7 @@ export type GetAtIdEventsIdSlugGetData = {
     };
 };
 
-export type GetAtIdEventsIdSlugGetResponse = (unknown);
+export type GetAtIdEventsIdSlugGetResponse = (string);
 
 export type GetAtIdEventsIdSlugGetError = (HTTPValidationError);
 
@@ -417,14 +417,6 @@ export type GetProjectProjectsProjectIdGetResponse = (unknown);
 
 export type GetProjectProjectsProjectIdGetError = (HTTPValidationError);
 
-export type CheckProjectProjectsCheckPostData = {
-    body: Project;
-};
-
-export type CheckProjectProjectsCheckPostResponse = (Result);
-
-export type CheckProjectProjectsCheckPostError = (HTTPValidationError);
-
 export type StartProjectCheckProjectsCheckStartPostData = {
     body: Project;
 };
@@ -471,7 +463,7 @@ export type GetUserPublicUsersUserIdGetData = {
     };
 };
 
-export type GetUserPublicUsersUserIdGetResponse = (unknown);
+export type GetUserPublicUsersUserIdGetResponse = (UserPublic);
 
 export type GetUserPublicUsersUserIdGetError = (HTTPValidationError);
 

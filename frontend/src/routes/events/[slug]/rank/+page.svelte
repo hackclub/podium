@@ -4,7 +4,7 @@
   import { toast } from "svelte-sonner";
   import { EventsService } from "$lib/client/sdk.gen";
   import ProjectCard from "$lib/components/ProjectCard.svelte";
-  import { handleError, invalidateEvents, invalidateUser } from "$lib/misc";
+  import { customInvalidateAll, handleError, invalidateEvents, invalidateUser } from "$lib/misc";
   import { getAuthenticatedUser } from "$lib/user.svelte";
   import { invalidateAll, goto } from "$app/navigation";
 
@@ -35,8 +35,7 @@
       });
       toast.success("Vote submitted successfully");
       selectedProjects = [];
-      await invalidateUser();
-      await invalidateEvents();
+      await customInvalidateAll();
       // Navigate back to the event page
       await goto(`/events/${data.event.slug}`);
     } catch (err) {

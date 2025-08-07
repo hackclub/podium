@@ -1,6 +1,6 @@
 <script lang="ts">
   import { toast } from "svelte-sonner";
-  import { handleError, invalidateProjects } from "$lib/misc";
+  import { customInvalidateAll, handleError } from "$lib/misc";
 
   import { ProjectsService } from "$lib/client";
   import type { JoinProjectProjectsJoinPostData } from "$lib/client";
@@ -21,7 +21,7 @@
         throwOnError: true,
       });
       toast.success("Joined project successfully");
-      await invalidateProjects();
+      await customInvalidateAll();
       // Reset
       toSend.query.join_code = "";
       

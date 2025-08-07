@@ -2,7 +2,7 @@
   import { EventsService, ProjectsService } from "$lib/client/sdk.gen";
   import type { PublicProjectCreationPayload, Event } from "$lib/client";
   import { toast } from "svelte-sonner";
-  import { handleError, invalidateProjects } from "$lib/misc";
+  import { customInvalidateAll, handleError } from "$lib/misc";
   import Modal from "$lib/components/Modal.svelte";
 
   // Accept callback prop for when project is successfully created
@@ -52,7 +52,7 @@
         event: [""],
         hours_spent: 0,
       };
-      await invalidateProjects();
+      await customInvalidateAll();
       
       // Call the callback if provided (for auto-progression in SignupWizard)
       if (onProjectCreated) {

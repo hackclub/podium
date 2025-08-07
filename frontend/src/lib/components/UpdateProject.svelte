@@ -2,7 +2,7 @@
   import { EventsService, ProjectsService } from "$lib/client/sdk.gen";
   import type { Event, Project } from "$lib/client";
   import { toast } from "svelte-sonner";
-  import { customInvalidateAll, handleError, invalidateProjects } from "$lib/misc";
+  import { customInvalidateAll, handleError } from "$lib/misc";
   import type { PrivateProject, ProjectUpdate } from "$lib/client/types.gen";
   import { fade } from "svelte/transition";
   import { onMount } from "svelte";
@@ -90,7 +90,7 @@
         throwOnError: true,
       });
       toast.success("Project updated successfully");
-      await invalidateProjects();
+      await customInvalidateAll();
       updateModal.closeModal();
     } catch (err) {
       handleError(err);

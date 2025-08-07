@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { handleError, invalidateEvents } from "$lib/misc";
+  import { customInvalidateAll, handleError } from "$lib/misc";
   import { EventsService } from "$lib/client";
   import { toast } from "svelte-sonner";
   import { invalidate } from "$app/navigation";
@@ -9,22 +9,21 @@
 
   // Function to create a new event
   async function createEvent() {
-    const event = { name: eventName, description: eventDescription };
-    const { error: err } = await EventsService.createEventEventsPost({
-      body: event,
-      throwOnError: false,
-    });
-    if (err) {
-      handleError(err);
-      return;
-    }
-    toast.success("Event created successfully");
-    await invalidateEvents();
-    // Clear the form
-    eventName = "";
-    eventDescription = "";
-    // redirect to /events
-    await goto('/events');
+      const event = { name: eventName, description: eventDescription };
+      const {error: err} = await EventsService.createEventEventsPost({
+        body: event,
+        throwOnError: false,
+      });
+      if  (err) {
+          handleError(err);
+          return;
+      }
+      toast.success("Event created successfully");
+      await customInvalidateAll();
+      // Clear the form
+      eventName = "";
+      eventDescription = "";
+      await goto('/events');
   }
 </script>
 

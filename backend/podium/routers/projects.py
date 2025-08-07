@@ -15,8 +15,7 @@ from podium.db.project import (
     Project,
     PublicProjectCreationPayload,
 )
-from podium.generated.review_factory_models import Project as ReviewFactoryProject, Result as ReviewFactoryResult, CheckStatus
-from podium.db.project import ReviewFactoryClient
+from podium.generated.review_factory_models import CheckStatus
 from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH, BAD_ACCESS, EmptyModel
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -164,51 +163,6 @@ def get_project(project_id: Annotated[str, Path(pattern=r"^rec\w*$")]):
         )
     return Project.model_validate(project["fields"])
 
-
-
-@router.post("/check")
-async def check_project(project: Project) -> ReviewFactoryResult:
-    # TODO: add a parameter to force a recheck or request human review. This could just trigger a Slack webhook
-
-    # Check if the review factory token is set, and if it isn't, return a 500 error
-    if not settings.review_factory_token:
-        raise HTTPException(status_code=500, detail="Review Factory token not set on backend")
-
-    # Only check if the project exists in the DB
-    try:
-        # Don't trust the user to provide accurate cached_auto_quality data
-        project = InternalProject.model_validate(db.projects.get(project.id)["fields"])
-    except HTTPError as e:
-        if e.response.status_code not in AIRTABLE_NOT_FOUND_CODES:
-            raise e
-        raise HTTPException(status_code=404, detail="Project not found")
-
-    # Check if what was before is the same as what we have now. Might be better to replace with proper caching later
-    if not isinstance(project.cached_auto_quality, EmptyModel):
-        if (
-            (project.cached_auto_quality.repo == project.repo)
-            and (project.cached_auto_quality.demo == project.demo)
-            and (project.cached_auto_quality.image_url == project.image_url)
-        ):
-            # If it's all the same, return the cached stuff
-            return project.cached_auto_quality
-            
-    # Recheck the project and update cached data
-    client = ReviewFactoryClient(
-        base_url=settings.review_factory_url,
-        token=settings.review_factory_token,
-    )
-    # Convert our Project to ReviewFactoryProject format
-    review_factory_project = ReviewFactoryProject(
-        repo=str(project.repo),
-        demo=str(project.demo),
-    )
-    project.cached_auto_quality = await client.check_project(review_factory_project)
-    db.projects.update(
-        project.id,
-        {"cached_auto_quality": project.cached_auto_quality.model_dump_json()},
-    )
-    return project.cached_auto_quality
 
 
 @router.post("/check/start")

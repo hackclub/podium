@@ -1,4 +1,4 @@
-import { client } from "$lib/client/sdk.gen";
+import { client, UsersService } from "$lib/client/sdk.gen";
 import { AuthService } from "$lib/client/sdk.gen";
 import type { AuthenticatedUser, UserPrivate } from "./client";
 
@@ -51,7 +51,7 @@ export function signOut() {
 }
 
 export function validateToken(token: string): Promise<void> {
-  return AuthService.protectedRouteProtectedRouteGet({
+  return UsersService.getCurrentUserInfoUsersCurrentGet({
     headers: {
       Authorization: `Bearer ${token}`,
     },
