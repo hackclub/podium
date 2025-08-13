@@ -19,6 +19,7 @@
 ...defaultUser
   });
   $inspect(userInfo);
+  $inspect(showSignupFields); 
   let redirectUrl: string;
 
   // Convert countries to a list of objects with name and code
@@ -30,6 +31,7 @@
     .sort((a, b) => a.name.localeCompare(b.name));
 
   async function eitherLoginOrSignUp() {
+    // console.debug("eitherLoginOrSignUp", showSignupFields);
     // If showSignupFields is true, the user is signing up and signupAndLogin should be called. Otherwise, the user is logging in and login should be called.
     if (!showSignupFields) {
       login();

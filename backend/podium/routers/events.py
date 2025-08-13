@@ -6,7 +6,6 @@ from fastapi_cache.decorator import cache
 from podium.db.event import InternalEvent, PrivateEvent
 from podium.db.vote import CreateVotes, VoteCreate
 from pyairtable.formulas import match
-from pydantic import BaseModel
 from secrets import token_urlsafe
 
 

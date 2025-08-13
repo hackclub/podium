@@ -19,7 +19,6 @@ dependencies = [
     # "playwright (>=1.51.0,<2.0.0)",
     # "browser-use @ git+https://github.com/browser-use/browser-use.git@main",
     "httpx>=0.28.1,<0.29.0",
-    "browser-use>=0.5.5,<0.6.0",
     "steel-sdk (>=0.1.0,<0.2.0)",
     "python-slugify (>=8.0.4,<9.0.0)",
     "fastapi-cache2[memcache] (>=0.2.2,<0.3.0)",
@@ -27,7 +26,7 @@ dependencies = [
     "langchain-ollama (>=0.3.4,<0.4.0)",
     "langchain (>=0.3.26,<0.4.0)",
     "langchain-google-genai (>=2.1.7,<3.0.0)",
-    "datamodel-code-generator[openapi]>=0.32.0",
+    "datamodel-code-generator>=0.32.0",
 ]
 
 [project.optional-dependencies]
@@ -46,3 +45,18 @@ podium = "podium.__main__:main"
 
 [tool.ruff]
 lint.extend-select= ["FIX002"]
+
+[dependency-groups]
+dev = [
+    "browser-use>=0.5.11",
+    "loguru>=0.7.3",
+    "pyngrok>=7.3.0",
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.1.0",
+    "python-decouple>=3.8",
+    "ruff>=0.12.7",
+    "steel-sdk>=0.1.0",
+]
+
+[tool.pytest.ini_options]
+addopts = "-p no:warnings"

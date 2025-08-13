@@ -25,5 +25,10 @@
   ],
   "search.exclude": {
     "**/.vscode/*.md": true
-  }
+  },
+  "python.testing.pytestArgs": [
+    "backend"
+  ],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true
   }
