@@ -43,7 +43,9 @@ async def test_login(app_public_url, browser_session):
 
         # Check if the user was created in the database
         created_user_id = db.user.get_user_record_id_by_email(email)
-        logger.info(f"Finished signup attempt for {email} with result: {result}")
+        logger.info(
+            f"Finished signup attempt for {email}: success={result.success}, message='{result.message}', steel_view={getattr(browser_session, 'viewer_url', '')}"
+        )
         assert created_user_id is not None, "User was not created in the database"
     finally:
         # Best-effort cleanup of the test user if it was created
@@ -54,3 +56,5 @@ async def test_login(app_public_url, browser_session):
         except Exception:
             # Avoid failing the test teardown due to cleanup errors
             logger.warning(f"Failed to delete test user for {email}")
+
+

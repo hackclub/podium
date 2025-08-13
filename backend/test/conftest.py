@@ -17,6 +17,11 @@ from browser_use import BrowserSession
 import pytest_asyncio
 import steel
 from loguru import logger
+import uuid
+from datetime import timedelta
+
+from podium import db
+from podium.routers import auth as auth_router
 
 
 # Reduce verbosity of pyngrok loggers to hide INFO-level noise during tests
@@ -164,6 +169,11 @@ async def browser_session():
     )
 
     browser = BrowserSession(cdp_url=browser_cdp_url)
+    # Attach viewer URL for downstream logging
+    try:
+        setattr(browser, "viewer_url", browser_sess.session_viewer_url)
+    except Exception:
+        pass
 
     # Failsafe to release session on interpreter exit in case of hard interrupts
     def _release_session_on_exit(session_id: str):
@@ -189,3 +199,58 @@ async def browser_session():
             logger.warning(f"Could not release session {browser_sess.id}")
         except Exception:  # noqa: BLE001
             pass
+
+
+@pytest.fixture()
+def temp_user_tokens(app_public_url):
+    """
+    Create a temporary user directly in the DB, generate a short-lived access token
+    and a magic-link token for browser login. Yields a dict with keys:
+    - email, user_id, access_token, magic_link_token, magic_link_url
+
+    Ensures the user is deleted afterwards.
+    """
+    created_user_id: str | None = None
+    # match email format from test_login.py
+    email = f"testuser-{uuid.uuid4()}@example.com"
+    user_details = {
+        "display_name": "Test User",
+        "email": email,
+        "first_name": "Test",
+        "last_name": "User",
+        "phone": "1234567890",
+        "street_1": "123 Main St",
+        "city": "Anytown",
+        "state": "CA",
+        "zip_code": "12345",
+        "country": "United States",
+        # store in ISO format as expected by backend serialization
+        "dob": "2010-01-01",
+    }
+    try:
+        # Create user
+        created = db.users.create(user_details)
+        created_user_id = created["id"]
+        # Generate tokens
+        access_token = auth_router.create_access_token(
+            data={"sub": email}, expires_delta=timedelta(minutes=30), token_type="access"
+        )
+        magic_link_token = auth_router.create_access_token(
+            data={"sub": email}, expires_delta=timedelta(minutes=15), token_type="magic_link"
+        )
+        magic_link_url = f"{app_public_url}/login?token={magic_link_token}"
+
+        yield {
+            "email": email,
+            "user_id": created_user_id,
+            "access_token": access_token,
+            "magic_link_token": magic_link_token,
+            "magic_link_url": magic_link_url,
+        }
+    finally:
+        if created_user_id:
+            try:
+                db.users.delete(created_user_id)
+                logger.info(f"Deleted temporary user {email} ({created_user_id})")
+            except Exception:
+                logger.warning(f"Failed to delete temporary user for {email}")
