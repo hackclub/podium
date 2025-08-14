@@ -2,13 +2,13 @@
   import ProjectCard from "./ProjectCard.svelte";
   import UpdateProject from "./UpdateProject.svelte";
   import Modal from "./Modal.svelte";
-  import type { PrivateProject, Event, Result } from "$lib/client/types.gen";
+  import type { PrivateProject, Event, Unified } from "$lib/client/types.gen";
   import DOMPurify from "dompurify";
 
   interface Props {
     project: PrivateProject;
     events: Event[];
-    projectQualityResults: Record<string, Result>;
+    projectQualityResults: Record<string, Unified>;
     projectModalState: Record<string, Modal>;
     formatReasons: (reasons: string) => string;
   }
