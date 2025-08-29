@@ -1,6 +1,6 @@
 from __future__ import annotations
 from podium.constants import EmptyModel, SingleRecordField, MultiRecordField, UrlField
-from podium.generated.review_factory_models import Result
+from podium.generated.review_factory_models import Unified
 from pydantic import BaseModel, Field, StringConstraints, field_validator
 from typing import Annotated, Optional
 
@@ -51,7 +51,7 @@ class PrivateProject(Project):
 
 
 class InternalProject(PrivateProject):
-    cached_auto_quality: Result | EmptyModel = EmptyModel()
+    cached_auto_quality: Unified | EmptyModel = EmptyModel()
 
     # Allow it to be loaded as JSON
     @field_validator("cached_auto_quality", mode="before")
@@ -59,7 +59,7 @@ class InternalProject(PrivateProject):
     def load_cached_auto_quality(cls, v):
         if isinstance(v, str):
             try:
-                return Result.model_validate_json(v)
+                return Unified.model_validate_json(v)
             except Exception:
                 return EmptyModel()
         return v

@@ -53,6 +53,14 @@
                 "clear": false
             },
             "problemMatcher": []
+        },
+        {
+            "type": "npm",
+            "script": "svelte-check",
+            "path": "frontend",
+            "problemMatcher": [],
+            "label": "npm: svelte-check - frontend",
+            "detail": "svelte-check --threshold error"
         }
     ],
     "inputs": [

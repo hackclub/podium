@@ -5,7 +5,7 @@
   import ProjectCardWrapper from "$lib/components/ProjectCardWrapper.svelte";
   import { onMount } from "svelte";
   import { checkProjectQuality } from "$lib/async";
-  import type { Result } from "$lib/client";
+  import type { Unified } from "$lib/client";
   import Modal from "$lib/components/Modal.svelte";
   let { data }: { data: PageData } = $props();
 
@@ -17,7 +17,7 @@
     return DOMPurify.sanitize(reasons.replace(/\n/g, "<br>"));
   }
 
-  let projectQualityResults: Record<string, Result> = $state({});
+  let projectQualityResults: Record<string, Unified> = $state({});
   
   onMount(async () => {
     for (const project of data.projects) {

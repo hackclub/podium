@@ -1,9 +1,9 @@
-import { ProjectsService, type Result } from "./client";
+import { ProjectsService, type Unified } from "./client";
 
 /**
  * Poll for completion of a project quality check
  */
-export async function pollForCompletion(checkId: string): Promise<Result | null> {
+export async function pollForCompletion(checkId: string): Promise<Unified | null> {
   const maxAttempts = 60; // 5 minutes with 5-second intervals
   
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -42,7 +42,7 @@ export async function pollForCompletion(checkId: string): Promise<Result | null>
 /**
  * Check project quality with async polling
  */
-export async function checkProjectQuality(project: any): Promise<Result | null> {
+export async function checkProjectQuality(project: any): Promise<Unified | null> {
   try {
     const { data: checkStatus, error } = await ProjectsService.startProjectCheckProjectsCheckStartPost({
       body: { ...project },
@@ -65,4 +65,4 @@ export async function checkProjectQuality(project: any): Promise<Result | null> 
     console.error("Error checking project:", error);
     return null;
   }
-} 
+}

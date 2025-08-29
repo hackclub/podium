@@ -12,13 +12,20 @@ export type CheckStatus = {
     created_at: string;
     started_at?: (string | null);
     completed_at?: (string | null);
-    result?: (Result | null);
+    result?: (Unified | null);
     error?: (string | null);
 };
 
 export type CreateVotes = {
     projects: Array<(string)>;
     event: string;
+};
+
+export type Demo = {
+    deployed: boolean;
+    functional: boolean;
+    quality_percent: number;
+    reasoning?: (string | null);
 };
 
 export type Event = {
@@ -101,6 +108,8 @@ export type PrivateProject = {
     join_code: string;
 };
 
+export type ProgramType = 'cli' | 'web' | 'desktop' | 'mobile' | 'other';
+
 export type Project = {
     name: string;
     repo: string;
@@ -153,16 +162,30 @@ export type ProjectUpdate = {
     hours_spent?: number;
 };
 
-export type Result = {
-    demo: string;
-    repo: string;
-    image_url: string;
-    reason: string;
-    image_valid: boolean;
+export type Readme = {
+    features?: (Array<(string)> | null);
+    program_type?: (ProgramType | null);
+    reasoning?: (string | null);
+};
+
+export type Repo = {
+    github: boolean;
+    primary_language: string;
     valid: boolean;
+    features?: (Array<(string)> | null);
+    reasoning?: (string | null);
 };
 
 export type Status = 'pending' | 'running' | 'completed' | 'failed';
+
+export type Unified = {
+    valid: boolean;
+    readme_result: Readme;
+    repo_result: Repo;
+    demo_result: Demo;
+    reason: string;
+    image_valid: boolean;
+};
 
 /**
  * Return information regarding what the events the user owns and what events they are attending. If they are only attending an event, don't return sensitive information like participants.
