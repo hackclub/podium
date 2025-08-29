@@ -23,6 +23,7 @@ client.setConfig({
   baseUrl: PUBLIC_API_URL,
   headers: {
     Authorization: `Bearer ${getAuthenticatedUser().access_token}`,
+    "ngrok-skip-browser-warning": "hi",
   },
   // Instead of returning an error, throw an exception that can be caught with try/catch
   // This can be overridden by passing throwOnError.

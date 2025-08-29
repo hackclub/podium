@@ -9,6 +9,9 @@
   import { setSystemTheme, returnLoadingText } from "$lib/misc";
   import Modal from "$lib/components/Modal.svelte";
   import { goto } from "$app/navigation";
+
+  import Podium from "$lib/assets/podium.png"
+
   let aboutModal: Modal = $state() as Modal;
   let loadingText = $state(returnLoadingText());
   let loadingTextInterval: NodeJS.Timeout = $state() as NodeJS.Timeout;
@@ -80,6 +83,7 @@
 
 <svelte:head>
   <title>{title}</title>
+  <link rel="icon" href={Podium} />
   <meta name="description" content={description} />
   {#each additionalMeta as { name, content }}
     <meta {name} {content} />

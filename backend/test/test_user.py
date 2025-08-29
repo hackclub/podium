@@ -14,7 +14,7 @@ class SignupResult(BaseModel):
 
 
 @pytest.mark.asyncio
-async def test_login(app_public_url, browser_session):
+async def test_signup(app_public_url, browser_session):
     created_user_id: str | None = None
     # tell the agent to go signup with <uuid>@example.com, and then, check if the user was created in the database
     email = f"testuser-{uuid.uuid4()}@example.com"

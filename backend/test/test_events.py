@@ -22,6 +22,7 @@ def _unique_name(prefix: str) -> str:
 
 
 @pytest.mark.asyncio
+# uv run pytest -s -k "test_event_creation"                                                                                                                                                                       
 async def test_event_creation(app_public_url, browser_session, temp_user_tokens):
     created_event_id: str | None = None
     event_name = _unique_name("E2E Event")
