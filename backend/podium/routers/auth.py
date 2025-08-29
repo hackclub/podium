@@ -9,7 +9,7 @@ from podium import db, settings
 from fastapi import APIRouter, HTTPException, Query, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from podium.constants import BAD_AUTH
-from podium.db.user import UserLoginPayload, UserPrivate
+from podium.db.user import UserLoginPayload, UserPrivate, UserInternal
 from pydantic import BaseModel
 import jwt
 from jwt.exceptions import PyJWTError
@@ -134,7 +134,7 @@ security = HTTPBearer()
 # It seems this being depended upon by a method can make openapi-ts think that even if an error isn't raised, the response could still be None. Without this, it seems to assume that the response, if not having an error, would contain whatever the expected (typed) response is. Could just be a result of Depends() in general though
 async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
-) -> UserPrivate:
+) -> UserInternal:
     """
     Create a user object from a JWT access token. If the email that's encoded in the token isn't associated with a record, return None.
     """
@@ -154,7 +154,7 @@ async def get_current_user(
         raise BAD_AUTH
     user = db.users.get(user_id)
 
-    return UserPrivate.model_validate(user["fields"])
+    return UserInternal.model_validate(user["fields"])
 
 if __name__ == "__main__":
     # create a dev access JWT and  a magic link JWT

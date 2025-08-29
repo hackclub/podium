@@ -6,8 +6,9 @@ from fastapi_cache.decorator import cache
 from fastapi_cache import FastAPICache
 from podium.db.user import (
     UserSignupPayload,
-    UserPrivate,
+    UserInternal,
     UserPublic,
+    UserPrivate,
     UserUpdate,
     get_user_record_id_by_email,
 )
@@ -34,7 +35,7 @@ def user_exists(email: Annotated[EmailStr, Query(...)]) -> UserExistsResponse:
 
 @router.get("/current")
 def get_current_user_info(
-    current_user: Annotated[UserPrivate, Depends(get_current_user)],
+    current_user: Annotated[UserInternal, Depends(get_current_user)],
 ) -> UserPrivate:
     if current_user:
         return current_user
@@ -44,7 +45,7 @@ def get_current_user_info(
 @router.put("/current")
 async def update_current_user(
     user_update: UserUpdate,
-    current_user: Annotated[UserPrivate, Depends(get_current_user)],
+    current_user: Annotated[UserInternal, Depends(get_current_user)],
 ) -> UserPrivate:
     """
     Update the current user's information

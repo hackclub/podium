@@ -1,5 +1,5 @@
 import datetime
-from typing import Annotated, Optional
+from typing import Annotated, List, Optional, Type, TypeVar
 from pydantic import BaseModel, Field, StringConstraints
 from podium import constants
 
@@ -20,14 +20,16 @@ class UserLoginPayload(BaseModel):
 class UserBase(BaseModel):
     display_name: str = ""
 
-
 class UserPublic(UserBase): ...
 
-
-class UserSignupPayload(UserBase):  
+class UserAttendee(UserPublic): 
     email: EmailStrippedLower
     first_name: FirstName
     last_name: LastName
+
+
+
+class UserSignupPayload(UserAttendee):
     # Optional since some users don't have a last name in the DB
     # International phone number format, allowing empty string
     # this should have a default since I think Airtable may return None
@@ -63,8 +65,7 @@ class UserSignupPayload(UserBase):
 
 class UserUpdate(UserSignupPayload): ...
 
-
-class UserPrivate(UserSignupPayload):
+class UserPrivate(UserSignupPayload): 
     id: Annotated[str, StringConstraints(pattern=constants.RECORD_REGEX)]
     votes: constants.MultiRecordField = []
     projects: constants.MultiRecordField = []
@@ -73,9 +74,19 @@ class UserPrivate(UserSignupPayload):
     attending_events: constants.MultiRecordField = []
     referral: constants.MultiRecordField = []
 
+class UserInternal(UserPrivate): ...
+
+
 
 def get_user_record_id_by_email(email: str) -> Optional[str]:
     users_table = tables["users"]
     formula = match({"email": email})
     records = users_table.all(formula=formula)
     return records[0]["id"] if records else None
+
+
+T = TypeVar("T", bound=UserBase)
+def get_users_from_record_ids(record_ids: List[str], model: Type[T]) -> List[T]:
+    users_table = tables["users"]
+    records = users_table.batch_get(record_ids)
+    return [model.model_validate(record["fields"]) for record in records]

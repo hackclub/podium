@@ -33,7 +33,7 @@ export class AuthService {
 export class EventsService {
     /**
      * Get Event
-     * Get an event by its ID. If the user owns it, return a PrivateEvent. Otherwise, return a regular event. Can be called with invalid auth credentials if needed, but will need something in the bearer token for the code to work
+     * Get an event by its ID. An owner of the event can get more information via GET /events/{event_id} instead of this endpoint. Can be called with invalid auth credentials if needed, but will need something in the bearer token for the code to work
      */
     public static getEventEventsEventIdGet<ThrowOnError extends boolean = false>(options: OptionsLegacyParser<GetEventEventsEventIdGetData, ThrowOnError>) {
         return (options?.client ?? client).get<GetEventEventsEventIdGetResponse, GetEventEventsEventIdGetError, ThrowOnError>({
