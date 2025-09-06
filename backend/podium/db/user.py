@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field, StringConstraints
 from podium import constants
 
 from podium.db import tables
-from pyairtable.formulas import match
+from pyairtable.formulas import match, OR, EQ, Field as AirtableField    
 
 FirstName = Annotated[str, Field(..., min_length=1, max_length=50)]
 LastName = Annotated[str, Field(default="")]
@@ -22,14 +22,19 @@ class UserBase(BaseModel):
 
 class UserPublic(UserBase): ...
 
-class UserAttendee(UserPublic): 
+class   _UserPrivilegedFields(UserPublic):
+    """This is the same as UserAttendee but without the id field so we can reduce field duplication in the signup payload. Should not be used directly, you probably want UserAttendee"""
     email: EmailStrippedLower
     first_name: FirstName
     last_name: LastName
 
+class UserAttendee(_UserPrivilegedFields): 
+    """This model has fields that only event owners should see (and the user themselves)"""
+    id: Annotated[str, StringConstraints(pattern=constants.RECORD_REGEX)]
 
 
-class UserSignupPayload(UserAttendee):
+
+class UserSignupPayload(_UserPrivilegedFields):
     # Optional since some users don't have a last name in the DB
     # International phone number format, allowing empty string
     # this should have a default since I think Airtable may return None
@@ -88,5 +93,12 @@ def get_user_record_id_by_email(email: str) -> Optional[str]:
 T = TypeVar("T", bound=UserBase)
 def get_users_from_record_ids(record_ids: List[str], model: Type[T]) -> List[T]:
     users_table = tables["users"]
-    records = users_table.batch_get(record_ids)
+    if not record_ids:
+        return []
+    
+    # Use PyAirtable's OR and EQ functions for multiple record ID matching
+    expressions = [EQ(AirtableField("id"), record_id) for record_id in record_ids]
+    formula = OR(*expressions)
+    
+    records = users_table.all(formula=formula)
     return [model.model_validate(record["fields"]) for record in records]

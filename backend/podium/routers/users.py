@@ -71,7 +71,7 @@ async def update_current_user(
 
 # The reason we're specifying response_model here is because of https://github.com/long2ice/fastapi-cache/issues/384
 @router.get("/{user_id}", response_model=UserPublic)
-@cache(expire=5, namespace="users")
+@cache(expire=15*60, namespace="users")
 async def get_user_public(
     user_id: Annotated[str, Path(title="User Airtable ID")],
 ) -> UserPublic:

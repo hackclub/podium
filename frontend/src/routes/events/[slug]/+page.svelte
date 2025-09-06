@@ -1,5 +1,7 @@
 <script lang="ts">
   import type { PageData } from "./$types";
+  import AdminPanel from '$lib/components/event-admin/AdminPanel.svelte';
+
   let { data }: { data: PageData } = $props();
 </script>
 
@@ -19,17 +21,21 @@
       >
     </div>
   {/if}
-  <div
-    class="tooltip"
-    data-tip={data.event.leaderboard_enabled
-      ? "View the leaderboard"
-      : "The event organizer has not enabled the leaderboard yet."}
-  >
-    <a
-      href={`/events/${data.event.slug}/leaderboard`}
-      class="btn-primary btn btn-block {data.event.leaderboard_enabled
-        ? ''
-        : 'btn-disabled'}">Leaderboard</a
+  {#if !data.event.owned}
+    <div
+      class="tooltip"
+      data-tip={data.event.leaderboard_enabled
+        ? "View the leaderboard"
+        : "The event organizer has not enabled the leaderboard yet."}
     >
-  </div>
+      <a
+        href={`/events/${data.event.slug}/leaderboard`}
+        class="btn-primary btn btn-block {data.event.leaderboard_enabled
+          ? ''
+          : 'btn-disabled'}">Leaderboard</a
+      >
+    </div>
+  {/if}
 </div>
+
+<AdminPanel event={data.event} />

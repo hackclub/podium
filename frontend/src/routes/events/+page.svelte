@@ -1,7 +1,7 @@
 <svelte:options runes />
 
 <script lang="ts">
-  import UpdateEvent from "$lib/components/UpdateEvent.svelte";
+  import UpdateEvent from "$lib/components/event-admin/UpdateEvent.svelte";
   import { EventsService } from "$lib/client";
   import type { PageData } from "./$types";
   import { handleError } from "$lib/misc";

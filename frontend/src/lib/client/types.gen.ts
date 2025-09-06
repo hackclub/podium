@@ -82,6 +82,7 @@ export type PrivateEvent = {
     join_code: string;
     projects?: Array<(string)>;
     referrals?: Array<(string)>;
+    owned?: (boolean | null);
     readonly max_votes_per_user: number;
 };
 
@@ -188,6 +189,17 @@ export type Unified = {
 };
 
 /**
+ * This model has fields that only event owners should see (and the user themselves)
+ */
+export type UserAttendee = {
+    display_name?: string;
+    email: string;
+    first_name: string;
+    last_name?: string;
+    id: string;
+};
+
+/**
  * Return information regarding what the events the user owns and what events they are attending. If they are only attending an event, don't return sensitive information like participants.
  */
 export type UserEvents = {
@@ -265,6 +277,19 @@ export type ValidationError = {
     type: string;
 };
 
+export type Vote = {
+    project: [
+        string
+    ];
+    event: [
+        string
+    ];
+    voter: [
+        string
+    ];
+    id: string;
+};
+
 export type RequestLoginRequestLoginPostData = {
     body: UserLoginPayload;
     query: {
@@ -316,6 +341,47 @@ export type DeleteEventEventsEventIdDeleteData = {
 export type DeleteEventEventsEventIdDeleteResponse = (unknown);
 
 export type DeleteEventEventsEventIdDeleteError = (HTTPValidationError);
+
+export type GetEventAttendeesEventsEventIdAttendeesGetData = {
+    path: {
+        event_id: string;
+    };
+};
+
+export type GetEventAttendeesEventsEventIdAttendeesGetResponse = (Array<UserAttendee>);
+
+export type GetEventAttendeesEventsEventIdAttendeesGetError = (HTTPValidationError);
+
+export type RemoveAttendeeEventsEventIdRemoveAttendeePostData = {
+    body: string;
+    path: {
+        event_id: string;
+    };
+};
+
+export type RemoveAttendeeEventsEventIdRemoveAttendeePostResponse = (unknown);
+
+export type RemoveAttendeeEventsEventIdRemoveAttendeePostError = (HTTPValidationError);
+
+export type GetEventLeaderboardEventsEventIdLeaderboardGetData = {
+    path: {
+        event_id: string;
+    };
+};
+
+export type GetEventLeaderboardEventsEventIdLeaderboardGetResponse = (Array<Project>);
+
+export type GetEventLeaderboardEventsEventIdLeaderboardGetError = (HTTPValidationError);
+
+export type GetEventVotesEventsEventIdVotesGetData = {
+    path: {
+        event_id: string;
+    };
+};
+
+export type GetEventVotesEventsEventIdVotesGetResponse = (Array<Vote>);
+
+export type GetEventVotesEventsEventIdVotesGetError = (HTTPValidationError);
 
 export type GetAttendingEventsEventsGetResponse = (UserEvents);
 

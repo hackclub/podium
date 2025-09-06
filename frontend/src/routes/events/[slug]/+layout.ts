@@ -54,7 +54,10 @@ export const load: LayoutLoad = async ({ params, fetch, url, route }) => {
       console.error(eventErr, eventResponse);
       throw error(eventResponse.status, JSON.stringify(eventErr));
     } else {
-      // Check if the user is attending the event
+      // Check if the user is attending the event and if they own it
+      let partOfEvent = false;
+      let owned = false;
+      
       if (getAuthenticatedUser().access_token) {
         const {
           data,
@@ -69,9 +72,8 @@ export const load: LayoutLoad = async ({ params, fetch, url, route }) => {
         } else {
           partOfEvent =
             data?.attending_events.some((e) => e.id === event.id) || false;
+          owned = data?.owned_events.some((e) => e.id === event.id) || false;
         }
-      } else {
-        partOfEvent = false;
       }
 
       const meta = [
@@ -83,7 +85,7 @@ export const load: LayoutLoad = async ({ params, fetch, url, route }) => {
       return {
         event: {
           ...event,
-          owned: "attendees" in event,
+          owned,
           partOfEvent,
         },
         title: event.name,

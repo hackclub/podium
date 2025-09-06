@@ -4,9 +4,9 @@
   import { toast } from "svelte-sonner";
   import { customInvalidateAll, handleError } from "$lib/misc";
   import type { PrivateProject, ProjectUpdate } from "$lib/client/types.gen";
-  import { fade } from "svelte/transition";
   import { onMount } from "svelte";
   import Modal from "$lib/components/Modal.svelte";
+  import ConfirmationModal from "$lib/components/ConfirmationModal.svelte";
 
 
   // let events: Event[] = $state([]);
@@ -30,6 +30,7 @@
     }: { preselectedProject: PrivateProject; events: Array<Event>} = $props();
   
   let updateModal: Modal = $state() as Modal;
+  let deleteConfirmation: ConfirmationModal = $state() as ConfirmationModal;
 
   // Track the selected event's demo_links_optional setting
   let selectedEvent = $derived(events.find(e => e.id === preselectedProject.event[0]));
@@ -54,28 +55,22 @@
   let project: ProjectUpdate  = $derived({ ...preselectedProject })
   $inspect(project);
 
-  let showDeleteAlert = $state(false);
-
   async function deleteProject() {
-    showDeleteAlert = false;
-      const {data, error: err} = await ProjectsService.deleteProjectProjectsProjectIdDelete({
-        path: { project_id: preselectedProject.id },
-        throwOnError: false,
-      });
-      if (err) {
-        handleError(err);
-        return;
-      }
-      toast.success("Project deleted successfully");
-      await customInvalidateAll();
-      updateModal.closeModal();
+    const {data, error: err} = await ProjectsService.deleteProjectProjectsProjectIdDelete({
+      path: { project_id: preselectedProject.id },
+      throwOnError: false,
+    });
+    if (err) {
+      handleError(err);
+      return;
+    }
+    toast.success("Project deleted successfully");
+    await customInvalidateAll();
+    updateModal.closeModal();
   }
 
-  async function confirmDeleteProject() {
-    showDeleteAlert = true;
-    setTimeout(() => {
-      showDeleteAlert = false;
-    }, 5000);
+  function confirmDeleteProject() {
+    deleteConfirmation.open();
   }
 
   // onMount(() => {
@@ -193,26 +188,23 @@
         <button
           class="btn btn-block mt-4 btn-warning"
           type="button"
-          onclick={() => confirmDeleteProject()}
+          onclick={confirmDeleteProject}
         >
           Delete Project
         </button>
     </fieldset>
   </div>
   <!-- </form> -->
-    {#if showDeleteAlert}
-    <div role="alert" class="alert" in:fade out:fade>
-      <span>Are you <strong>sure</strong> you want to delete this project?</span
-      >
-      <div>
-        <button class="btn" onclick={() => (showDeleteAlert = false)}>
-          Cancel
-        </button>
-        <button class="btn btn-error" onclick={() => deleteProject()}>
-          Delete
-        </button>
-      </div>
-    </div>
-  {/if}
 </div>
 </Modal>
+
+<ConfirmationModal
+  bind:this={deleteConfirmation}
+  title="Delete Project"
+  message="Are you sure you want to delete this project? This action cannot be undone."
+  confirmText="Delete"
+  cancelText="Cancel"
+  confirmClass="btn-error"
+  onConfirm={deleteProject}
+  onCancel={() => {}}
+/>

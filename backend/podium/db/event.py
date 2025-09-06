@@ -65,6 +65,8 @@ class PrivateEvent(Event):
     join_code: str
     projects: MultiRecordField = []
     referrals: MultiRecordField = []
+    # If the frontend has a PrivateEvent object, it means the user has owner access to the event
+    owned: Optional[bool] = True
 
 
 
