@@ -1,7 +1,9 @@
-FROM python:3.13-slim
+FROM python:3.13
 
 ENV UV_LINK_MODE=copy
 
+RUN apt-get update && apt-get install -y \
+    wget
 ADD . /app
 WORKDIR /app
 
