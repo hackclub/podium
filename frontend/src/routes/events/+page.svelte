@@ -11,18 +11,11 @@
 </script>
 
 <div class="max-w-6xl mx-auto space-y-8">
-
-  <!-- Help text -->
-  <div class="text-center mb-6">
-    <p class="text-base-content/60 text-sm">
-      Click on an event to view the leaderboard or to vote on projects.
-    </p>
-  </div>
-
   <!-- Events you're attending -->
   <div class="card bg-base-100 shadow-lg">
     <div class="card-body">
       <h2 class="card-title text-xl mb-4">Events You're Attending</h2>
+      <p class="text-base-content/70 mb-4">Click on an event's name to view the event page, the leaderboard, or to vote on projects.</p>
       {#if data.events.attending_events.length > 0}
         <div class="overflow-x-auto">
           <table class="table table-zebra w-full">
@@ -62,6 +55,9 @@
     <div class="card bg-base-100 shadow-lg">
       <div class="card-body">
         <h2 class="card-title text-xl mb-4">Events You Own</h2>
+        <p class="text-base-content/70 mb-4">
+          Click on an event's name to view the event page, the leaderboard, or to vote on projects.
+        </p>
         <div class="overflow-x-auto">
           <table class="table table-zebra w-full">
             <thead>

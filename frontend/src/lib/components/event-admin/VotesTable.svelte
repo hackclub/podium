@@ -3,11 +3,11 @@
 
   interface Props {
     votes: Vote[];
-    voterLookup: Map<string, string>;
+    userLookup: Map<string, string>;
     projectLookup: Map<string, string>;
   }
 
-  let { votes, voterLookup, projectLookup }: Props = $props();
+  let { votes, userLookup, projectLookup }: Props = $props();
 </script>
 
 <div class="card bg-base-200">
@@ -29,7 +29,7 @@
             {#each votes as vote}
               <tr>
                 <td>
-                  <div class="font-medium">{voterLookup.get(vote.voter[0]) || 'Unknown User'}</div>
+                  <div class="font-medium">{userLookup.get(vote.voter[0]) || 'Unknown User'}</div>
                   <div class="text-xs text-base-content/70 font-mono">{vote.voter[0]}</div>
                 </td>
                 <td>

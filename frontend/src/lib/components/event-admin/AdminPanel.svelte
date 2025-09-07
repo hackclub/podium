@@ -1,12 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { EventsService } from '$lib/client/sdk.gen';
-  import type { UserAttendee, Project, Event, Vote } from '$lib/client/types.gen';
+  import type { UserAttendee, Project, Event, Vote, Referral } from '$lib/client/types.gen';
   import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
   import UpdateEvent from './UpdateEvent.svelte';
   import AttendeesTable from './AttendeesTable.svelte';
   import AdminLeaderboard from './AdminLeaderboard.svelte';
   import VotesTable from './VotesTable.svelte';
+  import ReferralsTable from './ReferralsTable.svelte';
   import { handleError, returnLoadingText } from '$lib/misc';
   import { getAuthenticatedUser } from '$lib/user.svelte';
   import { toast } from 'svelte-sonner';
@@ -21,10 +22,11 @@
   let attendees = $state<UserAttendee[]>([]);
   let adminLeaderboard = $state<Project[]>([]);
   let votes = $state<Vote[]>([]);
+  let referrals = $state<Referral[]>([]);
   let loading = $state(false);
   
   // Lookup maps for efficient data access
-  let voterLookup = $state<Map<string, string>>(new Map());
+  let userLookup = $state<Map<string, string>>(new Map());
   let projectLookup = $state<Map<string, string>>(new Map());
 
   // Load admin data after component mounts
@@ -37,7 +39,7 @@
   async function loadAdminData() {
     loading = true;
     try {
-      const [attendeesResult, leaderboardResult, votesResult] = await Promise.all([
+      const [attendeesResult, leaderboardResult, votesResult, referralsResult] = await Promise.all([
         EventsService.getEventAttendeesEventsEventIdAttendeesGet({
           path: { event_id: event.id },
           throwOnError: false
@@ -47,6 +49,10 @@
           throwOnError: false
         }),
         EventsService.getEventVotesEventsEventIdVotesGet({
+          path: { event_id: event.id },
+          throwOnError: false
+        }),
+        EventsService.getEventReferralsEventsEventIdReferralsGet({
           path: { event_id: event.id },
           throwOnError: false
         })
@@ -60,6 +66,9 @@
 
       if (votesResult.error) handleError(votesResult.error);
       else votes = votesResult.data || [];
+
+      if (referralsResult.error) handleError(referralsResult.error);
+      else referrals = referralsResult.data || [];
       
       // Build lookup maps from existing data
       buildLookupMaps();
@@ -71,10 +80,10 @@
   }
 
   function buildLookupMaps() {
-    // Build voter lookup from attendees
-    voterLookup.clear();
+    // Build user lookup from attendees (for votes and referrals)
+    userLookup.clear();
     attendees.forEach(attendee => {
-      voterLookup.set(attendee.id, `${attendee.first_name} ${attendee.last_name || ''}`.trim());
+      userLookup.set(attendee.id, `${attendee.first_name} ${attendee.last_name || ''}`.trim());
     });
     
     // Build project lookup from admin leaderboard
@@ -189,7 +198,10 @@
       <AdminLeaderboard projects={adminLeaderboard} />
 
       <!-- Votes Table -->
-      <VotesTable {votes} {voterLookup} {projectLookup} />
+      <VotesTable {votes} userLookup={userLookup} {projectLookup} />
+
+      <!-- Referrals Table -->
+      <ReferralsTable {referrals} {userLookup} />
     </div>
   {/if}
 {/if}

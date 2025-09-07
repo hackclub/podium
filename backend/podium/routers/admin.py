@@ -10,6 +10,7 @@ from podium.db.user import get_users_from_record_ids, UserAttendee
 from podium.routers.auth import UserInternal
 from podium.db.project import Project
 from podium.db.vote import Vote
+from podium.db.referral import Referral
 from podium.routers.events import get_projects_for_event
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -104,3 +105,27 @@ def get_event_votes(
     formula = match({"event_id": event_id})
     votes = db.votes.all(formula=formula)
     return [Vote.model_validate(vote["fields"]) for vote in votes]
+
+
+@router.get("/{event_id}/referrals")
+def get_event_referrals(
+    event_id: Annotated[str, Path(title="Event ID")],
+    user: Annotated[UserInternal, Depends(get_current_user)],
+) -> List[Referral]:
+    """Get all referrals for an event (admin only)"""
+    if not is_user_event_owner(user, event_id):
+        raise BAD_ACCESS
+    
+    try:
+        db.events.get(event_id)
+    except HTTPException as e:
+        raise (
+            HTTPException(status_code=404, detail="Event not found")
+            if e.status_code in AIRTABLE_NOT_FOUND_CODES
+            else e
+        )
+    
+    # Get all referrals for this event
+    formula = match({"event_id": event_id})
+    referrals = db.referrals.all(formula=formula)
+    return [Referral.model_validate(referral["fields"]) for referral in referrals]

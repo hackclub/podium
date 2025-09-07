@@ -169,6 +169,17 @@ export type Readme = {
     reasoning?: (string | null);
 };
 
+export type Referral = {
+    content?: string;
+    event: [
+        string
+    ];
+    user: [
+        string
+    ];
+    id: string;
+};
+
 export type Repo = {
     github: boolean;
     primary_language: string;
@@ -382,6 +393,16 @@ export type GetEventVotesEventsEventIdVotesGetData = {
 export type GetEventVotesEventsEventIdVotesGetResponse = (Array<Vote>);
 
 export type GetEventVotesEventsEventIdVotesGetError = (HTTPValidationError);
+
+export type GetEventReferralsEventsEventIdReferralsGetData = {
+    path: {
+        event_id: string;
+    };
+};
+
+export type GetEventReferralsEventsEventIdReferralsGetResponse = (Array<Referral>);
+
+export type GetEventReferralsEventsEventIdReferralsGetError = (HTTPValidationError);
 
 export type GetAttendingEventsEventsGetResponse = (UserEvents);
 
