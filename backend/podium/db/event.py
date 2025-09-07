@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from podium import db
 from podium.constants import AIRTABLE_NOT_FOUND_CODES, MultiRecordField, SingleRecordField, Slug
-from pydantic import BaseModel, StringConstraints, computed_field
+from pydantic import BaseModel, Field, StringConstraints, computed_field
 from typing import Annotated, List, Optional
 from functools import cached_property
 

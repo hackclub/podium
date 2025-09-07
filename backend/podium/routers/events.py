@@ -109,7 +109,7 @@ def create_event(
         slug=slug,
         id="",  # Placeholder to prevent an unnecessary class
     )
-    db.events.create(full_event.model_dump(exclude={"id", "max_votes_per_user"}))[
+    db.events.create(full_event.model_dump(exclude={"id", "max_votes_per_user", "owned"}))[
         "fields"
     ]
 

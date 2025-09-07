@@ -22,7 +22,7 @@ def _unique_name(prefix: str) -> str:
 
 
 @pytest.mark.asyncio
-# uv run pytest -s -k "test_event_creation"                                                                                                                                                                       
+# uv run pytest -s -k "test_event_creation"                                                                                                                                                                     
 async def test_event_creation(app_public_url, browser_session, temp_user_tokens):
     created_event_id: str | None = None
     event_name = _unique_name("E2E Event")
@@ -45,12 +45,21 @@ async def test_event_creation(app_public_url, browser_session, temp_user_tokens)
             f"Event creation result: success={result.success}, message='{result.message}', steel_view={getattr(browser_session, 'viewer_url', '')}"
         )
 
-        # Verify event in DB
+        # Verify event in DB - this is the primary test assertion
         slug = slugify(event_name, lowercase=True, separator="-")
         record = db.events.first(formula=match({"slug": slug}))
-        assert record is not None, "Event was not created"
+        assert record is not None, "Event was not created in database"
         created_event_id = record["id"]
-        assert temp_user_tokens["user_id"] in record["fields"].get("owner", []), "User not owner of event"
+        
+        # Verify event details
+        assert record["fields"]["name"] == event_name, "Event name should match"
+        assert record["fields"]["description"] == description, "Event description should match"
+        assert temp_user_tokens["user_id"] in record["fields"].get("owner", []), "User should be owner of event"
+        assert record["fields"]["slug"] == slug, "Event slug should be correct"
+        
+        # Verify the event can be retrieved by ID
+        event_by_id = db.events.get(created_event_id)
+        assert event_by_id["fields"]["name"] == event_name, "Event should be retrievable by ID"
     finally:
         if created_event_id:
             try:
@@ -80,6 +89,11 @@ async def test_event_joining(app_public_url, browser_session, temp_user_tokens):
         )
         created_event_id = created["id"]
 
+        # Verify initial state - user should not be an attendee yet
+        event_before = db.events.get(created_event_id)
+        assert temp_user_tokens["user_id"] not in event_before["fields"].get("attendees", []), "User should not be attendee initially"
+        assert event_before["fields"]["join_code"] == join_code, "Join code should match"
+
         prompt = (
             f"{magic_url(temp_user_tokens)} "
             f"Join the event using this join code: {join_code}."
@@ -95,9 +109,14 @@ async def test_event_joining(app_public_url, browser_session, temp_user_tokens):
             f"Event joining result: success={result.success}, message='{result.message}', steel_view={getattr(browser_session, 'viewer_url', '')}"
         )
 
-        # Verify attendee added
-        event = db.events.get(created_event_id)
-        assert temp_user_tokens["user_id"] in event["fields"].get("attendees", []), "User not added as attendee"
+        # Verify attendee was added - this is the primary test assertion
+        event_after = db.events.get(created_event_id)
+        assert temp_user_tokens["user_id"] in event_after["fields"].get("attendees", []), "User should be added as attendee"
+        
+        # Verify other event details remain unchanged
+        assert event_after["fields"]["name"] == name, "Event name should remain unchanged"
+        assert event_after["fields"]["join_code"] == join_code, "Join code should remain unchanged"
+        assert event_after["fields"]["slug"] == slug, "Event slug should remain unchanged"
     finally:
         if created_event_id:
             try:

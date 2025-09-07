@@ -1,4 +1,5 @@
 # uv run pytest -s
+import asyncio
 import logging
 import os
 import sys
@@ -12,16 +13,12 @@ import httpx
 import shutil
 from test import APP_PORT, settings
 import atexit
-import asyncio
 from browser_use import BrowserSession
 import pytest_asyncio
 import steel
 from loguru import logger
-import uuid
-from datetime import timedelta
 
 from podium import db
-from podium.routers import auth as auth_router
 from test.utils import create_temp_user_tokens
 
 
@@ -60,8 +57,6 @@ def app_public_url():
             [sys.executable, "-m", "podium"],
             cwd=str(backend_cwd),
             env=env_backend,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
         )
         _wait_for_http("http://127.0.0.1:8000/docs", timeout_seconds=90)
         logger.info("Backend is ready on http://127.0.0.1:8000")

@@ -1,0 +1,197 @@
+---
+description: Guidelines for AI-driven browser automation tests using browser agents
+globs: test/*.py
+---
+
+# AI-Driven Test Guidelines
+
+This project uses AI-driven browser automation tests that rely on browser agents to simulate user interactions. Follow these patterns and best practices.
+
+## Test Structure Pattern
+
+### 1. Database-First Verification
+- **Always verify database state** before and after browser agent execution
+- **Don't rely solely on agent success/failure** - use database verification as primary pass/fail criteria
+- **Create test data directly in database** rather than through UI when possible
+
+```python
+# ✅ Good: Verify database state
+event = db.events.get(created_event_id)
+assert event["fields"]["owner"] == [user_id], "Event ownership verified"
+
+# ❌ Bad: Relying only on agent output
+assert result.success, "Agent reported success"
+```
+
+### 2. Test Data Management
+- **Use real database records** instead of fake IDs
+- **Create complete user records** with all required fields
+- **Clean up test data** in finally blocks
+- **Use unique names** with UUIDs to avoid conflicts
+
+```python
+# ✅ Good: Create real user
+attendee_user = db.users.create({
+    "display_name": "Test Attendee",
+    "email": f"attendee-{uuid.uuid4()}@example.com",
+    "first_name": "Attendee",
+    "last_name": "User",
+    # ... all required fields
+})
+
+# ❌ Bad: Using fake IDs
+attendee_id = "usr" + token_urlsafe(8)
+```
+
+### 3. Database Field Names
+- **Use correct field names** that match the database schema
+- **Use array format** for relationship fields (e.g., `"event": [event_id]`)
+- **Exclude computed fields** from creation operations
+
+```python
+# ✅ Good: Correct field names and formats
+project = db.projects.create({
+    "name": "Test Project",
+    "event": [created_event_id],  # Array format
+    "owner": [user_id],           # Array format
+    "repo": "https://example.com/repo",
+    # Exclude computed fields like "points"
+})
+
+# ❌ Bad: Wrong field names
+project = db.projects.create({
+    "name": "Test Project",
+    "event_id": created_event_id,  # Wrong field name
+    "points": 100,                 # Computed field
+})
+```
+
+## Browser Agent Prompts
+
+### 4. Clear Success Criteria
+- **Define explicit success criteria** in prompts with numbered steps
+- **Clarify that empty data is expected** for new events
+- **Emphasize UI exploration over data content**
+- **Use direct "Return success=true" instructions** for clarity
+
+```python
+prompt = (
+    f"{magic_url(temp_user_tokens)} "
+    f"Navigate to your event '{event_name}' and access the admin panel. "
+    "Verify you can see admin features like attendees, leaderboard, etc. "
+    "IMPORTANT: This test should return SUCCESS if you can: "
+    "1. Navigate to the admin panel "
+    "2. Find admin UI sections (attendees, leaderboard, votes, referrals) "
+    "3. Access these sections even if they show empty data "
+    "Empty data sections are EXPECTED for new events. Finding the admin UI is SUCCESS. "
+    "Return success=true if you can access the admin panel and see admin sections."
+)
+```
+
+### 5. Handle Agent Behavior
+- **Expect functionality testing** - agents may test remove/delete features
+- **Account for data changes** during testing
+- **Focus on UI accessibility** rather than data preservation
+
+```python
+# ✅ Good: Account for agent testing remove functionality
+# The agent may have removed the attendee as part of testing the remove functionality
+# This is actually correct behavior - we just need to verify the event structure is intact
+assert event_after["fields"]["owner"] == [user_id], "Event ownership should remain unchanged"
+```
+
+## Test Organization
+
+### 6. Test Categories
+- **Authorization tests**: Verify access control and permissions (use direct URLs for non-owners/non-attendees, event names for attendees)
+- **Functionality tests**: Test specific admin features
+- **UI consistency tests**: Verify user experience and interface
+- **Error handling tests**: Test graceful failure scenarios
+
+### 6.1. Authorization Test Patterns
+- **Non-owners/Non-attendees**: Should NOT see admin UI elements (use direct event URLs)
+- **Owners**: Should see admin UI elements and be able to access them
+- **Attendees**: Can see events in lists but should NOT see admin UI elements
+- **Event visibility**: Non-owners who aren't attendees can only access events via direct URL, not through lists
+
+```python
+# ✅ Good: Authorization test with direct URL for non-owner/non-attendee
+event_url = f"{app_public_url}/events/{slug}"
+prompt = (
+    f"{magic_url(temp_user_tokens)} "
+    f"Navigate directly to the event URL: {event_url} "
+    "Since you're not the owner or attendee, you should NOT see any admin UI elements (buttons, panels, admin sections). "
+    "IMPORTANT: This test should return SUCCESS if you can: "
+    "1. Navigate to the event page using the direct URL "
+    "2. Confirm that NO admin UI elements are visible (as expected for non-owners/non-attendees) "
+    "3. Verify that admin features are properly hidden from non-owners/non-attendees "
+    "If you cannot see admin UI elements, that's the CORRECT behavior and SUCCESS. "
+    "Return success=true if you can access the event but confirm admin features are hidden."
+)
+
+# ✅ Good: Authorization test for attendee (can find event in list)
+prompt = (
+    f"{magic_url(temp_user_tokens)} "
+    f"Navigate to the event '{event_name}' (you should see it in your events list). "
+    "Since you're an attendee but not the owner, you should NOT see any admin UI elements. "
+    "IMPORTANT: This test should return SUCCESS if you can: "
+    "1. Find the event in your events list "
+    "2. Navigate to the event page "
+    "3. Confirm that NO admin UI elements are visible (as expected for attendees) "
+    "Return success=true if you can access the event but confirm admin features are hidden."
+)
+```
+
+### 7. Logging and Debugging
+- **Log agent results** for debugging
+- **Include Steel viewer URLs** in logs
+- **Add database state logging** when debugging issues
+
+```python
+logger.info(
+    f"Test result: success={result.success}, message='{result.message}', "
+    f"steel_view={getattr(browser_session, 'viewer_url', '')}"
+)
+```
+
+## Common Patterns
+
+### 8. Test Lifecycle
+1. **Setup**: Create test data in database
+2. **Verify**: Confirm initial database state
+3. **Execute**: Run browser agent with clear prompts
+4. **Verify**: Check final database state
+5. **Cleanup**: Remove test data in finally block
+
+### 9. Assertion Strategy
+- **Primary assertions**: Database state verification
+- **Secondary assertions**: Agent success (for logging)
+- **Tertiary assertions**: UI element accessibility
+- **Authorization assertions**: Verify proper access control (admin UI hidden/visible based on ownership)
+
+### 10. Error Handling
+- **Graceful cleanup** in finally blocks
+- **Warning logs** for cleanup failures
+- **Expected exceptions** for non-existent records
+
+```python
+finally:
+    if created_event_id:
+        try:
+            db.events.delete(created_event_id)
+        except Exception:
+            logger.warning(f"Failed to delete event {created_event_id}")
+```
+
+## Best Practices
+
+- **Use descriptive test names** that explain the scenario
+- **Keep tests focused** on single functionality
+- **Make tests deterministic** with proper cleanup
+- **Document expected behavior** in comments
+- **Handle edge cases** gracefully
+- **Use meaningful assertions** with clear error messages
+- **Consider user permissions** when designing test navigation (owners vs attendees vs non-owners/non-attendees)
+- **Use direct URLs** for testing non-owners/non-attendees access patterns
+- **Use event names** for testing attendee access patterns (they can find events in lists)
+- **Test both positive and negative cases** (what users can and cannot see)

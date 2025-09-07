@@ -1,6 +1,6 @@
 import logging
 import uuid
-from typing import Mapping, Any, Dict
+from typing import Mapping, Any, Dict, List, Optional
 from datetime import timedelta
 from loguru import logger
 
@@ -66,6 +66,128 @@ def create_temp_user_tokens(app_public_url: str) -> Dict[str, str]:
         "magic_link_token": magic_link_token,
         "magic_link_url": magic_link_url,
     }
+
+
+def verify_event_exists(event_id: str, expected_name: str, expected_owner: str) -> bool:
+    """Verify that an event exists in the database with the expected properties."""
+    if db is None:
+        raise ImportError("podium.db not available")
+    
+    try:
+        event = db.events.get(event_id)
+        return (
+            event["fields"]["name"] == expected_name and
+            expected_owner in event["fields"].get("owner", [])
+        )
+    except Exception:
+        return False
+
+
+def verify_user_in_event_attendees(event_id: str, user_id: str) -> bool:
+    """Verify that a user is in the attendees list of an event."""
+    if db is None:
+        raise ImportError("podium.db not available")
+    
+    try:
+        event = db.events.get(event_id)
+        return user_id in event["fields"].get("attendees", [])
+    except Exception:
+        return False
+
+
+def verify_user_exists(user_id: str, expected_email: str) -> bool:
+    """Verify that a user exists in the database with the expected email."""
+    if db is None:
+        raise ImportError("podium.db not available")
+    
+    try:
+        user = db.users.get(user_id)
+        return user["fields"]["email"] == expected_email
+    except Exception:
+        return False
+
+
+def verify_project_exists(project_id: str, expected_event_id: str, expected_owner: str) -> bool:
+    """Verify that a project exists in the database with the expected properties."""
+    if db is None:
+        raise ImportError("podium.db not available")
+    
+    try:
+        project = db.projects.get(project_id)
+        return (
+            expected_event_id in project["fields"].get("event", []) and
+            expected_owner in project["fields"].get("owner", [])
+        )
+    except Exception:
+        return False
+
+
+def verify_vote_exists(vote_id: str, expected_event_id: str, expected_project_id: str, expected_voter: str) -> bool:
+    """Verify that a vote exists in the database with the expected properties."""
+    if db is None:
+        raise ImportError("podium.db not available")
+    
+    try:
+        vote = db.votes.get(vote_id)
+        return (
+            expected_event_id in vote["fields"].get("event", []) and
+            expected_project_id in vote["fields"].get("project", []) and
+            expected_voter in vote["fields"].get("voter", [])
+        )
+    except Exception:
+        return False
+
+
+def get_event_by_slug(slug: str) -> Optional[Dict[str, Any]]:
+    """Get an event by its slug."""
+    if db is None:
+        raise ImportError("podium.db not available")
+    
+    try:
+        from pyairtable.formulas import match
+        return db.events.first(formula=match({"slug": slug}))
+    except Exception:
+        return None
+
+
+def assert_event_created(event_name: str, expected_owner: str, expected_description: str = None) -> str:
+    """Assert that an event was created and return its ID."""
+    if db is None:
+        raise ImportError("podium.db not available")
+    
+    from slugify import slugify
+    slug = slugify(event_name, lowercase=True, separator="-")
+    event = get_event_by_slug(slug)
+    
+    assert event is not None, f"Event '{event_name}' was not created in database"
+    assert event["fields"]["name"] == event_name, f"Event name mismatch: expected '{event_name}', got '{event['fields']['name']}'"
+    assert expected_owner in event["fields"].get("owner", []), f"User {expected_owner} is not the owner of event"
+    
+    if expected_description is not None:
+        assert event["fields"]["description"] == expected_description, f"Event description mismatch: expected '{expected_description}', got '{event['fields']['description']}'"
+    
+    return event["id"]
+
+
+def assert_user_joined_event(event_id: str, user_id: str) -> None:
+    """Assert that a user joined an event."""
+    assert verify_user_in_event_attendees(event_id, user_id), f"User {user_id} was not added as attendee to event {event_id}"
+
+
+def assert_user_created(email: str, expected_details: Dict[str, Any]) -> str:
+    """Assert that a user was created and return their ID."""
+    if db is None:
+        raise ImportError("podium.db not available")
+    
+    user_id = db.user.get_user_record_id_by_email(email)
+    assert user_id is not None, f"User with email '{email}' was not created in database"
+    
+    user_record = db.users.get(user_id)
+    for field, expected_value in expected_details.items():
+        actual_value = user_record["fields"].get(field)
+        assert actual_value == expected_value, f"User {field} mismatch: expected '{expected_value}', got '{actual_value}'"
+    
+    return user_id
 
 
 if __name__ == "__main__":
