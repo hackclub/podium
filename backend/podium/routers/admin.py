@@ -12,7 +12,7 @@ from podium.db.project import Project
 from podium.db.vote import Vote
 from podium.db.referral import Referral
 from podium.routers.events import get_projects_for_event
-router = APIRouter(prefix="/events", tags=["events"])
+router = APIRouter(prefix="/events/admin", tags=["events"])
 
 
 

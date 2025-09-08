@@ -322,13 +322,74 @@ export type VerifyTokenVerifyGetResponse = (AuthenticatedUser);
 
 export type VerifyTokenVerifyGetError = (HTTPValidationError);
 
+export type GetEventEventsAdminEventIdGetData = {
+    path: {
+        event_id: string;
+    };
+};
+
+export type GetEventEventsAdminEventIdGetResponse = (PrivateEvent);
+
+export type GetEventEventsAdminEventIdGetError = (HTTPValidationError);
+
+export type GetEventAttendeesEventsAdminEventIdAttendeesGetData = {
+    path: {
+        event_id: string;
+    };
+};
+
+export type GetEventAttendeesEventsAdminEventIdAttendeesGetResponse = (Array<UserAttendee>);
+
+export type GetEventAttendeesEventsAdminEventIdAttendeesGetError = (HTTPValidationError);
+
+export type RemoveAttendeeEventsAdminEventIdRemoveAttendeePostData = {
+    body: string;
+    path: {
+        event_id: string;
+    };
+};
+
+export type RemoveAttendeeEventsAdminEventIdRemoveAttendeePostResponse = (unknown);
+
+export type RemoveAttendeeEventsAdminEventIdRemoveAttendeePostError = (HTTPValidationError);
+
+export type GetEventLeaderboardEventsAdminEventIdLeaderboardGetData = {
+    path: {
+        event_id: string;
+    };
+};
+
+export type GetEventLeaderboardEventsAdminEventIdLeaderboardGetResponse = (Array<Project>);
+
+export type GetEventLeaderboardEventsAdminEventIdLeaderboardGetError = (HTTPValidationError);
+
+export type GetEventVotesEventsAdminEventIdVotesGetData = {
+    path: {
+        event_id: string;
+    };
+};
+
+export type GetEventVotesEventsAdminEventIdVotesGetResponse = (Array<Vote>);
+
+export type GetEventVotesEventsAdminEventIdVotesGetError = (HTTPValidationError);
+
+export type GetEventReferralsEventsAdminEventIdReferralsGetData = {
+    path: {
+        event_id: string;
+    };
+};
+
+export type GetEventReferralsEventsAdminEventIdReferralsGetResponse = (Array<Referral>);
+
+export type GetEventReferralsEventsAdminEventIdReferralsGetError = (HTTPValidationError);
+
 export type GetEventEventsEventIdGetData = {
     path: {
         event_id: string;
     };
 };
 
-export type GetEventEventsEventIdGetResponse = ((PrivateEvent | Event));
+export type GetEventEventsEventIdGetResponse = (Event);
 
 export type GetEventEventsEventIdGetError = (HTTPValidationError);
 
@@ -352,57 +413,6 @@ export type DeleteEventEventsEventIdDeleteData = {
 export type DeleteEventEventsEventIdDeleteResponse = (unknown);
 
 export type DeleteEventEventsEventIdDeleteError = (HTTPValidationError);
-
-export type GetEventAttendeesEventsEventIdAttendeesGetData = {
-    path: {
-        event_id: string;
-    };
-};
-
-export type GetEventAttendeesEventsEventIdAttendeesGetResponse = (Array<UserAttendee>);
-
-export type GetEventAttendeesEventsEventIdAttendeesGetError = (HTTPValidationError);
-
-export type RemoveAttendeeEventsEventIdRemoveAttendeePostData = {
-    body: string;
-    path: {
-        event_id: string;
-    };
-};
-
-export type RemoveAttendeeEventsEventIdRemoveAttendeePostResponse = (unknown);
-
-export type RemoveAttendeeEventsEventIdRemoveAttendeePostError = (HTTPValidationError);
-
-export type GetEventLeaderboardEventsEventIdLeaderboardGetData = {
-    path: {
-        event_id: string;
-    };
-};
-
-export type GetEventLeaderboardEventsEventIdLeaderboardGetResponse = (Array<Project>);
-
-export type GetEventLeaderboardEventsEventIdLeaderboardGetError = (HTTPValidationError);
-
-export type GetEventVotesEventsEventIdVotesGetData = {
-    path: {
-        event_id: string;
-    };
-};
-
-export type GetEventVotesEventsEventIdVotesGetResponse = (Array<Vote>);
-
-export type GetEventVotesEventsEventIdVotesGetError = (HTTPValidationError);
-
-export type GetEventReferralsEventsEventIdReferralsGetData = {
-    path: {
-        event_id: string;
-    };
-};
-
-export type GetEventReferralsEventsEventIdReferralsGetResponse = (Array<Referral>);
-
-export type GetEventReferralsEventsEventIdReferralsGetError = (HTTPValidationError);
 
 export type GetAttendingEventsEventsGetResponse = (UserEvents);
 

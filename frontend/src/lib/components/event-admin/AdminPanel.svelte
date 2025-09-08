@@ -40,19 +40,19 @@
     loading = true;
     try {
       const [attendeesResult, leaderboardResult, votesResult, referralsResult] = await Promise.all([
-        EventsService.getEventAttendeesEventsEventIdAttendeesGet({
+        EventsService.getEventAttendeesEventsAdminEventIdAttendeesGet({
           path: { event_id: event.id },
           throwOnError: false
         }),
-        EventsService.getEventLeaderboardEventsEventIdLeaderboardGet({
+        EventsService.getEventLeaderboardEventsAdminEventIdLeaderboardGet({
           path: { event_id: event.id },
           throwOnError: false
         }),
-        EventsService.getEventVotesEventsEventIdVotesGet({
+        EventsService.getEventVotesEventsAdminEventIdVotesGet({
           path: { event_id: event.id },
           throwOnError: false
         }),
-        EventsService.getEventReferralsEventsEventIdReferralsGet({
+        EventsService.getEventReferralsEventsAdminEventIdReferralsGet({
           path: { event_id: event.id },
           throwOnError: false
         })
@@ -107,7 +107,7 @@
     }
 
     try {
-      const { error } = await EventsService.removeAttendeeEventsEventIdRemoveAttendeePost({
+      const { error } = await EventsService.removeAttendeeEventsAdminEventIdRemoveAttendeePost({
         path: { event_id: event.id },
         body: userId,
         throwOnError: false

@@ -1,6 +1,6 @@
 import random
 from fastapi import APIRouter, Path
-from typing import Annotated, Optional, Union, List
+from typing import Annotated, Optional, List
 from fastapi import Depends, HTTPException, Query
 from fastapi_cache.decorator import cache
 from podium.db.event import InternalEvent, PrivateEvent
@@ -30,10 +30,9 @@ router = APIRouter(prefix="/events", tags=["events"])
 @router.get("/{event_id}")
 def get_event(
     event_id: Annotated[str, Path(title="Event Airtable ID")],
-    user: Annotated[UserInternal, Depends(get_current_user)],
-) -> Union[PrivateEvent, Event]:
+) -> Event:
     """
-    Get an event by its ID. An owner of the event can get more information via GET /events/{event_id} instead of this endpoint. Can be called with invalid auth credentials if needed, but will need something in the bearer token for the code to work
+    Get a public event by its ID. For admin features, use the admin endpoints.
     """
     try:
         event = db.events.get(event_id)
@@ -44,9 +43,7 @@ def get_event(
             else e
         )
 
-    event = Event.model_validate(event["fields"])
-
-    return event
+    return Event.model_validate(event["fields"])
 
 
 # Used to be /attending
