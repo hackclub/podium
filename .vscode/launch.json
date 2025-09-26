@@ -1,5 +1,23 @@
 {
   "version": "0.2.0",
+  "inputs": [
+    {
+      "id": "environment",
+      "description": "Select environment",
+      "type": "pickString",
+      "options": [
+        {
+          "label": "Development",
+          "value": "development"
+        },
+        {
+          "label": "Production",
+          "value": "production"
+        }
+      ],
+      "default": "development"
+    }
+  ],
   "configurations": [
     {
       "command": "bun run dev",
@@ -24,7 +42,7 @@
       "args": ["podium.main:app", "--reload"],
       // "args": ["podium.main:app"],
       "env": {
-        "ENV_FOR_DYNACONF": "development"
+        "ENV_FOR_DYNACONF": "${input:environment}"
       },
       "cwd": "${workspaceFolder}/backend",
       "justMyCode": true
