@@ -85,7 +85,7 @@ async def get_user_public(
             else e
         )
     
-    return user
+    return user[0]
 
 
 # Eventually, this should probably be rate-limited
