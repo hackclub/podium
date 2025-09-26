@@ -14,12 +14,9 @@
 
   import { getAuthenticatedUser, signOut } from "$lib/user.svelte";
   import NoticeAndHelp from "$lib/components/NoticeAndHelp.svelte";
-<<<<<<< HEAD
   import UpdateUser from "$lib/components/UpdateUser.svelte";
-=======
   import AirtableHitsCounter from "$lib/components/AirtableHitsCounter.svelte";
   import { resetAirtableHits } from "$lib/airtable-hits.svelte";
->>>>>>> e26ae4e (Count airtable requests in UI for localhost!)
 
   let loadingText = $state(returnLoadingText());
   let loadingTextInterval: NodeJS.Timeout = $state() as NodeJS.Timeout;
