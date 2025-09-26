@@ -38,7 +38,7 @@ class UserSignupPayload(_UserPrivilegedFields):
     # Optional since some users don't have a last name in the DB
     # International phone number format, allowing empty string
     # this should have a default since I think Airtable may return None
-    phone: Annotated[str, StringConstraints(pattern=r"(^$|^\+?[\d\-\(\)\s]{7,20}$)")] = ""
+    phone: str = ""
     street_1: Optional[str] = ""
     street_2: Optional[str] = ""
     city: Optional[str] = ""
