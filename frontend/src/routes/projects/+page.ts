@@ -17,7 +17,7 @@ export const load: PageLoad = async ({ params, fetch, depends }) => {
   const { data: events, error: eventsError, response: eventsResponse } = await EventsService.getAttendingEventsEventsGet({
     throwOnError: false,
   });
-  if (eventsError) {
+  if (eventsError || !events) {
     console.error(eventsError, eventsResponse);
     throw error(eventsResponse.status, JSON.stringify(eventsError));
   }
@@ -26,7 +26,7 @@ export const load: PageLoad = async ({ params, fetch, depends }) => {
   const {data: projects, error: projectsError,  response: projectsResponse} = await ProjectsService.getProjectsProjectsMineGet({
     throwOnError: false,
   });
-  if (projectsError) {
+  if (projectsError || !projects) {
     console.error(projectsError, projectsResponse);
     throw error(projectsResponse.status, JSON.stringify(projectsError));
   }

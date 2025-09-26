@@ -14,6 +14,7 @@ from podium.db.project import (
     PrivateProject,
     Project,
     ProjectCreationPayload,
+    get_projects_from_record_ids,
 )
 from podium.generated.review_factory_models import CheckStatus
 from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH, BAD_ACCESS, EmptyModel
@@ -33,11 +34,9 @@ def get_projects(
     if user is None:
         raise BAD_AUTH
 
-    projects = [
-        PrivateProject.model_validate(project["fields"])
-        for project in [db.projects.get(project_id) for project_id in user.projects]
-        + [db.projects.get(project_id) for project_id in user.collaborations]
-    ]
+    # Combine owned and collaborated project IDs
+    all_project_ids = user.projects + user.collaborations
+    projects = get_projects_from_record_ids(all_project_ids, PrivateProject)
     return projects
 
 

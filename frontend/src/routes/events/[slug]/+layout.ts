@@ -3,7 +3,7 @@ import { error } from "@sveltejs/kit";
 import type { LayoutLoad } from "./$types";
 import { client } from "$lib/client/sdk.gen";
 import { EventsService } from "$lib/client/sdk.gen";
-import type { Event } from "$lib/client";
+import type { Event, PrivateEvent } from "$lib/client";
 import { eventSlugAliases } from "$lib/consts";
 
 export const load: LayoutLoad = async ({ params, fetch, parent }) => {
@@ -21,18 +21,23 @@ export const load: LayoutLoad = async ({ params, fetch, parent }) => {
   const { events } = await parent();
 
   // Check if user has this event in their events
-  const userEvent = events?.attending_events.find((e) => e.slug === slug) || 
-                   events?.owned_events.find((e) => e.slug === slug);
+  const ownedEvent = events?.owned_events.find((e) => e.slug === slug);
+  const attendingEvent = events?.attending_events.find((e) => e.slug === slug);
   
-  let event: Event;
+  let event: Event | PrivateEvent;
   let partOfEvent = false;
   let owned = false;
 
-  if (userEvent) {
-    // User has this event, use it directly
-    event = userEvent;
-    partOfEvent = events?.attending_events.some((e) => e.id === event.id) || false;
-    owned = events?.owned_events.some((e) => e.id === event.id) || false;
+  if (ownedEvent) {
+    // User owns this event, use the PrivateEvent
+    event = ownedEvent;
+    partOfEvent = true;
+    owned = true;
+  } else if (attendingEvent) {
+    // User is attending this event, use the regular Event
+    event = attendingEvent;
+    partOfEvent = true;
+    owned = false;
   } else {
     // User doesn't have this event, fetch it publicly
     const {
@@ -78,7 +83,7 @@ export const load: LayoutLoad = async ({ params, fetch, parent }) => {
       ...event,
       owned,
       partOfEvent,
-    },
+    } as (Event | PrivateEvent) & { owned: boolean; partOfEvent: boolean },
     title: event.name,
     meta,
   };

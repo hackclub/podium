@@ -21,7 +21,7 @@ export const load: LayoutLoad = async ({ fetch, url }) => {
       throwOnError: false,
     });
     
-    if (err) {
+    if (err || !data) {
       console.error(err, response);
       throw error(response.status, JSON.stringify(err));
     }

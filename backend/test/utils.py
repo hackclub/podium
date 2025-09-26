@@ -179,15 +179,14 @@ def assert_user_created(email: str, expected_details: Dict[str, Any]) -> str:
     if db is None:
         raise ImportError("podium.db not available")
     
-    user_id = db.user.get_user_record_id_by_email(email)
-    assert user_id is not None, f"User with email '{email}' was not created in database"
+    user = db.user.get_user_by_email(email, db.user.UserPrivate)
+    assert user is not None, f"User with email '{email}' was not created in database"
     
-    user_record = db.users.get(user_id)
     for field, expected_value in expected_details.items():
-        actual_value = user_record["fields"].get(field)
+        actual_value = getattr(user, field)
         assert actual_value == expected_value, f"User {field} mismatch: expected '{expected_value}', got '{actual_value}'"
     
-    return user_id
+    return user.id
 
 
 if __name__ == "__main__":

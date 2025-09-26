@@ -83,14 +83,20 @@ class UserInternal(UserPrivate): ...
 
 
 
-def get_user_record_id_by_email(email: str) -> Optional[str]:
+T = TypeVar("T", bound=UserBase)
+def get_user_by_email(email: str, model: Type[T]) -> Optional[T]:
+    """
+    Get a user by email and return it as the specified model type.
+    This reduces Airtable requests by combining the existence check and data retrieval.
+    """
     users_table = tables["users"]
     formula = match({"email": email})
     records = users_table.all(formula=formula)
-    return records[0]["id"] if records else None
+    if not records:
+        return None
+    return model.model_validate(records[0]["fields"])
 
 
-T = TypeVar("T", bound=UserBase)
 def get_users_from_record_ids(record_ids: List[str], model: Type[T]) -> List[T]:
     users_table = tables["users"]
     if not record_ids:
@@ -100,5 +106,6 @@ def get_users_from_record_ids(record_ids: List[str], model: Type[T]) -> List[T]:
     expressions = [EQ(AirtableField("id"), record_id) for record_id in record_ids]
     formula = OR(*expressions)
     
+    # This is awesome because I'm pretty sure this only makes one request and considering how bad Airtable's rate limits are, this helps a lot.
     records = users_table.all(formula=formula)
     return [model.model_validate(record["fields"]) for record in records]

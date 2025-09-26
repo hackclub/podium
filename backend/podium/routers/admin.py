@@ -8,7 +8,7 @@ from fastapi import Depends, HTTPException, Path
 from typing import Annotated, List
 from podium.db.user import get_users_from_record_ids, UserAttendee
 from podium.routers.auth import UserInternal
-from podium.db.project import Project
+from podium.db.project import AdminProject, Project
 from podium.db.vote import Vote
 from podium.db.referral import Referral
 from podium.routers.events import get_projects_for_event
@@ -61,11 +61,11 @@ def remove_attendee(
     return {"message": "Attendee removed"}
 
 
-@router.get("/{event_id}/leaderboard", response_model=List[Project])
+@router.get("/{event_id}/leaderboard", response_model=List[AdminProject]) # response model isn't needed here since we're not using fastapi-cache
 def get_event_leaderboard(
     event_id: Annotated[str, Path(title="Event ID")],
     user: Annotated[UserInternal, Depends(get_current_user)],
-) -> List[Project]:
+) -> List[AdminProject]:
     """Get the leaderboard for an event (admin only)"""
     if not is_user_event_owner(user, event_id):
         raise BAD_ACCESS
@@ -80,7 +80,7 @@ def get_event_leaderboard(
         )
     
     # Get projects sorted by points (leaderboard order)
-    return get_projects_for_event(event_id, shuffle=False, event=event)
+    return get_projects_for_event(event_id, shuffle=False, event=event, model=AdminProject)
 
 
 @router.get("/{event_id}/votes")

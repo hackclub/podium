@@ -25,10 +25,9 @@ client.setConfig({
     Authorization: `Bearer ${getAuthenticatedUser().access_token}`,
     "ngrok-skip-browser-warning": "hi",
   },
-  // Instead of returning an error, throw an exception that can be caught with try/catch
-  // This can be overridden by passing throwOnError.
-  // Maybe change to throwOnError: false in the future since otherwise, there doesn't seem to be a way to get the actual response code (https://github.com/orgs/hey-api/discussions/1655)
-  throwOnError: true,
+  // Use throwOnError: false to get proper error handling with response codes
+  // When using a conditional to check the err, do something like `if (err || !data)` so data will never be undefined
+  throwOnError: false,
 });
 export const init: ServerInit = async () => {
   if (getAuthenticatedUser().access_token) {

@@ -55,10 +55,10 @@ export function validateToken(token: string): Promise<void> {
     headers: {
       Authorization: `Bearer ${token}`,
     },
-    throwOnError: true,
+    throwOnError: false,
   })
     .then((response) => {
-      if (!response.data) {
+      if (response.error || !response.data) {
         console.error("Invalid token", response);
         throw new Error("Invalid token");
       }

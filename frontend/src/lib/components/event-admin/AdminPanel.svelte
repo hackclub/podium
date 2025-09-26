@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { EventsService } from '$lib/client/sdk.gen';
-  import type { UserAttendee, Project, Event, Vote, Referral } from '$lib/client/types.gen';
+  import type { UserAttendee, Project, Event, PrivateEvent, Vote, Referral } from '$lib/client/types.gen';
   import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
   import UpdateEvent from './UpdateEvent.svelte';
   import AttendeesTable from './AttendeesTable.svelte';
@@ -13,7 +13,7 @@
   import { toast } from 'svelte-sonner';
 
   interface Props {
-    event: Event & { owned: boolean; partOfEvent: boolean; join_code?: string };
+    event: PrivateEvent & { owned: boolean; partOfEvent: boolean };
   }
 
   let { event }: Props = $props();
@@ -99,6 +99,8 @@
     return currentUser.user.id === userId;
   }
 
+
+
   async function removeAttendee(userId: string) {
     // Prevent event owner from removing themselves
     if (isEventOwner(userId)) {
@@ -153,7 +155,7 @@
             <button 
               class="btn btn-sm btn-outline"
               onclick={() => {
-                navigator.clipboard.writeText(event.join_code || '');
+                navigator.clipboard.writeText(event.join_code);
                 toast.success('Join code copied to clipboard');
               }}
             >

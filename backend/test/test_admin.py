@@ -6,6 +6,7 @@ from loguru import logger
 from pydantic import BaseModel
 from secrets import token_urlsafe
 from slugify import slugify
+from pyairtable.formulas import match
 
 from podium import db
 from test.browser import run_browser_agent
@@ -326,6 +327,12 @@ async def test_admin_leaderboard_access(app_public_url, browser_session, temp_us
 
         # Create a test project
         project_name = _unique_name("Test Project")
+        # Generate join code like the API does
+        while True:
+            join_code = token_urlsafe(3).upper()
+            if not db.projects.first(formula=match({"join_code": join_code})):
+                break
+        
         project = db.projects.create({
             "name": project_name,
             "description": "A test project for leaderboard",
@@ -334,6 +341,7 @@ async def test_admin_leaderboard_access(app_public_url, browser_session, temp_us
             "repo": "https://example.com/repo",
             "demo": "https://example.com/demo",
             "image_url": "https://example.com/image.jpg",
+            "join_code": join_code,
             "hours_spent": 10,
         })
         project_id = project["id"]
@@ -420,6 +428,12 @@ async def test_admin_votes_and_referrals_access(app_public_url, browser_session,
         created_event_id = created["id"]
 
         # Create some test data
+        # Generate join code like the API does
+        while True:
+            join_code = token_urlsafe(3).upper()
+            if not db.projects.first(formula=match({"join_code": join_code})):
+                break
+        
         project = db.projects.create({
             "name": _unique_name("Vote Test Project"),
             "description": "A project for voting",
@@ -428,6 +442,7 @@ async def test_admin_votes_and_referrals_access(app_public_url, browser_session,
             "repo": "https://example.com/vote-repo",
             "demo": "https://example.com/vote-demo",
             "image_url": "https://example.com/vote-image.jpg",
+            "join_code": join_code,
             "hours_spent": 5,
         })
         project_id = project["id"]

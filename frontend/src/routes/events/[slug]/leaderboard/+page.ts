@@ -21,7 +21,7 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
     // https://github.com/orgs/hey-api/discussions/1655
     throwOnError: false,
   });
-  if (err) {
+  if (err || !data) {
     console.error(err, response);
     throw error(response.status, JSON.stringify(err));
   }

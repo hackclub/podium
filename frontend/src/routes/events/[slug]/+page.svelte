@@ -1,8 +1,15 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import AdminPanel from '$lib/components/event-admin/AdminPanel.svelte';
+  import type { PrivateEvent } from '$lib/client/types.gen';
 
   let { data }: { data: PageData } = $props();
+
+  // Type assertion: owned events are always PrivateEvent
+  function getPrivateEvent(event: any): PrivateEvent & { owned: boolean; partOfEvent: boolean } {
+    return event as PrivateEvent & { owned: boolean; partOfEvent: boolean };
+  }
+
 </script>
 
 <div class="flex justify-center flex-col mx-auto max-w-md space-y-4 mt-4">
@@ -38,4 +45,6 @@
   {/if}
 </div>
 
-<AdminPanel event={data.event} />
+{#if data.event.owned}
+  <AdminPanel event={getPrivateEvent(data.event)} />
+{/if}

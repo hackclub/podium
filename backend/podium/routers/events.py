@@ -1,9 +1,9 @@
 import random
 from fastapi import APIRouter, Path
-from typing import Annotated, Optional, List
+from typing import Annotated, Optional, List, Type, TypeVar, Tuple
 from fastapi import Depends, HTTPException, Query
 from fastapi_cache.decorator import cache
-from podium.db.event import InternalEvent, PrivateEvent
+from podium.db.event import InternalEvent, PrivateEvent, get_events_from_record_ids, BaseEvent
 from podium.db.vote import CreateVotes, VoteCreate
 from pyairtable.formulas import match
 from secrets import token_urlsafe
@@ -21,7 +21,7 @@ from podium.db import (
     Event,
     ReferralBase,
 )
-from podium.db.project import Project
+from podium.db.project import Project, ProjectBase, get_projects_from_record_ids
 from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH, BAD_ACCESS, Slug
 from slugify import slugify
 
@@ -59,14 +59,7 @@ def get_attending_events(
 
     # Eventually it might be better to return a user object. Otherwise, the client that the event owner is using would need to fetch the user. Since user emails probably shouldn't be public with just a record ID as a parameter, we would need to check if the person calling GET /users?user=ID has an event wherein that user ID is present. To avoid all this, the user object could be returned.
 
-    owned_events = [
-        PrivateEvent.model_validate(event["fields"])
-        for event in [db.events.get(event_id) for event_id in user.owned_events]
-    ]
-    attending_events = [
-        Event.model_validate(event["fields"])
-        for event in [db.events.get(event_id) for event_id in user.attending_events]
-    ]
+    owned_events, attending_events = get_events_for_user(user, PrivateEvent, Event)
 
     return UserEvents(owned_events=owned_events, attending_events=attending_events)
 
@@ -106,7 +99,7 @@ def create_event(
         slug=slug,
         id="",  # Placeholder to prevent an unnecessary class
     )
-    db.events.create(full_event.model_dump(exclude={"id", "max_votes_per_user", "owned"}))[
+    db.events.create(full_event.model_dump(exclude={"id", "max_votes_per_user", "owned", "feature_flags_list"}))[
         "fields"
     ]
 
@@ -249,7 +242,8 @@ def vote(votes: CreateVotes, user: Annotated[UserInternal, Depends(get_current_u
         db.votes.create(vote.model_dump())
 
 
-def get_projects_for_event(event_id: str, shuffle, event: Optional[InternalEvent]) -> List[Project]:
+T = TypeVar("T", bound=ProjectBase)
+def get_projects_for_event(event_id: str, shuffle, event: Optional[InternalEvent], model: Type[T]) -> List[T]:
     if event is None:
         try:
             event = InternalEvent.model_validate(
@@ -262,18 +256,23 @@ def get_projects_for_event(event_id: str, shuffle, event: Optional[InternalEvent
                 else e
             )
 
-    projects = [
-        Project.model_validate(project["fields"])
-        for project in [
-            db.projects.get(project_id)
-            for project_id in event.projects
-        ]
-    ]
+    projects = get_projects_from_record_ids(event.projects, model)
     if shuffle:
         random.shuffle(projects)
     else:
         projects.sort(key=lambda project: project.points, reverse=True)
     return projects
+
+
+def get_events_for_user(
+    user: UserInternal, 
+    owned_model: Type[PrivateEvent], 
+    attending_model: Type[Event]
+) -> Tuple[List[PrivateEvent], List[Event]]:
+    """Get events for a user with customizable model types for owned and attending events."""
+    owned_events = get_events_from_record_ids(user.owned_events, owned_model)
+    attending_events = get_events_from_record_ids(user.attending_events, attending_model)
+    return owned_events, attending_events
 
 
 # The reason we're specifying response_model here is because of https://github.com/long2ice/fastapi-cache/issues/384
@@ -309,7 +308,7 @@ async def get_event_projects(
                 status_code=403, detail="Leaderboard is not enabled for this event"
             )
 
-    return get_projects_for_event(event_id, shuffle=not leaderboard, event=event)
+    return get_projects_for_event(event_id, shuffle=not leaderboard, event=event, model=Project)
 
 
 # The reason we're specifying response_model here is because of https://github.com/long2ice/fastapi-cache/issues/384

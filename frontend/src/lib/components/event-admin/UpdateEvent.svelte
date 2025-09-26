@@ -26,7 +26,7 @@
   let event: EventUpdate = $state({ ...preselectedEvent });
 
   async function deleteEvent() {
-    const { data, error: err } = await EventsService.deleteEventEventsEventIdDelete({
+    const { error: err } = await EventsService.deleteEventEventsEventIdDelete({
       path: { event_id: preselectedEvent.id },
       throwOnError: false,
     });
@@ -43,18 +43,18 @@
     deleteConfirmation.open();
   }
   async function updateEvent() {
-    try {
-      await EventsService.updateEventEventsEventIdPut({
-        path: { event_id: preselectedEvent.id },
-        body: event,
-        throwOnError: true,
-      });
-      toast.success("Event updated successfully");
-      await customInvalidateAll();
-      updateModal.closeModal();
-    } catch (err) {
+    const { error: err } = await EventsService.updateEventEventsEventIdPut({
+      path: { event_id: preselectedEvent.id },
+      body: event,
+      throwOnError: false,
+    });
+    if (err) {
       handleError(err);
+      return;
     }
+    toast.success("Event updated successfully");
+    await customInvalidateAll();
+    updateModal.closeModal();
   }
 </script>
 

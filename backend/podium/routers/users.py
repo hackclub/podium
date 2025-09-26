@@ -10,7 +10,8 @@ from podium.db.user import (
     UserPublic,
     UserPrivate,
     UserUpdate,
-    get_user_record_id_by_email,
+    UserBase,
+    get_user_by_email,
 )
 from podium.routers.auth import get_current_user
 from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH
@@ -29,7 +30,7 @@ class UserExistsResponse(BaseModel):
 @router.get("/exists")
 def user_exists(email: Annotated[EmailStr, Query(...)]) -> UserExistsResponse:
     email = email.strip().lower()
-    exists = True if db.user.get_user_record_id_by_email(email) else False
+    exists = True if db.user.get_user_by_email(email, UserBase) else False
     return UserExistsResponse(exists=exists)
 
 
@@ -76,7 +77,7 @@ async def get_user_public(
     user_id: Annotated[str, Path(title="User Airtable ID")],
 ) -> UserPublic:
     try:
-        user = db.users.get(user_id)
+        user = db.user.get_user_by_email(user_id, UserPublic)
     except HTTPError as e:
         raise (
             HTTPException(status_code=404, detail="User not found")
@@ -84,14 +85,14 @@ async def get_user_public(
             else e
         )
     
-    return UserPublic.model_validate(user["fields"])
+    return user
 
 
 # Eventually, this should probably be rate-limited
 @router.post("/")
 def create_user(user: UserSignupPayload):
     # Check if the user already exists
-    user_id = get_user_record_id_by_email(user.email)
-    if user_id:
+    existing_user = get_user_by_email(user.email, UserBase)
+    if existing_user:
         raise HTTPException(status_code=400, detail="User already exists")
     db.users.create(user.model_dump())

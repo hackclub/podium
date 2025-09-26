@@ -47,7 +47,7 @@
         throwOnError: false,
       });
       isLoading = false;
-      if (err) {
+      if (err || !data) {
         handleError(err);
         return false;
       }
@@ -102,7 +102,7 @@
       });
       isLoading = false;
       if (err) {
-        handleError(err)
+        handleError(err);
         return;
       }
       await login();
@@ -122,8 +122,9 @@
         query: { token },
         throwOnError: false,
       });
-      if (err) {
+      if (err || !data) {
         handleError(err);
+        return;
       } else {
         // Store the token in localStorage
         localStorage.setItem("token", data.access_token);

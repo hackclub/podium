@@ -109,6 +109,13 @@ async def test_project_deletion(app_public_url, browser_session, temp_user_token
 
     # Create project owned by user in that event
     project_name = _unique_name("To Delete")
+    
+    # Generate join code like the API does
+    while True:
+        join_code = token_urlsafe(3).upper()
+        if not db.projects.first(formula=match({"join_code": join_code})):
+            break
+    
     created_project = db.projects.create(
         {
             "name": project_name,
@@ -119,7 +126,7 @@ async def test_project_deletion(app_public_url, browser_session, temp_user_token
             "event": [created_event_id],
             "owner": [temp_user_tokens["user_id"]],
             "collaborators": [],
-            "join_code": token_urlsafe(3).upper(),
+            "join_code": join_code,
             "hours_spent": 0,
         }
     )

@@ -25,41 +25,41 @@
   let demoLinksOptional = $derived(selectedEvent?.demo_links_optional || false);
   
   async function fetchEvents() {
-    try {
-      toast.info("Fetching events; please wait");
-      const { data: userEvents } =
-        await EventsService.getAttendingEventsEventsGet({ throwOnError: true });
-      events = userEvents.attending_events;
-      fetchedEvents = true;
-    } catch (err) {
+    toast.info("Fetching events; please wait");
+    const { data: userEvents, error: err } =
+      await EventsService.getAttendingEventsEventsGet({ throwOnError: false });
+    if (err || !userEvents) {
       handleError(err);
+      return;
     }
+    events = userEvents.attending_events;
+    fetchedEvents = true;
   }
 
   async function createProject() {
-    try {
-      await ProjectsService.createProjectProjectsPost({
-        body: project,
-        throwOnError: true,
-      });
-      toast.success("Project created successfully");
-      project = {
-        name: "",
-        repo: "",
-        demo: "",
-        image_url: "",
-        description: "",
-        event: [""],
-        hours_spent: 0,
-      };
-      await customInvalidateAll();
-      
-      // Call the callback if provided (for auto-progression in SignupWizard)
-      if (onProjectCreated) {
-        onProjectCreated();
-      }
-    } catch (err) {
+    const { data, error: err } = await ProjectsService.createProjectProjectsPost({
+      body: project,
+      throwOnError: false,
+    });
+    if (err || !data) {
       handleError(err);
+      return;
+    }
+    toast.success("Project created successfully");
+    project = {
+      name: "",
+      repo: "",
+      demo: "",
+      image_url: "",
+      description: "",
+      event: [""],
+      hours_spent: 0,
+    };
+    await customInvalidateAll();
+    
+    // Call the callback if provided (for auto-progression in SignupWizard)
+    if (onProjectCreated) {
+      onProjectCreated();
     }
   }
 

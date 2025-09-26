@@ -20,7 +20,7 @@ dependencies = [
     # "browser-use @ git+https://github.com/browser-use/browser-use.git@main",
     "httpx>=0.28.1,<0.29.0",
     "steel-sdk (>=0.1.0,<0.2.0)",
-    "python-slugify (>=8.0.4,<9.0.0)",
+    "python-slugify>=8.0.4,<9.0.0",
     "fastapi-cache2[memcache] (>=0.2.2,<0.3.0)",
     "langchain-openai (>=0.3.27,<0.4.0)",
     "langchain-ollama (>=0.3.4,<0.4.0)",

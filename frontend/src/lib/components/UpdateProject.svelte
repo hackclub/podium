@@ -56,7 +56,7 @@
   $inspect(project);
 
   async function deleteProject() {
-    const {data, error: err} = await ProjectsService.deleteProjectProjectsProjectIdDelete({
+    const {error: err} = await ProjectsService.deleteProjectProjectsProjectIdDelete({
       path: { project_id: preselectedProject.id },
       throwOnError: false,
     });
@@ -78,18 +78,18 @@
   // });
 
   async function updateProject() {
-    try {
-      await ProjectsService.updateProjectProjectsProjectIdPut({
-        path: { project_id: preselectedProject.id },
-        body: preselectedProject,
-        throwOnError: true,
-      });
-      toast.success("Project updated successfully");
-      await customInvalidateAll();
-      updateModal.closeModal();
-    } catch (err) {
+    const { error: err } = await ProjectsService.updateProjectProjectsProjectIdPut({
+      path: { project_id: preselectedProject.id },
+      body: preselectedProject,
+      throwOnError: false,
+    });
+    if (err) {
       handleError(err);
+      return;
     }
+    toast.success("Project updated successfully");
+    await customInvalidateAll();
+    updateModal.closeModal();
   }
 </script>
 

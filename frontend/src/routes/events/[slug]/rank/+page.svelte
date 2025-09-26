@@ -25,22 +25,22 @@
   }
 
   async function submitVote() {
-    try {
-      await EventsService.voteEventsVotePost({
-        body: {
-          event: data.event.id,
-          projects: selectedProjects,
-        },
-        throwOnError: true,
-      });
-      toast.success("Vote submitted successfully");
-      selectedProjects = [];
-      await customInvalidateAll();
-      // Navigate back to the event page
-      await goto(`/events/${data.event.slug}`);
-    } catch (err) {
+    const { error: err } = await EventsService.voteEventsVotePost({
+      body: {
+        event: data.event.id,
+        projects: selectedProjects,
+      },
+      throwOnError: false,
+    });
+    if (err) {
       handleError(err);
+      return;
     }
+    toast.success("Vote submitted successfully");
+    selectedProjects = [];
+    await customInvalidateAll();
+    // Navigate back to the event page
+    await goto(`/events/${data.event.slug}`);
   }
 </script>
 

@@ -9,7 +9,7 @@ from podium import db, settings
 from fastapi import APIRouter, HTTPException, Query, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from podium.constants import BAD_AUTH
-from podium.db.user import UserLoginPayload, UserPrivate, UserInternal
+from podium.db.user import UserLoginPayload, UserPrivate, UserInternal, UserBase
 from pydantic import BaseModel
 import jwt
 from jwt.exceptions import PyJWTError
@@ -86,7 +86,7 @@ async def send_magic_link(email: str, redirect: str = ""):
 async def request_login(user: UserLoginPayload, redirect: Annotated[str, Query()]):
     """Send a magic link to the user's email. If the user has not yet signed up, an error will be raised"""
     # Check if the user exists
-    if db.user.get_user_record_id_by_email(user.email) is None:
+    if db.user.get_user_by_email(user.email, UserBase) is None:
         raise HTTPException(status_code=404, detail="User not found")
         return  # not needed
     await send_magic_link(user.email, redirect=redirect)
@@ -111,9 +111,9 @@ async def verify_token(token: Annotated[str, Query()]) -> AuthenticatedUser:
             raise HTTPException(status_code=400, detail="Invalid token")
     except PyJWTError:
         raise HTTPException(status_code=400, detail="Invalid token")
-    # Check if the user exists
-    user_record_id = db.user.get_user_record_id_by_email(email)
-    if user_record_id is None:
+    # Check if the user exists and get the user data in one request
+    user = db.user.get_user_by_email(email, UserPrivate)
+    if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     access_token = create_access_token(
         data={"sub": email},
@@ -123,7 +123,7 @@ async def verify_token(token: Annotated[str, Query()]) -> AuthenticatedUser:
     return AuthenticatedUser(
         access_token=access_token,
         token_type="access",
-        user=UserPrivate.model_validate(db.users.get(user_record_id)["fields"]),
+        user=user,
     )
 
 
@@ -148,13 +148,12 @@ async def get_current_user(
     except PyJWTError:
         # raise credentials_exception
         raise BAD_AUTH
-    # Check if the user exists
-    user_id = db.user.get_user_record_id_by_email(email)
-    if user_id is None:
+    # Check if the user exists and get the user data in one request
+    user = db.user.get_user_by_email(email, UserInternal)
+    if user is None:
         raise BAD_AUTH
-    user = db.users.get(user_id)
 
-    return UserInternal.model_validate(user["fields"])
+    return user
 
 if __name__ == "__main__":
     # create a dev access JWT and  a magic link JWT

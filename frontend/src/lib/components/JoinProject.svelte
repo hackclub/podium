@@ -15,22 +15,22 @@
   });
 
   async function joinProject() {
-    try {
-      await ProjectsService.joinProjectProjectsJoinPost({
-        ...toSend,
-        throwOnError: true,
-      });
-      toast.success("Joined project successfully");
-      await customInvalidateAll();
-      // Reset
-      toSend.query.join_code = "";
-      
-      // Call the callback if provided (for auto-progression in SignupWizard)
-      if (onProjectJoined) {
-        onProjectJoined();
-      }
-    } catch (err) {
+    const { error: err } = await ProjectsService.joinProjectProjectsJoinPost({
+      ...toSend,
+      throwOnError: false,
+    });
+    if (err) {
       handleError(err);
+      return;
+    }
+    toast.success("Joined project successfully");
+    await customInvalidateAll();
+    // Reset
+    toSend.query.join_code = "";
+    
+    // Call the callback if provided (for auto-progression in SignupWizard)
+    if (onProjectJoined) {
+      onProjectJoined();
     }
   }
 
