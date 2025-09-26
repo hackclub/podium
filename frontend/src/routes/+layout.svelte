@@ -151,9 +151,9 @@
     <!-- Sidebar -->
     <div class="drawer-side" id="sidebar">
       <label for="sidebar-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
-      <div class="min-h-full w-80 bg-base-200 flex flex-col">
+      <div class="min-h-full w-80 bg-base-200 flex flex-col" id="sidebar-ui">
         <!-- Logo/Header -->
-        <div class="p-6 border-b border-base-300">
+        <div class="p-6 border-b border-base-300" id="sidebar-top">
           <a href="/" class="text-2xl font-extrabold text-primary">Podium</a>
           <p class="text-base-content/70 text-sm mt-1">Hackathon peer judging platform</p>
         </div>

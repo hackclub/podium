@@ -34,14 +34,55 @@
 }
 
 /* home page */
-#sidebar,
-#home-navbar,
+/* #sidebar, */
+/* #home-navbar, */
 #welcome-back {
     display: none;
 }
 
-html,body {
-    height: 100%;
+#home-navbar {
+  background-color: transparent;
+  margin-top: 0.5rem;
+  margin-left: 0.75rem;
+  width: max-content;
+}
+#home-navbar > :not(:first-child) {
+  display: none;
+}
+
+#sidebar-ui {
+  background-color: #fef9dc;
+  border-right: 2px solid #D3B180;
+}
+#sidebar-top a {
+  color: rgb(131, 55, 16);
+}
+#sidebar ul {
+  width: 100%;
+}
+#sidebar li {
+  margin-bottom: 1rem;
+}
+#sidebar :not(#sidebar-top) a, #sidebar :not(#sidebar-top) button {
+  background-color: transparent;
+  border-radius: 0;
+  width: 100%;
+  border-bottom: 1px solid rgba(131, 55, 16, 0.2);
+  color: rgb(139, 69, 19);
+}
+#sidebar :not(#sidebar-top) a.bg-primary {
+  background-color: rgba(131, 55, 16, 0.05);
+  border-bottom: 1px solid rgba(131, 55, 16, 0.5);
+}
+
+svg.text-success {
+  color: #8fecae;
+  filter: drop-shadow(0 0 6px #8fecae88)
+}
+
+body, html {
+  height: max-content;
+  min-height: 100vh;
 }
 
 body {
@@ -60,7 +101,6 @@ body {
   .btn-secondary,
   .btn-outline,
   .btn-ghost,
-  .btn-link,
   .btn-info,
   .btn-success,
   .btn-warning,

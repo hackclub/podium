@@ -78,7 +78,7 @@
       <img
         src={project.image_url}
         alt="Project"
-        class="object-contain w-full h-auth max-h-48"
+        class="object-contain w-full h-auth max-h-48 aspect-[3/2]"
         loading="lazy"
         onload={() => (loadingImage = false)}
         onerror={() => (loadingImage = false)}
@@ -99,12 +99,12 @@
       {:else}
         <p class="break-words text-xs">{credits}</p>
       {/if}
-      <div class="card-actions justify-end mt-2">
+      <div class="card-actions justify-center mt-2">
         <a href={project.repo} target="_blank" rel="noopener">
-          <div class="badge badge-secondary badge-lg underline">Repo</div>
+          <div class="btn btn-secondary btn-lg underline">Repo</div>
         </a>
         <a href={project.demo} target="_blank" rel="noopener">
-          <div class="badge badge-primary badge-lg underline">Demo</div>
+          <div class="btn btn-primary btn-lg underline">Demo</div>
         </a>
       </div>
     </div>
