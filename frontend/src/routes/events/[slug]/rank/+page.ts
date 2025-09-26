@@ -2,11 +2,10 @@ import { error } from "@sveltejs/kit";
 import type { PageLoad } from "./$types";
 import { client, EventsService } from "$lib/client/sdk.gen";
 import { getAuthenticatedUser } from "$lib/user.svelte";
-import { createTrackingFetch } from "$lib/tracking-fetch";
 import * as Sentry from "@sentry/sveltekit";
 
 export const load: PageLoad = async ({ params, fetch, parent }) => {
-  client.setConfig({ fetch: createTrackingFetch(fetch) });
+  client.setConfig({ fetch });
   const { event } = await parent();
   try {
     const { data: projects, error: projectsError, response: projectsResponse} =

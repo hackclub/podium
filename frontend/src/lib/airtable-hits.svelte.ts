@@ -5,13 +5,13 @@
 let airtableHits = $state(0);
 
 export function getAirtableHits() {
-    return airtableHits;
+  return airtableHits;
 }
 
 export function addAirtableHits(count: number) {
-    airtableHits += count;
+  airtableHits += count;
 }
 
 export function resetAirtableHits() {
-    airtableHits = 0;
+  airtableHits = 0;
 }

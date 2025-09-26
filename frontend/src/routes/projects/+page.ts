@@ -4,13 +4,12 @@ import type { PageLoad } from "./$types";
 import { getAuthenticatedUser } from "$lib/user.svelte";
 import { client, EventsService, ProjectsService } from "$lib/client/sdk.gen";
 import type { Event, PrivateProject, UserEvents } from "$lib/client/types.gen";
-import { createTrackingFetch } from "$lib/tracking-fetch";
 
 export const load: PageLoad = async ({ params, fetch, depends }) => {
   // depends("events:events")
   // depends("projects:mine")
 
-  client.setConfig({ fetch: createTrackingFetch(fetch) });
+  client.setConfig({ fetch });
   if (!getAuthenticatedUser().access_token) {
     throw error(401, "Unauthorized, try logging in first");
   }
