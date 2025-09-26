@@ -2,9 +2,10 @@ import { error } from "@sveltejs/kit";
 import type { PageLoad } from "./$types";
 import { client, EventsService } from "$lib/client/sdk.gen";
 import type { Project } from "$lib/client/types.gen";
+import { createTrackingFetch } from "$lib/tracking-fetch";
 
 export const load: PageLoad = async ({ params, fetch, parent }) => {
-  client.setConfig({ fetch });
+  client.setConfig({ fetch: createTrackingFetch(fetch) });
 
   const { event } = await parent();
   const {

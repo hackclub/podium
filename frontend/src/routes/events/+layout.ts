@@ -4,9 +4,10 @@ import type { LayoutLoad } from "./$types";
 import { getAuthenticatedUser } from "$lib/user.svelte";
 import { client } from "$lib/client/sdk.gen";
 import { EventsService } from "$lib/client/sdk.gen";
+import { createTrackingFetch } from "$lib/tracking-fetch";
 
 export const load: LayoutLoad = async ({ fetch, url }) => {
-  client.setConfig({ fetch });
+  client.setConfig({ fetch: createTrackingFetch(fetch) });
   
   // Check if this is the main events page (not a sub-route)
   const isMainEventsPage = url.pathname === '/events';
