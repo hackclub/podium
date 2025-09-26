@@ -12,8 +12,9 @@
 
   import Podium from "$lib/assets/podium.png"
 
-  import { getAuthenticatedUser } from "$lib/user.svelte";
+  import { getAuthenticatedUser, signOut } from "$lib/user.svelte";
   import NoticeAndHelp from "$lib/components/NoticeAndHelp.svelte";
+  import UpdateUser from "$lib/components/UpdateUser.svelte";
 
   let loadingText = $state(returnLoadingText());
   let loadingTextInterval: NodeJS.Timeout = $state() as NodeJS.Timeout;
@@ -228,6 +229,21 @@
         
         <!-- Bottom Section -->
         <div class="p-4 border-t border-base-300">
+          <div class="card bg-base-100 shadow-sm">
+            <div class="card-body gap-2">
+              <h3 class="card-title text-sm">Account</h3>
+              <p class="text-xs text-base-content/70 break-words">
+                Signed in as <strong>{getAuthenticatedUser().user.email}</strong>
+              </p>
+              <p class="text-xs text-base-content/70 break-words">
+                Display name: <strong>{getAuthenticatedUser().user.display_name || `${getAuthenticatedUser().user.first_name} ${getAuthenticatedUser().user.last_name?.[0] || ''}`}</strong>
+              </p>
+              <div class="mt-2 flex flex-col gap-2">
+                <UpdateUser user={getAuthenticatedUser().user} />
+                <button class="btn btn-outline btn-sm btn-block" onclick={signOut}>Sign out</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

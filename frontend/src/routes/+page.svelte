@@ -38,27 +38,9 @@
       </h1>
     </div>
 
-    <StartWizard />
-
-    <!-- User Info Card -->
-    <div class="card bg-base-100 shadow-lg">
-      <div class="card-body">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div class="w-full">
-            <h2 class="text-xl font-semibold">Account</h2>
-            <p class="text-base-content/70">
-              Signed in as <strong>{getAuthenticatedUser().user.email}</strong>
-            </p>
-            <p class="text-base-content/70">
-              Display name: <strong>{getAuthenticatedUser().user.display_name || `${getAuthenticatedUser().user.first_name} ${getAuthenticatedUser().user.last_name?.[0] || ''}`}</strong>
-            </p>
-          </div>
-          <div class="flex gap-2 w-full sm:w-auto justify-end">
-            <UpdateUser user={getAuthenticatedUser().user} />
-            <button class="btn btn-outline btn-sm" onclick={signOut}>Sign out</button>
-          </div>
-        </div>
-      </div>
+    <div class="min-h-[60vh] flex items-center justify-center">
+      <StartWizard />
     </div>
+
   </div>
 {/if}
