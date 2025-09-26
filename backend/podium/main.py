@@ -2,7 +2,7 @@ import importlib
 import os
 from pathlib import Path
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
@@ -37,7 +37,20 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Airtable-Hits"],
 )
+
+@app.middleware("http")
+async def track_airtable_hits(request: Request, call_next):
+    from podium.db.db import _current_request
+    request.state.airtable_hits = 0
+    token = _current_request.set(request)
+    try:
+        response = await call_next(request)
+        response.headers["X-Airtable-Hits"] = str(request.state.airtable_hits)
+        return response
+    finally:
+        _current_request.reset(token)
 
 # Annotated
 # https://fastapi.tiangolo.com/tutorial/path-params-numeric-validations/#better-with-annotated

@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/sveltekit";
 import type { ServerInit } from "@sveltejs/kit";
 import { client } from "$lib/client/sdk.gen";
 import { getAuthenticatedUser, validateToken } from "$lib/user.svelte";
+import { addAirtableHits } from "$lib/airtable-hits.svelte";
 // @ts-ignore
 import { PUBLIC_API_URL } from "$env/static/public";
 
@@ -18,6 +19,26 @@ Sentry.init({
   ],
   sendDefaultPii: false,
 });
+
+// Override global fetch to track Airtable API hits transparently
+const originalFetch = globalThis.fetch;
+globalThis.fetch = async (
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> => {
+  const response = await originalFetch(input, init);
+
+  // Check for Airtable hits header and add to store
+  const airtableHits = response.headers.get("X-Airtable-Hits");
+  if (airtableHits) {
+    const hits = parseInt(airtableHits, 10);
+    if (!isNaN(hits)) {
+      addAirtableHits(hits);
+    }
+  }
+
+  return response;
+};
 
 client.setConfig({
   baseUrl: PUBLIC_API_URL,

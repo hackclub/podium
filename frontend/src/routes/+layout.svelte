@@ -15,6 +15,8 @@
   import { getAuthenticatedUser, signOut } from "$lib/user.svelte";
   import NoticeAndHelp from "$lib/components/NoticeAndHelp.svelte";
   import UpdateUser from "$lib/components/UpdateUser.svelte";
+  import AirtableHitsCounter from "$lib/components/AirtableHitsCounter.svelte";
+  import { resetAirtableHits } from "$lib/airtable-hits.svelte";
 
   let loadingText = $state(returnLoadingText());
   let loadingTextInterval: NodeJS.Timeout = $state() as NodeJS.Timeout;
@@ -64,6 +66,13 @@
   // Auto-expand events section based on current path
   $effect(() => {
     eventsExpanded = isInEventsSection();
+  });
+
+  // Reset Airtable hits counter on page navigation
+  $effect(() => {
+    // Track page changes by watching the pathname
+    page.url.pathname;
+    resetAirtableHits();
   });
 
   // Icon path constants
@@ -275,5 +284,8 @@
 <div class="fixed bottom-4 left-4 z-50">
   <ThemeSwitcher />
 </div>
+
+<!-- Airtable Hits Counter (Top Right, dev only) -->
+<AirtableHitsCounter />
 
 

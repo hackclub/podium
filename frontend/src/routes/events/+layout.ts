@@ -7,7 +7,7 @@ import { EventsService } from "$lib/client/sdk.gen";
 
 export const load: LayoutLoad = async ({ fetch, url }) => {
   client.setConfig({ fetch });
-  
+
   // Check if this is the main events page (not a sub-route)
   const isMainEventsPage = url.pathname === '/events';
   
