@@ -43,7 +43,7 @@
 </script>
 
 <div class="max-w-md mx-auto">
-  <div class="card bg-base-100 shadow-lg">
+  <div class="card bg-base-100 shadow-lg" id="wizard-card">
     <div class="card-body">
       {#if currentStep === "welcome"}
         <!-- Welcome Screen -->

@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@import "daydream.css";
+
 @plugin '@tailwindcss/typography';
 
 @plugin "daisyui" {
@@ -16,7 +18,7 @@
 
 @plugin "daisyui/theme" {
   name: "undercity";
-  default: true;
+  default: false;
   prefersdark: true;
   --color-base-100: #2E2A54;
   --color-base-200: #272239;
@@ -29,6 +31,41 @@
   --color-accent: rgb(245, 131, 228);
   --color-accent-content: oklch(40% 0.153 2.432);
   --color-neutral: #2E2A54;
+  --color-neutral-content: oklch(100% 0 0);
+  --color-info: rgb(175, 189, 239);
+  --color-info-content: oklch(42% 0.199 265.638);
+  --color-success: rgb(134, 227, 168);
+  --color-success-content: oklch(43% 0.095 166.913);
+  --color-warning: oklch(90.5% .182 98.111);
+  --color-warning-content: oklch(55% 0.163 48.998);
+  --color-error: #ff00b8;
+  --color-error-content: oklch(100% 0 0);
+  --radius-selector: 1rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 1;
+}
+
+@plugin "daisyui/theme" {
+  name: "daydream";
+  default: true;
+  prefersdark: false;
+  --color-base-content: rgb(139, 69, 19);
+  --color-base-100: #fef9dc;
+  --color-base-200: #fffef2;
+  --color-base-300: #D3B180;
+  --color-base-content: oklch(100% 0 0);
+  --color-primary: #544fff;
+  --color-primary-content: oklch(100% 0 0);
+  --color-secondary: rgb(209, 175, 239);
+  --color-secondary-content: oklch(38% 0.176 304.987);
+  --color-accent: rgb(245, 131, 228);
+  --color-accent-content: oklch(40% 0.153 2.432);
+  --color-neutral: #fef9dc;
   --color-neutral-content: oklch(100% 0 0);
   --color-info: rgb(175, 189, 239);
   --color-info-content: oklch(42% 0.199 265.638);

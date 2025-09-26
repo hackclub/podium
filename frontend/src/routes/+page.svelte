@@ -20,7 +20,7 @@
 
 {#if !getAuthenticatedUser().access_token}
   <!-- Not logged in - center everything -->
-  <div class="min-h-screen flex items-center justify-center">
+  <div class="flex items-center justify-center">
     <div class="max-w-md w-full space-y-8">
       <div class="text-center">
         <h1 class="text-4xl font-bold text-base-content mb-4">Welcome to Podium</h1>
@@ -31,8 +31,8 @@
   </div>
 {:else}
   <!-- Logged in dashboard -->
-  <div class="max-w-6xl mx-auto space-y-8">
-    <div class="mb-8">
+  <div class="max-w-6xl mx-auto space-y-8" id="home">
+    <div class="mb-8" id="welcome-back">
       <h1 class="text-3xl font-bold text-base-content mb-2">
         Welcome back, {getAuthenticatedUser().user.first_name}!
       </h1>

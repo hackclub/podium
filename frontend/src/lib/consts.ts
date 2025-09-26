@@ -18,10 +18,11 @@ export const themes = [
   "retro",
   "dracula",
   "undercity",
+  "daydream",
 ];
-export const lightTheme = "nord";
+export const lightTheme = "daydream";
 // export const darkTheme = "coffee";
-export const darkTheme = "night";
+export const darkTheme = "daydream";
 export const daisyUIThemes = createDaisyUIThemes(darkTheme, lightTheme, themes);
 
 export const loadingTextOptions = [

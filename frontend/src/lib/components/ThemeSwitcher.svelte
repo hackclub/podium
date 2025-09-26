@@ -3,7 +3,7 @@
   import { setSystemTheme } from "$lib/misc";
 </script>
 
-<div class="dropdown dropdown-top">
+<div class="dropdown dropdown-top" id="theme-switcher">
   <div tabindex="0" role="button" class="btn m-1">
     Theme
     <svg

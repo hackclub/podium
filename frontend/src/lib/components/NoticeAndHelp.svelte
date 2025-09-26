@@ -25,7 +25,7 @@
 
 <!-- Dismissible Notice -->
 {#if noticeVisible}
-  <div class="bg-info text-center rounded-xl max-w-2xl mx-auto mb-6 p-4 relative">
+  <div class="bg-info text-center rounded-xl max-w-2xl mx-auto mb-6 p-4 relative" id="help-notice">
     <button
       onclick={dismissNotice}
       class="btn btn-sm btn-circle btn-ghost absolute top-2 right-2"

@@ -122,7 +122,7 @@
     <input id="sidebar-drawer" type="checkbox" class="drawer-toggle" />
     <div class="drawer-content flex flex-col">
       <!-- Top Navbar -->
-      <div class="navbar bg-base-200 lg:hidden">
+      <div class="navbar bg-base-200 lg:hidden" id="home-navbar">
         <div class="flex-none">
           <label for="sidebar-drawer" aria-label="open sidebar" class="btn btn-square btn-ghost">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block h-6 w-6 stroke-current">
@@ -149,7 +149,7 @@
     </div>
     
     <!-- Sidebar -->
-    <div class="drawer-side">
+    <div class="drawer-side" id="sidebar">
       <label for="sidebar-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
       <div class="min-h-full w-80 bg-base-200 flex flex-col">
         <!-- Logo/Header -->
@@ -234,17 +234,18 @@
   </div>
 {:else}
   <!-- Login page or unauthenticated users without sidebar -->
-  <div class="min-h-screen">
-    <div class="navbar bg-base-200">
+  <div class="min-h-screen flex flex-col" id="landing">
+    <div class="navbar bg-base-200" id="landing-navbar">
       <div class="flex-1">
         <a href="/" class="btn btn-ghost text-xl font-extrabold">Podium</a>
       </div>
     </div>
-    
-    <div class="p-6">
-      <!-- NoticeAndHelp - Inside main content area -->
+
+    <div class="pt-6 px-6">
       <NoticeAndHelp />
-      
+    </div>
+
+    <div class="p-6 my-auto" id="landing-content">
       {#if navigating.to && navigating.type != "form"}
         <LoadingSpinner {loadingText} />
       {:else}

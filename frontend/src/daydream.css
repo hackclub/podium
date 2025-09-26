@@ -1,0 +1,126 @@
+/* fonts */
+@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+:root {
+  --font-sans: 'Atkinson Hyperlegible', 'Phantom Sans', sans-serif !important;
+}
+
+/* landing page */
+#landing-navbar,
+#help-notice,
+#theme-switcher {
+  display: none;
+}
+
+#landing {
+  background-image: url('https://daydream.hackclub.com/brushstroking.png'), url('https://daydream.hackclub.com/cloudy-bg-dim.png'), linear-gradient(to bottom, #CCF4FD, #AECDF6);
+  background-repeat: repeat, no-repeat, no-repeat;
+  background-size: contain, cover, cover;
+  background-position: center center, center 20vh, center center;
+  background-blend-mode: overlay, normal, normal;
+}
+
+#landing-content {
+  background-color: #fef9dc;
+  border: 2px solid #D3B180;
+  width: max-content;
+  margin-inline: auto;
+}
+#landing-content h1 {
+  color: rgb(131, 55, 16);
+}
+#landing-content p {
+  color: rgb(139, 69, 19);
+}
+
+/* home page */
+#sidebar,
+#home-navbar,
+#welcome-back {
+    display: none;
+}
+
+html,body {
+    height: 100%;
+}
+
+body {
+  background-image: url('https://daydream.hackclub.com/brushstroking.png'), url('https://daydream.hackclub.com/cloudy-bg-dim.png'), linear-gradient(to bottom, #CCF4FD, #AECDF6);
+  background-repeat: repeat, no-repeat, no-repeat;
+  background-size: contain, cover, cover;
+  background-position: center center, center 20vh, center center;
+  background-blend-mode: overlay, normal, normal;
+}
+
+/* components */
+@layer utilities {
+  /* Common button styling for all variants, ensure wins over DaisyUI */
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-outline,
+  .btn-ghost,
+  .btn-link,
+  .btn-info,
+  .btn-success,
+  .btn-warning,
+  .btn-error,
+  .btn-accent {
+    /* token defaults; variant rules below can override */
+    --dd-btn-fg: white;
+    --dd-btn-color: rgb(228, 114, 171);
+    --dd-btn-shadow: rgb(166, 90, 128);
+    --dd-btn-outline: rgba(228, 114, 171, 0.3);
+
+    background-color: var(--dd-btn-color) !important;
+    color: var(--dd-btn-fg) !important;
+    border: none !important;
+    border-bottom: 2px solid var(--dd-btn-shadow) !important;
+    border-radius: 10000px !important;
+    transition: all 0.1s;
+    font-weight: normal;
+  }
+
+  .btn:not(:hover):not(:focus) {
+    box-shadow: none !important;
+  }
+  .btn:hover {
+    box-shadow: var(--dd-btn-shadow) 0px 2px 0px 0px !important;
+    transform: translateY(-2px);
+  }
+  .btn:active {
+    box-shadow: none !important;
+    transform: none;
+  }
+  .btn:focus {
+    box-shadow: var(--dd-btn-outline) 0px 0px 0px 2px !important;
+  }
+
+  /* Variant tokens */
+  .btn-secondary {
+    --dd-btn-fg: rgba(0, 0, 0, 0.7);
+    --dd-btn-color: #f2e7a3;
+    --dd-btn-shadow: #bbb277;
+    --dd-btn-outline: #ecdf884c;
+  }
+}
+
+/* inputs and text */
+input {
+  border: 1px solid var(--color-base-300);
+  color: rgb(139, 69, 19);
+}
+p, span {
+  color: rgb(139, 69, 19);
+}
+h1, h2, h3, h4, h5, h6 {
+  color: rgb(131, 55, 16);
+}
+
+.card, .modal-box {
+    border: 2px solid var(--color-base-300);
+    border-radius: 0;
+}
+.card {
+    box-shadow: none;
+}
