@@ -63,33 +63,46 @@
   // Function to handle login
   async function login() {
     isLoading = true;
+    // Stop immediately if no email was entered to avoid backend validation popups
+    if (!userInfo.email || userInfo.email.trim() === "") {
+      isLoading = false;
+      toast.error("Please enter your email address.");
+      document.getElementById("email")?.focus();
+      return;
+    }
     // Even though error handling is done in the API, the try-finally block is used to ensure the loading state is reset
-      const userExists = await checkUserExists();
-      if (userExists) {
-        // Request magic link for the provided email if the user exists
-        const  { error: err } = await AuthService.requestLoginRequestLoginPost({
-          body: { email: userInfo.email },
-          query: { redirect: redirectUrl ?? "" },
-          throwOnError: false,
-        });
-        isLoading = false;
-        if (err) {
-          handleError(err);
-          return;
-        }
-        toast.success(`Magic link sent to ${userInfo.email}`);
-        // Clear field
-        userInfo.email = "";
-      } else {
-        toast.error("You don't exist (yet)! Let's change that.");
-        expandedDueTo = userInfo.email;
-        showSignupFields = true;
+    const userExists = await checkUserExists();
+    if (userExists) {
+      // Request magic link for the provided email if the user exists
+      const { error: err } = await AuthService.requestLoginRequestLoginPost({
+        body: { email: userInfo.email },
+        query: { redirect: redirectUrl ?? "" },
+        throwOnError: false,
+      });
+      isLoading = false;
+      if (err) {
+        handleError(err);
+        return;
       }
+      toast.success(`Magic link sent to ${userInfo.email}`);
+      // Clear field
+      userInfo.email = "";
+    } else {
+      toast.error("You don't exist (yet)! Let's change that.");
+      expandedDueTo = userInfo.email;
+      showSignupFields = true;
+    }
   }
 
   // Function to handle signup and login
   async function signupAndLogin() {
     isLoading = true;
+    if (!userInfo.email || userInfo.email.trim() === "") {
+      isLoading = false;
+      toast.error("Please enter your email address.");
+      document.getElementById("email")?.focus();
+      return;
+    }
     // Generate display name if not provided or only whitespace
     if (!userInfo.display_name || userInfo.display_name.trim() === "") {
       const first = userInfo.first_name?.trim() || "";
