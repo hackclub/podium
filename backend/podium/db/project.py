@@ -1,17 +1,18 @@
 from __future__ import annotations
-from podium.constants import EmptyModel, SingleRecordField, MultiRecordField, UrlField
+from podium.constants import EmptyModel, SingleRecordField, MultiRecordField, UrlField, OptionalUrlField
 from podium.generated.review_factory_models import Unified
 from pydantic import BaseModel, Field, StringConstraints, field_validator
 from typing import Annotated, Optional, List, Type, TypeVar
 from pyairtable.formulas import OR, EQ, Field as AirtableField
 from podium.db import tables
+from fastapi import HTTPException
 
 
 class ProjectBase(BaseModel):
     name: Annotated[str, StringConstraints(min_length=1)]
     repo: UrlField
     image_url: UrlField
-    demo: UrlField
+    demo: OptionalUrlField = ""
     description: Optional[str] = ""
     event: SingleRecordField
     hours_spent: Annotated[
@@ -27,7 +28,7 @@ class ProjectBase(BaseModel):
         # If they are HttpUrl, they need to be converted to str
         # data["repo"] = str(self.repo)
         # data["image_url"] = str(self.image_url)
-        # data["demo"] = str(self.demo)
+        # data["demo"] = str(self.demo) if self.demo else None
         return data
 
 
@@ -37,6 +38,11 @@ class ProjectCreationPayload(ProjectBase): ...
 class ProjectUpdate(ProjectBase): ...
     
 class Project(ProjectBase):
+    # Trust data from the db in case old events have invalid URLs
+    repo: str
+    image_url: str
+    demo: str = ""
+    
     id: str
     points: int = 0
     votes: MultiRecordField = []
@@ -88,3 +94,17 @@ def get_projects_from_record_ids(record_ids: List[str], model: Type[T]) -> List[
     
     records = projects_table.all(formula=formula)
     return [model.model_validate(record["fields"]) for record in records]
+
+
+def validate_demo_field(project: ProjectCreationPayload | ProjectUpdate, event) -> None:
+    """
+    Validate the demo field based on the event's demo_links_optional setting.
+    Raises HTTPException if validation fails.
+    """
+    # If demo_links_optional is False, demo field is required
+    if not event.demo_links_optional:
+        if not project.demo or project.demo.strip() == "":
+            raise HTTPException(
+                status_code=422, 
+                detail="Demo URL is required for this event"
+            )

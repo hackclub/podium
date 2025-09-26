@@ -15,7 +15,9 @@ SingleRecordField = Annotated[
     List[Annotated[str, StringConstraints(pattern=RECORD_REGEX)]],
     Len(min_length=1, max_length=1),
 ]
-UrlField = Annotated[str, StringConstraints(min_length=1)]
+# URL fields with regex validation
+UrlField = Annotated[str, StringConstraints(min_length=1, pattern=URL_REGEX)]
+OptionalUrlField = Annotated[str, StringConstraints(min_length=0, pattern=rf"^$|{URL_REGEX[1:-1]}")]
 
 Slug = Annotated[
     str, StringConstraints(min_length=1, max_length=50, pattern=r"[-a-z0-9]+")

@@ -7,7 +7,7 @@ export type AdminProject = {
     name: string;
     repo: string;
     image_url: string;
-    demo: string;
+    demo?: string;
     description?: (string | null);
     event: [
         string
@@ -65,12 +65,12 @@ export type Event = {
     votable?: boolean;
     leaderboard_enabled?: boolean;
     demo_links_optional?: boolean;
-    feature_flags_csv?: string;
     id: string;
     owner: [
         string
     ];
     slug: string;
+    feature_flags_csv?: string;
     ysws_checks_enabled?: boolean;
     /**
      * Get feature flags as a list, filtering out empty strings.
@@ -85,7 +85,6 @@ export type EventCreationPayload = {
     votable?: boolean;
     leaderboard_enabled?: boolean;
     demo_links_optional?: boolean;
-    feature_flags_csv?: string;
 };
 
 export type EventUpdate = {
@@ -94,7 +93,6 @@ export type EventUpdate = {
     votable?: boolean;
     leaderboard_enabled?: boolean;
     demo_links_optional?: boolean;
-    feature_flags_csv?: string;
 };
 
 export type HTTPValidationError = {
@@ -110,12 +108,12 @@ export type PrivateEvent = {
     votable?: boolean;
     leaderboard_enabled?: boolean;
     demo_links_optional?: boolean;
-    feature_flags_csv?: string;
     id: string;
     owner: [
         string
     ];
     slug: string;
+    feature_flags_csv?: string;
     ysws_checks_enabled?: boolean;
     attendees?: Array<(string)>;
     join_code: string;
@@ -136,7 +134,7 @@ export type PrivateProject = {
     name: string;
     repo: string;
     image_url: string;
-    demo: string;
+    demo?: string;
     description?: (string | null);
     event: [
         string
@@ -161,7 +159,7 @@ export type Project = {
     name: string;
     repo: string;
     image_url: string;
-    demo: string;
+    demo?: string;
     description?: (string | null);
     event: [
         string
@@ -183,7 +181,7 @@ export type ProjectCreationPayload = {
     name: string;
     repo: string;
     image_url: string;
-    demo: string;
+    demo?: string;
     description?: (string | null);
     event: [
         string
@@ -198,7 +196,7 @@ export type ProjectUpdate = {
     name: string;
     repo: string;
     image_url: string;
-    demo: string;
+    demo?: string;
     description?: (string | null);
     event: [
         string
@@ -210,7 +208,6 @@ export type ProjectUpdate = {
 };
 
 export type Readme = {
-    content: string;
     features?: (Array<(string)> | null);
     program_type?: (ProgramType | null);
     reasoning?: (string | null);
@@ -238,15 +235,12 @@ export type Repo = {
 export type Status = 'pending' | 'running' | 'completed' | 'failed';
 
 export type Unified = {
+    valid: boolean;
     readme_result: Readme;
     repo_result: Repo;
     demo_result: Demo;
     reason: string;
     image_valid: boolean;
-    /**
-     * Compute overall validity based on repo and demo results
-     */
-    valid: boolean;
 };
 
 /**

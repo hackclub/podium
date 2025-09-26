@@ -5,7 +5,7 @@ from podium import settings
 from requests import HTTPError
 from podium import db
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
-from pyairtable.formulas import EQ, RECORD_ID, match
+from pyairtable.formulas import match
 from podium.routers.auth import get_current_user
 from podium.db.user import UserInternal
 import httpx
@@ -15,7 +15,9 @@ from podium.db.project import (
     Project,
     ProjectCreationPayload,
     get_projects_from_record_ids,
+    validate_demo_field,
 )
+from podium.db.event import PrivateEvent
 from podium.generated.review_factory_models import CheckStatus
 from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH, BAD_ACCESS, EmptyModel
 
@@ -53,17 +55,20 @@ def create_project(
         raise BAD_AUTH
     owner = [user.id]
 
-    # Fetch all events that have a record ID matching the project's event ID
-    records = db.events.all(formula=EQ(RECORD_ID(), project.event[0]))
-    if not records:
-        # If the event does not exist, raise a 404
-        raise HTTPException(status_code=404, detail="Event not found")
+    # Fetch the event to validate demo field and check attendees
+    try:
+        event_record = db.events.get(project.event[0])
+        event = PrivateEvent.model_validate(event_record["fields"])
+    except HTTPError as e:
+        if e.response.status_code in AIRTABLE_NOT_FOUND_CODES:
+            raise HTTPException(status_code=404, detail="Event not found")
+        raise e
+
+    # Validate demo field based on event's demo_links_optional setting
+    validate_demo_field(project, event)
 
     # If the owner is not part of the event that the project is going to be associated with, raise a 403
-    # Might be good to put a try/except block here to check for a 404 but shouldn't be necessary as the event isn't user-provided, it's in the DB
-    # TODO: replace with pydantic model
-    event_attendees = db.events.get(project.event[0])["fields"].get("attendees", [])
-    if not any(i in event_attendees for i in owner):
+    if not any(i in event.attendees for i in owner):
         raise HTTPException(status_code=403, detail="Owner not part of event")
 
     while True:
@@ -131,6 +136,18 @@ def update_project(
     ):
         raise BAD_ACCESS
 
+    # Fetch the event to validate demo field
+    try:
+        event_record = db.events.get(project.event[0])
+        event = PrivateEvent.model_validate(event_record["fields"])
+    except HTTPError as e:
+        if e.response.status_code in AIRTABLE_NOT_FOUND_CODES:
+            raise HTTPException(status_code=404, detail="Event not found")
+        raise e
+
+    # Validate demo field based on event's demo_links_optional setting
+    validate_demo_field(project, event)
+
     return db.projects.update(project_id, project.model_dump())["fields"]
 
 
@@ -193,7 +210,7 @@ async def start_project_check(project: Project) -> CheckStatus:
             json={
                 "repo": str(project.repo),
                 "image_url": str(project.image_url) if project.image_url else "",
-                "demo": str(project.demo)
+                "demo": str(project.demo) if project.demo else ""
             },
             headers={
                 "Authorization": f"Bearer {settings.review_factory_token}",

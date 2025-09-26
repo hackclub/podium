@@ -103,9 +103,11 @@
         <a href={project.repo} target="_blank" rel="noopener">
           <div class="btn btn-secondary btn-lg underline">Repo</div>
         </a>
-        <a href={project.demo} target="_blank" rel="noopener">
-          <div class="btn btn-primary btn-lg underline">Demo</div>
-        </a>
+        {#if project.demo}
+          <a href={project.demo} target="_blank" rel="noopener">
+            <div class="btn btn-primary btn-lg underline">Demo</div>
+          </a>
+        {/if}
       </div>
     </div>
   </div>
