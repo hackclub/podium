@@ -1,6 +1,31 @@
 from pyairtable import Api, Table
+from contextvars import ContextVar
+from fastapi import Request
+import requests
+from typing import Any
 
 from podium import settings
+
+# Context variable to track current request
+_current_request: ContextVar[Request] = ContextVar('current_request', default=None)
+
+# Store original requests Session.request method
+_original_session_request = requests.Session.request
+
+def _tracking_session_request(self, method, url, *args, **kwargs) -> Any:
+    """Monkey-patched requests.Session.request that tracks Airtable HTTP calls"""
+    response = _original_session_request(self, method, url, *args, **kwargs)
+    
+    # Check if this is an Airtable API call
+    if isinstance(url, str) and 'api.airtable.com' in url:
+        request = _current_request.get()
+        if request is not None and hasattr(request, 'state'):
+            request.state.airtable_hits = getattr(request.state, 'airtable_hits', 0) + 1
+    
+    return response
+
+# Monkey-patch requests.Session.request to track HTTP calls
+requests.Session.request = _tracking_session_request
 
 
 tables: dict[str, Table] = {}

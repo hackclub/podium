@@ -5,9 +5,10 @@ import { client } from "$lib/client/sdk.gen";
 import { EventsService } from "$lib/client/sdk.gen";
 import type { Event, PrivateEvent } from "$lib/client";
 import { eventSlugAliases } from "$lib/consts";
+import { createTrackingFetch } from "$lib/tracking-fetch";
 
 export const load: LayoutLoad = async ({ params, fetch, parent }) => {
-  client.setConfig({ fetch });
+  client.setConfig({ fetch: createTrackingFetch(fetch) });
 
   if (!params.slug) {
     throw error(400, "no slug provided");
