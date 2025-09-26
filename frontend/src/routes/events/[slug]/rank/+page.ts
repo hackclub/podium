@@ -13,6 +13,9 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
         path: {
           event_id: event.id,
         },
+        query: {
+          leaderboard: false,
+        },
         throwOnError: false,
       });
     if (!projects || projectsError) {

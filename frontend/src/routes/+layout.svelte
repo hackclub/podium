@@ -9,6 +9,9 @@
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import { setSystemTheme, returnLoadingText } from "$lib/misc";
   import { goto } from "$app/navigation";
+
+  import Podium from "$lib/assets/podium.png"
+
   import { getAuthenticatedUser } from "$lib/user.svelte";
   import NoticeAndHelp from "$lib/components/NoticeAndHelp.svelte";
 
@@ -90,6 +93,7 @@
 
 <svelte:head>
   <title>{title}</title>
+  <link rel="icon" href={Podium} />
   <meta name="description" content={description} />
   {#each additionalMeta as { name, content }}
     <meta {name} {content} />

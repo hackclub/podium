@@ -2,13 +2,13 @@
 # $env:ENV_FOR_DYNACONF="production"                                                                               
 # $env:PYTHONIOENCODING="utf-8"
 from podium.db import users
-from podium.db.user import UserPrivate, UserSignupPayload
+from podium.db.user import UserInternal, UserSignupPayload
 import rich
 
 def add_display_names(): 
     for records in users.iterate(page_size=100):
         for record in records:
-            user = UserPrivate.model_validate(record["fields"])
+            user = UserInternal.model_validate(record["fields"])
             if user.display_name:
                 continue
             user.display_name = f"{user.first_name} {user.last_name[0]}." if user.last_name else user.first_name

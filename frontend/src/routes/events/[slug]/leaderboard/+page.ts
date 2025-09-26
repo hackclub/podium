@@ -11,14 +11,17 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
     data,
     response,
     error: err,
-  } = await EventsService.getLeaderboardEventsEventIdLeaderboardGet({
+  } = await EventsService.getEventProjectsEventsEventIdProjectsGet({
     path: {
       event_id: event.id,
+    },
+    query: {
+      leaderboard: true,
     },
     // https://github.com/orgs/hey-api/discussions/1655
     throwOnError: false,
   });
-  if (err) {
+  if (err || !data) {
     console.error(err, response);
     throw error(response.status, JSON.stringify(err));
   }

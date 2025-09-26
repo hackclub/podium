@@ -17,17 +17,17 @@
       const lastInitial = user.last_name?.trim() ? user.last_name.trim()[0] + "." : "";
       user.display_name = `${first} ${lastInitial}`.trim();
     }
-    try {
-      await UsersService.updateCurrentUserUsersCurrentPut({
-        body: user,
-        throwOnError: true,
-      });
-      toast.success("Profile updated successfully");
-      await invalidateUser();
-      updateModal.closeModal();
-    } catch (err) {
+    const { data, error: err } = await UsersService.updateCurrentUserUsersCurrentPut({
+      body: user,
+      throwOnError: false,
+    });
+    if (err || !data) {
       handleError(err);
+      return;
     }
+    toast.success("Profile updated successfully");
+    await invalidateUser();
+    updateModal.closeModal();
   }
 </script>
 

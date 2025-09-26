@@ -8,6 +8,7 @@ from podium.db import user as user
 from podium.db.project import ProjectUpdate as ProjectUpdate
 from podium.db.project import ProjectBase as ProjectBase
 from podium.db.referral import ReferralBase as ReferralBase
+from podium.db.referral import Referral as Referral
 from podium.db.vote import VoteBase as VoteBase
 from podium.db.vote import Vote as Vote
 from podium.db.vote import CreateVotes as CreateVotes

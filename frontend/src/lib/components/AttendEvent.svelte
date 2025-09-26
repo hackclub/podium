@@ -14,23 +14,23 @@
   });
 
   async function attendEvent() {
-    try {
-      await EventsService.attendEventEventsAttendPost({
-        ...toSend,
-        throwOnError: true,
-      });
-      toast.success("Joined event successfully");
-      await customInvalidateAll();
-      // Reset
-      toSend.query.join_code = "";
-      toSend.query.referral = "";
-      
-      // Call the callback if provided (for auto-progression in SignupWizard)
-      if (onEventJoined) {
-        onEventJoined();
-      }
-    } catch (err) {
+    const { error: err } = await EventsService.attendEventEventsAttendPost({
+      ...toSend,
+      throwOnError: false,
+    });
+    if (err) {
       handleError(err);
+      return;
+    }
+    toast.success("Joined event successfully");
+    await customInvalidateAll();
+    // Reset
+    toSend.query.join_code = "";
+    toSend.query.referral = "";
+    
+    // Call the callback if provided (for auto-progression in SignupWizard)
+    if (onEventJoined) {
+      onEventJoined();
     }
   }
 

@@ -6,10 +6,12 @@ from fastapi_cache.decorator import cache
 from fastapi_cache import FastAPICache
 from podium.db.user import (
     UserSignupPayload,
-    UserPrivate,
+    UserInternal,
     UserPublic,
+    UserPrivate,
     UserUpdate,
-    get_user_record_id_by_email,
+    UserBase,
+    get_user_by_email,
 )
 from podium.routers.auth import get_current_user
 from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH
@@ -28,13 +30,13 @@ class UserExistsResponse(BaseModel):
 @router.get("/exists")
 def user_exists(email: Annotated[EmailStr, Query(...)]) -> UserExistsResponse:
     email = email.strip().lower()
-    exists = True if db.user.get_user_record_id_by_email(email) else False
+    exists = True if db.user.get_user_by_email(email, UserBase) else False
     return UserExistsResponse(exists=exists)
 
 
 @router.get("/current")
 def get_current_user_info(
-    current_user: Annotated[UserPrivate, Depends(get_current_user)],
+    current_user: Annotated[UserInternal, Depends(get_current_user)],
 ) -> UserPrivate:
     if current_user:
         return current_user
@@ -44,7 +46,7 @@ def get_current_user_info(
 @router.put("/current")
 async def update_current_user(
     user_update: UserUpdate,
-    current_user: Annotated[UserPrivate, Depends(get_current_user)],
+    current_user: Annotated[UserInternal, Depends(get_current_user)],
 ) -> UserPrivate:
     """
     Update the current user's information
@@ -70,12 +72,12 @@ async def update_current_user(
 
 # The reason we're specifying response_model here is because of https://github.com/long2ice/fastapi-cache/issues/384
 @router.get("/{user_id}", response_model=UserPublic)
-@cache(expire=5, namespace="users")
+@cache(expire=15*60, namespace="users")
 async def get_user_public(
     user_id: Annotated[str, Path(title="User Airtable ID")],
 ) -> UserPublic:
     try:
-        user = db.users.get(user_id)
+        user = db.user.get_user_by_email(user_id, UserPublic)
     except HTTPError as e:
         raise (
             HTTPException(status_code=404, detail="User not found")
@@ -83,14 +85,14 @@ async def get_user_public(
             else e
         )
     
-    return UserPublic.model_validate(user["fields"])
+    return user
 
 
 # Eventually, this should probably be rate-limited
 @router.post("/")
 def create_user(user: UserSignupPayload):
     # Check if the user already exists
-    user_id = get_user_record_id_by_email(user.email)
-    if user_id:
+    existing_user = get_user_by_email(user.email, UserBase)
+    if existing_user:
         raise HTTPException(status_code=400, detail="User already exists")
     db.users.create(user.model_dump())

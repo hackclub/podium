@@ -7,13 +7,14 @@ from podium import db
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pyairtable.formulas import EQ, RECORD_ID, match
 from podium.routers.auth import get_current_user
-from podium.db.user import UserPrivate
+from podium.db.user import UserInternal
 import httpx
 from podium.db.project import (
     InternalProject,
     PrivateProject,
     Project,
-    PublicProjectCreationPayload,
+    ProjectCreationPayload,
+    get_projects_from_record_ids,
 )
 from podium.generated.review_factory_models import CheckStatus
 from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH, BAD_ACCESS, EmptyModel
@@ -24,7 +25,7 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 # Get the current user's projects
 @router.get("/mine")
 def get_projects(
-    user: Annotated[UserPrivate, Depends(get_current_user)],
+    user: Annotated[UserInternal, Depends(get_current_user)],
 ) -> list[PrivateProject]:
     """
     Get the current user's projects and projects they are collaborating on.
@@ -33,19 +34,17 @@ def get_projects(
     if user is None:
         raise BAD_AUTH
 
-    projects = [
-        PrivateProject.model_validate(project["fields"])
-        for project in [db.projects.get(project_id) for project_id in user.projects]
-        + [db.projects.get(project_id) for project_id in user.collaborations]
-    ]
+    # Combine owned and collaborated project IDs
+    all_project_ids = user.projects + user.collaborations
+    projects = get_projects_from_record_ids(all_project_ids, PrivateProject)
     return projects
 
 
 # It's up to the client to provide the event record ID
 @router.post("/")
 def create_project(
-    project: PublicProjectCreationPayload,
-    user: Annotated[UserPrivate, Depends(get_current_user)],
+    project: ProjectCreationPayload,
+    user: Annotated[UserInternal, Depends(get_current_user)],
 ):
     """
     Create a new project. The current user is automatically added as an owner of the project.
@@ -89,7 +88,7 @@ def join_project(
     join_code: Annotated[
         str, Query(description="A unique code used to join a project as a collaborator")
     ],
-    user: Annotated[UserPrivate, Depends(get_current_user)],
+    user: Annotated[UserInternal, Depends(get_current_user)],
 ):
     if user is None:
         raise BAD_AUTH
@@ -121,7 +120,7 @@ def join_project(
 def update_project(
     project_id: Annotated[str, Path(pattern=r"^rec\w*$")],
     project: db.ProjectUpdate,
-    user: Annotated[UserPrivate, Depends(get_current_user)],
+    user: Annotated[UserInternal, Depends(get_current_user)],
 ):
     """
     Update a project by replacing it
@@ -139,7 +138,7 @@ def update_project(
 @router.delete("/{project_id}")
 def delete_project(
     project_id: Annotated[str, Path(pattern=r"^rec\w*$")],
-    user: Annotated[UserPrivate, Depends(get_current_user)],
+    user: Annotated[UserInternal, Depends(get_current_user)],
 ):
     # Check if the user is an owner of the project or if they even exist
     if user is None or user.id not in db.projects.get(project_id)["fields"].get(

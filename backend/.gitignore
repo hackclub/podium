@@ -2,7 +2,7 @@
 
 .secrets.toml
 .env*
-!.env
+!.env.public
 
 # ---
 

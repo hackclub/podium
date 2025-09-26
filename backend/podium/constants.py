@@ -2,6 +2,7 @@ from typing import Annotated, List
 from annotated_types import Len
 from fastapi import HTTPException
 from pydantic import BaseModel, StringConstraints
+from enum import Enum
 
 
 RECORD_REGEX = r"^rec\w*$"
@@ -27,6 +28,20 @@ BAD_ACCESS = HTTPException(
 )
 
 AIRTABLE_NOT_FOUND_CODES = [404, 403]
+class FeatureFlag(Enum):
+    """Known feature flags - add new ones here as they're created."""
+    DAYDREAM = "daydream"  # Daydream-specific features
+
+# Comma-separated feature flags (e.g., "flag1,flag2"); regex ensures only alphanum/underscore names, no spaces.
+# Empty string is allowed for no flags
+CommaSeparatedFeatureFlags = Annotated[
+    str,
+    StringConstraints(pattern=r"^([a-zA-Z0-9_]+(,[a-zA-Z0-9_]+)*)?$")
+]
+
+
+
+
 
 
 class EmptyModel(BaseModel):

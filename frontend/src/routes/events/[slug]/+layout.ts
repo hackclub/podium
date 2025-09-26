@@ -1,16 +1,12 @@
 // https://svelte.dev/docs/kit/load#Layout-data
-import { error, isHttpError, redirect } from "@sveltejs/kit";
+import { error } from "@sveltejs/kit";
 import type { LayoutLoad } from "./$types";
-import { getAuthenticatedUser } from "$lib/user.svelte";
 import { client } from "$lib/client/sdk.gen";
 import { EventsService } from "$lib/client/sdk.gen";
-import { page } from "$app/state";
-import type { Event } from "$lib/client";
+import type { Event, PrivateEvent } from "$lib/client";
 import { eventSlugAliases } from "$lib/consts";
 
-let partOfEvent = false;
-
-export const load: LayoutLoad = async ({ params, fetch, url, route }) => {
+export const load: LayoutLoad = async ({ params, fetch, parent }) => {
   client.setConfig({ fetch });
 
   if (!params.slug) {
@@ -20,75 +16,75 @@ export const load: LayoutLoad = async ({ params, fetch, url, route }) => {
   // Check for alias and replace slug if needed
   const slug =
     (eventSlugAliases as Record<string, string>)[params.slug] || params.slug;
-  const {
-    data: eventId,
-    error: errSlug,
-    response: responseSlug,
-  } = await EventsService.getAtIdEventsIdSlugGet({
-    path: {
-      slug,
-    },
-    throwOnError: false,
-  });
-  if (errSlug) {
-    console.error(errSlug, responseSlug);
-    throw error(responseSlug.status, JSON.stringify(errSlug));
+  
+  // Get parent data (user's events) if available
+  const { events } = await parent();
+
+  // Check if user has this event in their events
+  const ownedEvent = events?.owned_events.find((e) => e.slug === slug);
+  const attendingEvent = events?.attending_events.find((e) => e.slug === slug);
+  
+  let event: Event | PrivateEvent;
+  let partOfEvent = false;
+  let owned = false;
+
+  if (ownedEvent) {
+    // User owns this event, use the PrivateEvent
+    event = ownedEvent;
+    partOfEvent = true;
+    owned = true;
+  } else if (attendingEvent) {
+    // User is attending this event, use the regular Event
+    event = attendingEvent;
+    partOfEvent = true;
+    owned = false;
   } else {
+    // User doesn't have this event, fetch it publicly
     const {
-      data: event,
+      data: eventId,
+      error: errSlug,
+      response: responseSlug,
+    } = await EventsService.getAtIdEventsIdSlugGet({
+      path: { slug },
+      throwOnError: false,
+    });
+    
+    if (errSlug) {
+      console.error(errSlug, responseSlug);
+      throw error(responseSlug.status, JSON.stringify(errSlug));
+    }
+
+    const {
+      data: publicEvent,
       error: eventErr,
       response: eventResponse,
     } = await EventsService.getEventEventsEventIdGet({
-      path: {
-        event_id: eventId,
-      },
-      // If the user isn't logged in, just give an empty bearer token. Otherwise, don't set the token since it's already set in the client.
-      headers: getAuthenticatedUser().access_token
-        ? {}
-        : {
-            Authorization: `Bearer SentSinceBearerTokenSeemedToBeNeededForThisToWork`,
-          },
+      path: { event_id: eventId },
       throwOnError: false,
     });
+    
     if (eventErr) {
       console.error(eventErr, eventResponse);
       throw error(eventResponse.status, JSON.stringify(eventErr));
-    } else {
-      // Check if the user is attending the event
-      if (getAuthenticatedUser().access_token) {
-        const {
-          data,
-          error: err,
-          response,
-        } = await EventsService.getAttendingEventsEventsGet({
-          throwOnError: false,
-        });
-        if (err) {
-          console.error(err, response);
-          throw error(response.status, JSON.stringify(err));
-        } else {
-          partOfEvent =
-            data?.attending_events.some((e) => e.id === event.id) || false;
-        }
-      } else {
-        partOfEvent = false;
-      }
-
-      const meta = [
-        {
-          name: "description",
-          content: event.description || "No description provided",
-        },
-      ];
-      return {
-        event: {
-          ...event,
-          owned: "attendees" in event,
-          partOfEvent,
-        },
-        title: event.name,
-        meta,
-      };
     }
+    
+    event = publicEvent;
   }
+
+  const meta = [
+    {
+      name: "description",
+      content: event.description || "No description provided",
+    },
+  ];
+
+  return {
+    event: {
+      ...event,
+      owned,
+      partOfEvent,
+    } as (Event | PrivateEvent) & { owned: boolean; partOfEvent: boolean },
+    title: event.name,
+    meta,
+  };
 };

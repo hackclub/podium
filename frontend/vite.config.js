@@ -12,4 +12,12 @@ export default defineConfig({
     }),
     sveltekit(),
   ],
+  server: {
+    host: true,
+    strictPort: true,
+    allowedHosts: [
+      ".ngrok-free.app",
+      ".ngrok.app",
+    ],
+  },
 });

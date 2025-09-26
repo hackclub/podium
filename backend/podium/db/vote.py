@@ -14,6 +14,10 @@ class VoteCreate(VoteBase): ...
 
 class Vote(VoteCreate):
     id: str
+    # Note: Airtable also has these ID fields for querying:
+    # - user_id: Used in match formulas for voter lookups
+    # - event_id: Used in match formulas for event-based queries
+    # - project_id: Used in match formulas for project-specific vote queries
 
 
 class CreateVotes(BaseModel):

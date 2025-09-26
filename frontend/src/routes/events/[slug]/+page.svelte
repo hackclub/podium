@@ -1,6 +1,15 @@
 <script lang="ts">
   import type { PageData } from "./$types";
+  import AdminPanel from '$lib/components/event-admin/AdminPanel.svelte';
+  import type { PrivateEvent } from '$lib/client/types.gen';
+
   let { data }: { data: PageData } = $props();
+
+  // Type assertion: owned events are always PrivateEvent
+  function getPrivateEvent(event: any): PrivateEvent & { owned: boolean; partOfEvent: boolean } {
+    return event as PrivateEvent & { owned: boolean; partOfEvent: boolean };
+  }
+
 </script>
 
 <div class="flex justify-center flex-col mx-auto max-w-md space-y-4 mt-4">
@@ -19,17 +28,23 @@
       >
     </div>
   {/if}
-  <div
-    class="tooltip"
-    data-tip={data.event.leaderboard_enabled
-      ? "View the leaderboard"
-      : "The event organizer has not enabled the leaderboard yet."}
-  >
-    <a
-      href={`/events/${data.event.slug}/leaderboard`}
-      class="btn-primary btn btn-block {data.event.leaderboard_enabled
-        ? ''
-        : 'btn-disabled'}">Leaderboard</a
+  {#if !data.event.owned}
+    <div
+      class="tooltip"
+      data-tip={data.event.leaderboard_enabled
+        ? "View the leaderboard"
+        : "The event organizer has not enabled the leaderboard yet."}
     >
-  </div>
+      <a
+        href={`/events/${data.event.slug}/leaderboard`}
+        class="btn-primary btn btn-block {data.event.leaderboard_enabled
+          ? ''
+          : 'btn-disabled'}">Leaderboard</a
+      >
+    </div>
+  {/if}
 </div>
+
+{#if data.event.owned}
+  <AdminPanel event={getPrivateEvent(data.event)} />
+{/if}

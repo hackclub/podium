@@ -1,19 +1,18 @@
 import random
 from fastapi import APIRouter, Path
-from typing import Annotated, Union, List
+from typing import Annotated, Optional, List, Type, TypeVar, Tuple
 from fastapi import Depends, HTTPException, Query
 from fastapi_cache.decorator import cache
-from podium.db.event import InternalEvent, PrivateEvent
+from podium.db.event import InternalEvent, PrivateEvent, get_events_from_record_ids, BaseEvent
 from podium.db.vote import CreateVotes, VoteCreate
 from pyairtable.formulas import match
-from pydantic import BaseModel
 from secrets import token_urlsafe
 
 
 from requests import HTTPError
 
 from podium.routers.auth import get_current_user
-from podium.db.user import UserPrivate
+from podium.db.user import UserInternal
 from podium import db
 from podium.db import (
     EventCreationPayload,
@@ -22,20 +21,18 @@ from podium.db import (
     Event,
     ReferralBase,
 )
-from podium.db.project import Project
+from podium.db.project import Project, ProjectBase, get_projects_from_record_ids
 from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH, BAD_ACCESS, Slug
 from slugify import slugify
 
 router = APIRouter(prefix="/events", tags=["events"])
 
-
 @router.get("/{event_id}")
 def get_event(
     event_id: Annotated[str, Path(title="Event Airtable ID")],
-    user: Annotated[UserPrivate, Depends(get_current_user)],
-) -> Union[PrivateEvent, Event]:
+) -> Event:
     """
-    Get an event by its ID. If the user owns it, return a PrivateEvent. Otherwise, return a regular event. Can be called with invalid auth credentials if needed, but will need something in the bearer token for the code to work
+    Get a public event by its ID. For admin features, use the admin endpoints.
     """
     try:
         event = db.events.get(event_id)
@@ -46,18 +43,13 @@ def get_event(
             else e
         )
 
-    if user and user.id in event["fields"].get("owner", []):
-        event = PrivateEvent.model_validate(event["fields"])
-    else:
-        event = Event.model_validate(event["fields"])
-
-    return event
+    return Event.model_validate(event["fields"])
 
 
 # Used to be /attending
 @router.get("/")
 def get_attending_events(
-    user: Annotated[UserPrivate, Depends(get_current_user)],
+    user: Annotated[UserInternal, Depends(get_current_user)],
 ) -> UserEvents:
     """
     Get a list of all events that the current user is attending.
@@ -67,14 +59,7 @@ def get_attending_events(
 
     # Eventually it might be better to return a user object. Otherwise, the client that the event owner is using would need to fetch the user. Since user emails probably shouldn't be public with just a record ID as a parameter, we would need to check if the person calling GET /users?user=ID has an event wherein that user ID is present. To avoid all this, the user object could be returned.
 
-    owned_events = [
-        PrivateEvent.model_validate(event["fields"])
-        for event in [db.events.get(event_id) for event_id in user.owned_events]
-    ]
-    attending_events = [
-        Event.model_validate(event["fields"])
-        for event in [db.events.get(event_id) for event_id in user.attending_events]
-    ]
+    owned_events, attending_events = get_events_for_user(user, PrivateEvent, Event)
 
     return UserEvents(owned_events=owned_events, attending_events=attending_events)
 
@@ -82,7 +67,7 @@ def get_attending_events(
 @router.post("/")
 def create_event(
     event: EventCreationPayload,
-    user: Annotated[UserPrivate, Depends(get_current_user)],
+    user: Annotated[UserInternal, Depends(get_current_user)],
 ):
     """
     Create a new event. The current user is automatically added as an owner of the event.
@@ -114,7 +99,7 @@ def create_event(
         slug=slug,
         id="",  # Placeholder to prevent an unnecessary class
     )
-    db.events.create(full_event.model_dump(exclude={"id", "max_votes_per_user"}))[
+    db.events.create(full_event.model_dump(exclude={"id", "max_votes_per_user", "owned", "feature_flags_list"}))[
         "fields"
     ]
 
@@ -123,7 +108,7 @@ def create_event(
 def attend_event(
     join_code: Annotated[str, Query(description="A unique code used to join an event")],
     referral: Annotated[str, Query(description="How did you hear about this event?")],
-    user: Annotated[UserPrivate, Depends(get_current_user)],
+    user: Annotated[UserInternal, Depends(get_current_user)],
 ):
     """
     Attend an event. The client must supply a join code that matches the event's join code.
@@ -160,7 +145,7 @@ def attend_event(
 def update_event(
     event_id: Annotated[str, Path(title="Event ID")],
     event: EventUpdate,
-    user: Annotated[UserPrivate, Depends(get_current_user)],
+    user: Annotated[UserInternal, Depends(get_current_user)],
 ):
     """
     Update event's information
@@ -176,7 +161,7 @@ def update_event(
 @router.delete("/{event_id}")
 def delete_event(
     event_id: Annotated[str, Path(title="Event ID")],
-    user: Annotated[UserPrivate, Depends(get_current_user)],
+    user: Annotated[UserInternal, Depends(get_current_user)],
 ):
     # Check if the user is an owner of the event
     if user is None or event_id not in user.owned_events:
@@ -187,7 +172,7 @@ def delete_event(
 
 # Voting! The client should POST to /events/{event_id}/vote with their top 3 favorite projects, in no particular order. If there are less than 20 projects in the event, only accept the top 2
 @router.post("/vote")
-def vote(votes: CreateVotes, user: Annotated[UserPrivate, Depends(get_current_user)]):
+def vote(votes: CreateVotes, user: Annotated[UserInternal, Depends(get_current_user)]):
     """
     Vote for the top 3 projects in an event. The client must provide the event ID and a list of the top 3 projects. If there are less than 20 projects in the event, only the top 2 projects are required.
     """
@@ -257,42 +242,37 @@ def vote(votes: CreateVotes, user: Annotated[UserPrivate, Depends(get_current_us
         db.votes.create(vote.model_dump())
 
 
-@router.get("/{event_id}/leaderboard")
-def get_leaderboard(event_id: Annotated[str, Path(title="Event ID")]) -> List[Project]:
-    """
-    Return a sorted list of projects in the event
-    """
-    try:
-        event = db.events.get(event_id)
-    except HTTPError as e:
-        raise (
-            HTTPException(status_code=404, detail="Event not found")
-            if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
-            else e
-        )
-    event = PrivateEvent.model_validate(event["fields"])
-    if not event.leaderboard_enabled:
-        raise HTTPException(
-            status_code=403, detail="Leaderboard is not enabled for this event"
-        )
-    projects = []
-    for project_id in event.projects:
+T = TypeVar("T", bound=ProjectBase)
+def get_projects_for_event(event_id: str, shuffle, event: Optional[InternalEvent], model: Type[T]) -> List[T]:
+    if event is None:
         try:
-            project = db.projects.get(project_id)
-            projects.append(project)
+            event = InternalEvent.model_validate(
+                db.events.get(event_id)["fields"]
+            )
         except HTTPError as e:
-            if e.response.status_code in AIRTABLE_NOT_FOUND_CODES:
-                print(
-                    f"WARNING: Project {project_id} not found when getting leaderboard for event {event_id}"
-                )
-            else:
-                raise e
+            raise (
+                HTTPException(status_code=404, detail="Event not found")
+                if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
+                else e
+            )
 
-    # Sort the projects by the number of votes they have received
-    projects.sort(key=lambda project: project["fields"].get("points", 0), reverse=True)
-
-    projects = [Project.model_validate(project["fields"]) for project in projects]
+    projects = get_projects_from_record_ids(event.projects, model)
+    if shuffle:
+        random.shuffle(projects)
+    else:
+        projects.sort(key=lambda project: project.points, reverse=True)
     return projects
+
+
+def get_events_for_user(
+    user: UserInternal, 
+    owned_model: Type[PrivateEvent], 
+    attending_model: Type[Event]
+) -> Tuple[List[PrivateEvent], List[Event]]:
+    """Get events for a user with customizable model types for owned and attending events."""
+    owned_events = get_events_from_record_ids(user.owned_events, owned_model)
+    attending_events = get_events_from_record_ids(user.attending_events, attending_model)
+    return owned_events, attending_events
 
 
 # The reason we're specifying response_model here is because of https://github.com/long2ice/fastapi-cache/issues/384
@@ -300,28 +280,37 @@ def get_leaderboard(event_id: Annotated[str, Path(title="Event ID")]) -> List[Pr
 @cache(expire=30, namespace="events")
 async def get_event_projects(
     event_id: Annotated[str, Path(title="Event ID")],
+    leaderboard: Annotated[
+        bool,
+        Query(
+            title="Leaderboard",
+            description="If true, and the event has a leaderboard enabled, the projects will be returned in order of points. Otherwise, they will be returned in random order",
+        ),
+    ],
 ) -> List[Project]:
     """
     Get the projects for a specific event in a random order
     """
-    try:
-        event = db.events.get(event_id)
-    except HTTPError as e:
-        raise (
-            HTTPException(status_code=404, detail="Event not found")
-            if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
-            else e
-        )
 
-    projects = [
-        Project.model_validate(project["fields"])
-        for project in [
-            db.projects.get(project_id)
-            for project_id in event["fields"].get("projects", [])
-        ]
-    ]
-    random.shuffle(projects)
-    return projects
+    if leaderboard:
+        try:
+            event = InternalEvent.model_validate(
+                db.events.get(event_id)["fields"]
+            )
+        except HTTPError as e:
+            raise (
+                HTTPException(status_code=404, detail="Event not found")
+                if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
+                else e
+            )
+        if not event.leaderboard_enabled:
+            raise HTTPException(
+                status_code=403, detail="Leaderboard is not enabled for this event"
+            )
+        return get_projects_for_event(event_id, shuffle=False, event=event, model=Project)
+    else:
+        return get_projects_for_event(event_id, shuffle=True, event=None, model=Project)
+
 
 # The reason we're specifying response_model here is because of https://github.com/long2ice/fastapi-cache/issues/384
 @router.get("/id/{slug}", response_model=str) 
