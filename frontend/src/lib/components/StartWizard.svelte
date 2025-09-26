@@ -3,10 +3,30 @@
   import CreateProject from "./CreateProject.svelte";
   import JoinProject from "./JoinProject.svelte";
   
+  import { EventsService } from "$lib/client/sdk.gen";
+  import { handleError } from "$lib/misc";
+  
   let currentStep = $state("welcome"); // "welcome", "joinEvent", "chooseProject", "createProject", "joinProject", or "complete"
   
-  function startJourney() {
-    currentStep = "joinEvent";
+  async function startJourney() {
+    try {
+      const { data, error } = await EventsService.getAttendingEventsEventsGet({
+        throwOnError: false,
+      });
+      if (error || !data) {
+        // Fall back to the default flow
+        currentStep = "joinEvent";
+        return;
+      }
+      const hasDaydream = [
+        ...(data.attending_events ?? []),
+        ...(data.owned_events ?? []),
+      ].some((e) => (e.name || "").toLowerCase().includes("daydream"));
+      currentStep = hasDaydream ? "chooseProject" : "joinEvent";
+    } catch (err) {
+      handleError(err);
+      currentStep = "joinEvent";
+    }
   }
   
   function goToProjectChoice() {
