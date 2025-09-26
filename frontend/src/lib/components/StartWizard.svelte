@@ -203,7 +203,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <h1 class="text-3xl font-bold text-success mb-4">All Set!</h1>
-            <p class="text-base-content/70 mb-6">You're ready to start judging and participating!</p>
+            <p class="text-base-content/70 mb-6">Your project has been submitted and it's under review!</p>
 
           </div>
           
