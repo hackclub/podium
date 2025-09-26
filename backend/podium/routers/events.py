@@ -307,8 +307,9 @@ async def get_event_projects(
             raise HTTPException(
                 status_code=403, detail="Leaderboard is not enabled for this event"
             )
-
-    return get_projects_for_event(event_id, shuffle=not leaderboard, event=event, model=Project)
+        return get_projects_for_event(event_id, shuffle=False, event=event, model=Project)
+    else:
+        return get_projects_for_event(event_id, shuffle=True, event=None, model=Project)
 
 
 # The reason we're specifying response_model here is because of https://github.com/long2ice/fastapi-cache/issues/384
