@@ -72,12 +72,12 @@ async def update_current_user(
 
 # The reason we're specifying response_model here is because of https://github.com/long2ice/fastapi-cache/issues/384
 @router.get("/{user_id}", response_model=UserPublic)
-@cache(expire=15*60, namespace="users")
+# @cache(expire=15*60, namespace="users")
 async def get_user_public(
     user_id: Annotated[str, Path(title="User Airtable ID")],
 ) -> UserPublic:
     try:
-        user = db.user.get_user_by_email(user_id, UserPublic)
+        user = db.user.get_users_from_record_ids([user_id], UserPublic)
     except HTTPError as e:
         raise (
             HTTPException(status_code=404, detail="User not found")
