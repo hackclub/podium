@@ -41,7 +41,7 @@
       body: project,
       throwOnError: false,
     });
-    if (err || !data) {
+    if (err) {
       handleError(err);
       return;
     }

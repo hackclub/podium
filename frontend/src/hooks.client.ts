@@ -26,7 +26,9 @@ client.setConfig({
     "ngrok-skip-browser-warning": "hi",
   },
   // Use throwOnError: false to get proper error handling with response codes
-  // When using a conditional to check the err, do something like `if (err || !data)` so data will never be undefined
+  // When using a conditional to check the err:
+  // - For endpoints that return data: use `if (err || !data)` to check both error and null data
+  // - For endpoints that don't return data (like POST create/update/delete): use `if (err)` to check only for errors
   throwOnError: false,
 });
 export const init: ServerInit = async () => {
