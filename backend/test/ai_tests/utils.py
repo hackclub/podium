@@ -218,7 +218,7 @@ if __name__ == "__main__":
 
     # Get the app public URL from environment or use a default
     try:
-        from test.config import APP_PORT
+        from test.ai_tests.config import APP_PORT
 
         default_url = f"http://localhost:{APP_PORT}"
     except ImportError:
@@ -235,7 +235,7 @@ if __name__ == "__main__":
         print(
             "Make sure you're running this from the backend directory with the proper environment."
         )
-        print("Try: cd backend && python -m test.utils")
+        print("Try: cd backend && python -m test.ai_tests.utils")
     except Exception as e:
         print(f"Error creating temporary user: {e}")
         logger.exception("Failed to create temporary user")

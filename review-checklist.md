@@ -1,3 +1,5 @@
+**Checklist of flows to check whenever major changes are made**
+
 - [x] Register for a new account
 - [x] Login using magic link
 - [x] Create a new event

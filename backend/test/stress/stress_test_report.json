@@ -1,0 +1,354 @@
+{
+  "summary": {
+    "total_requests": 58,
+    "unique_endpoints": 18,
+    "avg_response_time": 0.9577175091052877,
+    "min_response_time": 0.0028727054595947266,
+    "max_response_time": 5.5171613693237305,
+    "success_rate": 1.0
+  },
+  "endpoints": {
+    "/users/": {
+      "request_count": 4,
+      "avg_response_time": 1.8118647336959839,
+      "min_response_time": 0.7437903881072998,
+      "max_response_time": 2.879939079284668,
+      "std_response_time": 1.068074345588684,
+      "success_rate": 1.0,
+      "error_count": 0,
+      "status_codes": [
+        200
+      ]
+    },
+    "/request-login?redirect=": {
+      "request_count": 2,
+      "avg_response_time": 0.24882960319519043,
+      "min_response_time": 0.21582579612731934,
+      "max_response_time": 0.2818334102630615,
+      "std_response_time": 0.033003807067871094,
+      "success_rate": 1.0,
+      "error_count": 0,
+      "status_codes": [
+        200
+      ]
+    },
+    "/verify?token=***": {
+      "request_count": 2,
+      "avg_response_time": 0.22285723686218262,
+      "min_response_time": 0.14937281608581543,
+      "max_response_time": 0.2963416576385498,
+      "std_response_time": 0.07348442077636719,
+      "success_rate": 1.0,
+      "error_count": 0,
+      "status_codes": [
+        200
+      ]
+    },
+    "/events/": {
+      "request_count": 5,
+      "avg_response_time": 1.3415926456451417,
+      "min_response_time": 0.9224529266357422,
+      "max_response_time": 1.7647721767425537,
+      "std_response_time": 0.35977410875806953,
+      "success_rate": 1.0,
+      "error_count": 0,
+      "status_codes": [
+        200
+      ]
+    },
+    "/events/attend?join_code=3ZB7&referral=stress_test": {
+      "request_count": 2,
+      "avg_response_time": 1.3600531816482544,
+      "min_response_time": 1.346266508102417,
+      "max_response_time": 1.3738398551940918,
+      "std_response_time": 0.013786673545837402,
+      "success_rate": 1.0,
+      "error_count": 0,
+      "status_codes": [
+        200
+      ]
+    },
+    "/projects/": {
+      "request_count": 4,
+      "avg_response_time": 1.1791185140609741,
+      "min_response_time": 1.0519418716430664,
+      "max_response_time": 1.3062951564788818,
+      "std_response_time": 0.12717664241790771,
+      "success_rate": 1.0,
+      "error_count": 0,
+      "status_codes": [
+        200
+      ]
+    },
+    "/projects/mine": {
+      "request_count": 4,
+      "avg_response_time": 1.8287586569786072,
+      "min_response_time": 0.5219426155090332,
+      "max_response_time": 5.5171613693237305,
+      "std_response_time": 2.130844856253573,
+      "success_rate": 1.0,
+      "error_count": 0,
+      "status_codes": [
+        200
+      ]
+    },
+    "/users/current": {
+      "request_count": 2,
+      "avg_response_time": 0.8636813163757324,
+      "min_response_time": 0.7557806968688965,
+      "max_response_time": 0.9715819358825684,
+      "std_response_time": 0.10790061950683594,
+      "success_rate": 1.0,
+      "error_count": 0,
+      "status_codes": [
+        200
+      ]
+    },
+    "/events/rec***": {
+      "request_count": 3,
+      "avg_response_time": 0.4694364070892334,
+      "min_response_time": 0.32776951789855957,
+      "max_response_time": 0.7403192520141602,
+      "std_response_time": 0.1916105306638973,
+      "success_rate": 1.0,
+      "error_count": 0,
+      "status_codes": [
+        200
+      ]
+    },
+    "/events/vote": {
+      "request_count": 2,
+      "avg_response_time": 1.963992953300476,
+      "min_response_time": 1.712942361831665,
+      "max_response_time": 2.215043544769287,
+      "std_response_time": 0.25105059146881104,
+      "success_rate": 1.0,
+      "error_count": 0,
+      "status_codes": [
+        200
+      ]
+    },
+    "/events/recoEVFTXwaBFnjAy/projects?...": {
+      "request_count": 2,
+      "avg_response_time": 0.21523964405059814,
+      "min_response_time": 0.0028727054595947266,
+      "max_response_time": 0.42760658264160156,
+      "std_response_time": 0.21236693859100342,
+      "success_rate": 1.0,
+      "error_count": 0,
+      "status_codes": [
+        200
+      ]
+    },
+    "/projects/rec***": {
+      "request_count": 4,
+      "avg_response_time": 1.0991332530975342,
+      "min_response_time": 0.9819071292877197,
+      "max_response_time": 1.3268537521362305,
+      "std_response_time": 0.13458534096822913,
+      "success_rate": 1.0,
+      "error_count": 0,
+      "status_codes": [
+        200
+      ]
+    },
+    "/events/admin/rec***/leaderboard": {
+      "request_count": 5,
+      "avg_response_time": 0.5723803520202637,
+      "min_response_time": 0.5105435848236084,
+      "max_response_time": 0.8197274208068848,
+      "std_response_time": 0.12367353439331055,
+      "success_rate": 1.0,
+      "error_count": 0,
+      "status_codes": [
+        200
+      ]
+    },
+    "/events/admin/rec***": {
+      "request_count": 6,
+      "avg_response_time": 0.8378510475158691,
+      "min_response_time": 0.8378510475158691,
+      "max_response_time": 0.8378510475158691,
+      "std_response_time": 0.0,
+      "success_rate": 1.0,
+      "error_count": 0,
+      "status_codes": [
+        200
+      ]
+    },
+    "/events/admin/rec***/attendees": {
+      "request_count": 5,
+      "avg_response_time": 0.517073392868042,
+      "min_response_time": 0.517073392868042,
+      "max_response_time": 0.517073392868042,
+      "std_response_time": 0.0,
+      "success_rate": 1.0,
+      "error_count": 0,
+      "status_codes": [
+        200
+      ]
+    },
+    "/events/admin/rec***/votes": {
+      "request_count": 3,
+      "avg_response_time": 0.5205330848693848,
+      "min_response_time": 0.5205330848693848,
+      "max_response_time": 0.5205330848693848,
+      "std_response_time": 0.0,
+      "success_rate": 1.0,
+      "error_count": 0,
+      "status_codes": [
+        200
+      ]
+    },
+    "/events/admin/rec***/referrals": {
+      "request_count": 2,
+      "avg_response_time": 0.5368297100067139,
+      "min_response_time": 0.5368297100067139,
+      "max_response_time": 0.5368297100067139,
+      "std_response_time": 0.0,
+      "success_rate": 1.0,
+      "error_count": 0,
+      "status_codes": [
+        200
+      ]
+    },
+    "/events/admin/rec***/remove-attendee": {
+      "request_count": 1,
+      "avg_response_time": 0.8969008922576904,
+      "min_response_time": 0.8969008922576904,
+      "max_response_time": 0.8969008922576904,
+      "std_response_time": 0.0,
+      "success_rate": 1.0,
+      "error_count": 0,
+      "status_codes": [
+        200
+      ]
+    }
+  },
+  "test_results": {
+    "api_tests": [
+      {
+        "endpoint": "GET /users/current",
+        "status_code": 200,
+        "success": true
+      },
+      {
+        "endpoint": "GET /events/",
+        "status_code": 200,
+        "success": true
+      },
+      {
+        "endpoint": "GET /projects/mine",
+        "status_code": 200,
+        "success": true
+      },
+      {
+        "endpoint": "GET /events/{event_id}",
+        "status_code": 200,
+        "success": true
+      },
+      {
+        "endpoint": "POST /events/vote",
+        "status_code": 200,
+        "success": true
+      },
+      {
+        "endpoint": "GET /events/admin/{event_id}/leaderboard",
+        "status_code": 200,
+        "success": true
+      },
+      {
+        "endpoint": "GET /events/{event_id}/projects",
+        "status_code": 200,
+        "success": true
+      },
+      {
+        "endpoint": "PUT /projects/{project_id}",
+        "status_code": 200,
+        "success": true
+      },
+      {
+        "endpoint": "GET /users/current",
+        "status_code": 200,
+        "success": true
+      },
+      {
+        "endpoint": "GET /events/",
+        "status_code": 200,
+        "success": true
+      },
+      {
+        "endpoint": "GET /projects/mine",
+        "status_code": 200,
+        "success": true
+      },
+      {
+        "endpoint": "GET /events/{event_id}",
+        "status_code": 200,
+        "success": true
+      },
+      {
+        "endpoint": "POST /events/vote",
+        "status_code": 200,
+        "success": true
+      },
+      {
+        "endpoint": "GET /events/{event_id}/projects",
+        "status_code": 200,
+        "success": true
+      },
+      {
+        "endpoint": "PUT /projects/{project_id}",
+        "status_code": 200,
+        "success": true
+      },
+      {
+        "endpoint": "GET /events/admin/recoEVFTXwaBFnjAy",
+        "status_code": 200,
+        "success": true
+      },
+      {
+        "endpoint": "GET /events/admin/recoEVFTXwaBFnjAy/attendees",
+        "status_code": 200,
+        "success": true
+      },
+      {
+        "endpoint": "GET /events/admin/recoEVFTXwaBFnjAy/leaderboard",
+        "status_code": 200,
+        "success": true
+      },
+      {
+        "endpoint": "GET /events/admin/recoEVFTXwaBFnjAy/votes",
+        "status_code": 200,
+        "success": true
+      },
+      {
+        "endpoint": "GET /events/admin/recoEVFTXwaBFnjAy/referrals",
+        "status_code": 200,
+        "success": true
+      },
+      {
+        "endpoint": "POST /events/admin/recoEVFTXwaBFnjAy/remove-attendee",
+        "status_code": 200,
+        "success": true
+      }
+    ],
+    "cleanup_tests": [
+      {
+        "endpoint": "DELETE /projects/rec0g9OscQKD67ulk",
+        "status_code": 200,
+        "success": true
+      },
+      {
+        "endpoint": "DELETE /projects/recqgeF4nCGxlzfnH",
+        "status_code": 200,
+        "success": true
+      },
+      {
+        "endpoint": "DELETE /events/recoEVFTXwaBFnjAy",
+        "status_code": 200,
+        "success": true
+      }
+    ]
+  }
+}
