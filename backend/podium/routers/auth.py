@@ -14,15 +14,14 @@ from pydantic import BaseModel
 import jwt
 from jwt.exceptions import PyJWTError
 
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
+import httpx
 
 router = APIRouter(tags=["auth"])
 
 SECRET_KEY = settings.jwt_secret
 ALGORITHM = str(settings.jwt_algorithm)
 ACCESS_TOKEN_EXPIRE_MINUTES: int = settings.jwt_expire_minutes # type: ignore
-MAGIC_LINK_EXPIRE_MINUTES = 15
+MAGIC_LINK_EXPIRE_MINUTES = 30
 
 
 DEBUG_EMAIL = "angad+debug@hackclub.com"
@@ -59,22 +58,29 @@ async def send_magic_link(email: str, redirect: str = ""):
     if redirect:
         magic_link += f"&redirect={redirect}"
 
-    if settings.sendgrid_api_key:
-        message = Mail(
-            from_email=settings.sendgrid_from_email,
-            to_emails=email,
-            subject="Magic link for Podium",
-            # html_content=f"Click <a href='{magic_link}'>here</a> to log in to Podium",
-            html_content=magic_link_email_content(magic_link=magic_link)["html"],
-            plain_text_content=magic_link_email_content(magic_link=magic_link)["text"],
-        )
+    if settings.loops_api_key:
+        payload = {
+            "email": email,
+            "transactionalId": settings.loops_transactional_id,
+            "dataVariables": {
+                "auth_link": magic_link,
+            }
+        }
         try:
-            sg = SendGridAPIClient(settings.sendgrid_api_key)
-            _ = sg.send(message)
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    "https://app.loops.so/api/v1/transactional",
+                    headers={
+                        "Authorization": f"Bearer {settings.loops_api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json=payload
+                )
+                response.raise_for_status()
         except Exception:
             raise HTTPException(status_code=500, detail="Failed to send auth email")
     else:
-        print("[WARNING] No SendGrid from email set. Not sending magic link email.")
+        print("[WARNING] No Loops API key set. Not sending magic link email.")
 
     print(
         f"Token for {email}: {token} | magic_link: {settings.production_url}/login?token={token} | local magic_link: http://localhost:5173/login?token={token}"

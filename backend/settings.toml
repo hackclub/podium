@@ -6,7 +6,7 @@ airtable_projects_table_id = "tbl0mqJURRV5VpkIj"
 airtable_referrals_table_id = "tblHPIrWpu4IYrIm0"
 airtable_votes_table_id = "tbl0OfcZu5TWs2j19"
 production_url = "https://podium.hackclub.com"
-sendgrid_from_email="team@hackclub.com"
+loops_transactional_id = "cmg1hjhed4xyi0r0ijvfyyqa1"
 
 [development]
 airtable_base_id = "appec7U14eWSv08R4"

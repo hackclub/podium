@@ -40,17 +40,13 @@ settings.validators.register(
             must_exist=True,
         ),
         Validator(
-            "sendgrid_api_key",
+            "loops_api_key",
             # must_exist=True,
-            # condition=lambda x: re.match(r"^SG\..+", x) is not None,
-            # condition=lambda x: x.startswith("SG."),
-            # messages={"condition": "Must start with 'SG.'"},
         ),
-        # Validator(
-        # "sendgrid_from_email",
-        # must_exist=False,
-        # default="",
-        # ),
+        Validator(
+            "loops_transactional_id",
+            must_exist=True,
+        ),
         Validator(
             "jwt_secret",
             must_exist=True,
