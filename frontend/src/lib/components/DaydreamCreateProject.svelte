@@ -70,6 +70,14 @@
   }
 
   let guidelinesModal: Modal = $state() as Modal;
+
+  // URL validation regexes
+  const itchioRegex = /^(https?:\/\/)?[a-zA-Z0-9\-_]+\.itch\.io\/[a-zA-Z0-9\-_]+/;
+  const githubRegex = /^(https?:\/\/)?github\.com\/[a-zA-Z0-9\-_]+\/[a-zA-Z0-9\-_.]+/;
+
+  // Validation state
+  let demoUrlValid = $derived(!project.demo || itchioRegex.test(project.demo));
+  let repoUrlValid = $derived(!project.repo || githubRegex.test(project.repo));
 </script>
 
 <div class="w-full">
@@ -135,8 +143,13 @@
       type="text"
       bind:value={project.demo}
       placeholder="https://yourname.itch.io/gamename"
-      class="input input-bordered w-full"
+      class="input input-bordered w-full {project.demo && !demoUrlValid ? 'input-error' : ''}"
     />
+    {#if project.demo && !demoUrlValid}
+      <div class="text-[#cf4960] text-sm mt-1">
+        Please enter a valid itch.io URL (format: username.itch.io/gamename)
+      </div>
+    {/if}
     {#if demoLinksOptional}
       <div class="text-sm text-base-content/70 mt-1">
         Demo links are optional for this event. Your project won't be marked as invalid if only the demo link fails validation.
@@ -152,14 +165,19 @@
       What's allowed as a demo?
     </button>
 
-    <label class="label" for="repo_url">Repository URL</label>
+    <label class="label" for="repo_url">GitHub URL</label>
     <input
       id="repo_url"
       type="text"
       bind:value={project.repo}
       placeholder="https://github.com/yourname/gamename"
-      class="input input-bordered w-full"
+      class="input input-bordered w-full {project.repo && !repoUrlValid ? 'input-error' : ''}"
     />
+    {#if project.repo && !repoUrlValid}
+      <div class="text-[#cf4960] text-sm mt-1">
+        Please enter a valid GitHub URL (format: github.com/username/repository)
+      </div>
+    {/if}
 
     <label class="label" for="hours_spent">Rough estimate of hours spent</label>
     <input
@@ -171,7 +189,11 @@
       min="0"
     />
 
-    <button class="btn btn-accent btn-lg mt-4 btn-block hover:btn-xl transition-all duration-300" onclick={createProject}>
+    <button 
+      class="btn btn-accent btn-lg mt-4 btn-block hover:btn-xl transition-all duration-300" 
+      onclick={createProject}
+      disabled={!demoUrlValid || !repoUrlValid}
+    >
       Ship it!
     </button>
   </fieldset>
