@@ -84,7 +84,7 @@ def create_project(
         id="",  # Placeholder to prevent an unnecessary class
     )
     db.projects.create(
-        full_project.model_dump(exclude={"id", "points", "cached_auto_quality"})
+        full_project.model_dump(exclude={"id", "points", "cached_auto_quality", "collaborator_display_names", "owner_display_name"})
     )["fields"]
 
 
