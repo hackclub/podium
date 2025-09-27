@@ -197,7 +197,7 @@
       <AttendeesTable {attendees} onRemoveAttendee={removeAttendee} {event} />
 
       <!-- Admin Leaderboard -->
-      <AdminLeaderboard projects={adminLeaderboard} />
+      <AdminLeaderboard projects={adminLeaderboard} event={event} />
 
       <!-- Votes Table -->
       <VotesTable {votes} userLookup={userLookup} {projectLookup} />

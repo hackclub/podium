@@ -4,6 +4,7 @@
   import { toast } from "svelte-sonner";
   import { customInvalidateAll, handleError } from "$lib/misc";
   import Modal from "$lib/components/Modal.svelte";
+  import { itchioRegex, githubRegex } from "$lib/daydreamValidation";
 
   // Accept callback prop for when project is successfully created
   // Accept optional event to pre-fill and hide the event selector
@@ -70,10 +71,6 @@
   }
 
   let guidelinesModal: Modal = $state() as Modal;
-
-  // URL validation regexes
-  const itchioRegex = /^(https?:\/\/)?[a-zA-Z0-9\-_]+\.itch\.io\/[a-zA-Z0-9\-_]+/;
-  const githubRegex = /^(https?:\/\/)?(github\.com|gitee\.com)\/[a-zA-Z0-9\-_]+\/[a-zA-Z0-9\-_.]+/;
 
   // Validation state
   let demoUrlValid = $derived(!project.demo || itchioRegex.test(project.demo));
