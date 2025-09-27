@@ -3,55 +3,12 @@
   import CreateProject from "./CreateProject.svelte";
   import JoinProject from "./JoinProject.svelte";
   
-  import { EventsService, ProjectsService } from "$lib/client/sdk.gen";
-  import { handleError } from "$lib/misc";
   import { onMount } from "svelte";
   
   let currentStep = $state("welcome"); // "welcome", "joinEvent", "chooseProject", "createProject", "joinProject", or "complete"
-  let hasDaydreamProject = $state(false);
-  
-  // Compute whether the user already has a project in a Daydream event
-  onMount(async () => {
-    try {
-      const [{ data: events }, { data: projects }] = await Promise.all([
-        EventsService.getAttendingEventsEventsGet({ throwOnError: false }),
-        ProjectsService.getProjectsProjectsMineGet({ throwOnError: false }),
-      ]);
-      if (!events || !projects) return;
-      const daydreamEventIds = new Set(
-        [
-          ...(events.attending_events ?? []),
-          ...(events.owned_events ?? []),
-        ]
-          .filter((e) => (e.name || "").toLowerCase().includes("daydream"))
-          .map((e) => e.id)
-      );
-      hasDaydreamProject = projects.some((p) => daydreamEventIds.has(p.event?.[0]));
-    } catch (err) {
-      // Don't block UI if this fails
-      console.debug("Failed to detect Daydream project", err);
-    }
-  });
   
   async function startJourney() {
-    try {
-      const { data, error } = await EventsService.getAttendingEventsEventsGet({
-        throwOnError: false,
-      });
-      if (error || !data) {
-        // Fall back to the default flow
-        currentStep = "joinEvent";
-        return;
-      }
-      const hasDaydream = [
-        ...(data.attending_events ?? []),
-        ...(data.owned_events ?? []),
-      ].some((e) => (e.name || "").toLowerCase().includes("daydream"));
-      currentStep = hasDaydream ? "chooseProject" : "joinEvent";
-    } catch (err) {
-      handleError(err);
-      currentStep = "joinEvent";
-    }
+    currentStep = "joinEvent";
   }
   
   function goToProjectChoice() {
@@ -101,12 +58,7 @@
           >
           Start
           </button>
-            {#if hasDaydreamProject}
-             <p class="mt-6 -mb-3 px-8 text-sm text-base-content/70">
-               If you want to edit your existing submission for Daydream, click "Projects" on the sidebar.
-             </p>
-           {/if}
-         </div>
+        </div>
       {:else if currentStep === "joinEvent"}
         <!-- Join Event Step -->
         <div class="mb-4">
