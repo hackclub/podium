@@ -1,0 +1,4 @@
+- Navigate to event after it's created or joined
+- Add small print button in Daydream wizard to join event via code
+- Daydream wizard should default to 
+- Events button in Daydream wizard takes you to /events, not the specific event 

@@ -1,21 +1,12 @@
 <script lang="ts">
   import { getAirtableHits } from "$lib/airtable-hits.svelte";
-  import { browser } from "$app/environment";
 
   // Check if we're in development (localhost or IP address) or localStorage flag is set
   const isDev = $derived.by(() => {
-    if (!browser) return false;
+    if (import.meta.env.DEV) return true;
 
     // Check localStorage flag
     if (localStorage.getItem("show_airtable_count") === "true") return true;
-
-    // Check if running on localhost/dev environment
-    const hostname = window.location.hostname;
-    return (
-      hostname === "localhost" ||
-      hostname === "127.0.0.1" ||
-      /^\d+\.\d+\.\d+\.\d+$/.test(hostname)
-    ); // IP address pattern
   });
 
   const hits = $derived(getAirtableHits());

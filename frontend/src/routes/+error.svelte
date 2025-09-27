@@ -7,7 +7,11 @@
 
 <div class="flex my-4 flex-col items-center space-y-4">
   {#if page.status == 401}
-    <p>Authentication required</p>
+    <div class="text-center space-y-2">
+      <h1 class="text-2xl font-bold text-base-content">
+        {page.error?.message ?? "Hey! You need to be logged in to do this."}
+      </h1>
+    </div>
     <button
       class="btn btn-primary"
       onclick={() => {

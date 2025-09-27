@@ -111,10 +111,10 @@
 
   async function removeAttendee(userId: string) {
     // Prevent event owner from removing themselves
-    if (isEventOwner(userId)) {
-      toast.error("You cannot remove yourself from your own event");
-      return;
-    }
+    // if (isEventOwner(userId)) {
+      // toast.error("You cannot remove yourself from your own event");
+      // return;
+    // }
 
     try {
       const { error } =

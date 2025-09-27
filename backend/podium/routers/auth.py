@@ -83,7 +83,7 @@ async def send_magic_link(email: str, redirect: str = ""):
         print("[WARNING] No Loops API key set. Not sending magic link email.")
 
     print(
-        f"Token for {email}: {token} | magic_link: {settings.production_url}/login?token={token} | local magic_link: http://localhost:5173/login?token={token}"
+        f"Token for {email}: {token} | magic_link: {magic_link} | local magic_link: http://localhost:5173/login?token={token}{f'&redirect={redirect}' if redirect else ''}"
     )
 
 

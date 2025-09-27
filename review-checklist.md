@@ -1,0 +1,21 @@
+- [x] Register for a new account
+- [x] Login using magic link
+- [x] Create a new event
+- [x] Create a project via the wizard (twice)
+    <!-- - Join event via wizard the first time using the join code -->
+    <!-- - Note: attend endpoint took a while -->
+- [x] Enable voting and leaderboard via admin panel
+- [x] Sign out
+---
+- [X] Navigate to join link and create a new account to test callback
+- [X] Create a project
+- [X] Navigate to event ranking page
+- [X] Rank projects
+- [X] View leaderboard
+- [X] Update project
+- [X] Sign out
+---
+- [X] Log into the account that owns the event
+- [X] View admin leaderboard
+- [X] Remove the second user
+- [X] Reload 

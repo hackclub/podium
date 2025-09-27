@@ -84,14 +84,8 @@
                 <td>{attendee.email}</td>
                 <td>
                   <button
-                    class="btn btn-sm btn-error {isEventOwner(attendee.id)
-                      ? 'btn-disabled'
-                      : ''}"
+                    class="btn btn-sm btn-error"
                     onclick={() => confirmRemoveAttendee(attendee.id)}
-                    disabled={isEventOwner(attendee.id)}
-                    title={isEventOwner(attendee.id)
-                      ? "You cannot remove yourself from your own event"
-                      : ""}
                   >
                     Remove
                   </button>

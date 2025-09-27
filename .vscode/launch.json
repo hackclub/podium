@@ -20,6 +20,9 @@
   ],
   "configurations": [
     {
+      // Not making a seperate config entry since it's not needed much, but to run bun dev in prod mode:
+      // MacOS/Linux: NODE_ENV=production bun run dev
+      // Windows (powershell): $env:NODE_ENV="production"; bun run dev; $env:NODE_ENV=""
       "command": "bun run dev",
       "name": "frontend",
       "request": "launch",
