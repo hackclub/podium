@@ -47,7 +47,7 @@ export function validateDaydreamURLs(
   }
   if (repo && !repoValid) {
     issues.push(
-      "repo URL must be a valid GitHub/Gitee URL (format: https://github.com/username/repository)",
+      "repo URL must be a valid GitHub URL (format: https://github.com/username/repository)",
     );
   }
 
