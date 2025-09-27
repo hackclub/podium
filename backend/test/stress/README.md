@@ -23,6 +23,23 @@ Creates multiple events with multiple users. Each user creates a project, then v
 
 **Uses real authentication:** Calls API endpoints for auth flow, with minimal backend function imports only for token generation.
 
+## Concurrency
+
+**Sequential phases:** User creation, event creation, project creation (setup phases)  
+**Concurrent phase:** All users simultaneously execute workflows via `asyncio.gather()`
+
+**Real user navigation patterns (from frontend code):**
+- **Every page load:** GET /events/ (events layout)
+- **Projects page:** GET /events/ + GET /projects/mine  
+- **Event pages:** GET /events/id/{slug} + GET /events/{event_id}
+- **Ranking page:** GET /events/{event_id}/projects?leaderboard=false
+- **Leaderboard page:** GET /events/{event_id}/projects?leaderboard=true
+- **Plus:** User updates, voting, admin actions
+
+**Concurrency pattern:** All users execute identical workflows simultaneously  
+**Effect:** Same endpoint hit by all N users at the same moment (maximum DB stress)  
+**For 50 events × 20 users:** 1000 users hitting each endpoint simultaneously
+
 ## Review Checklist Coverage
 
 ✅ **Register for a new account** - POST /users/  

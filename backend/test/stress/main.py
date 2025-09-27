@@ -442,8 +442,30 @@ async def run_comprehensive_stress_test(
                 })
                 all_response_times.extend(client.get_response_times())
         
+        # Delete users (via Airtable - no API endpoint)
+        try:
+            # Import Airtable functions for user cleanup
+            backend_dir = os.path.join(os.path.dirname(__file__), "..", "..")
+            sys.path.insert(0, backend_dir)
+            from podium.db import tables
+            
+            deleted_users = 0
+            for user in test_users:
+                try:
+                    # Find user by email and delete
+                    user_records = tables["users"].all(formula=f"{{email}} = '{user['email']}'")
+                    for record in user_records:
+                        tables["users"].delete(record["id"])
+                        deleted_users += 1
+                except Exception as e:
+                    print(f"   Warning: Failed to delete user {user['email']}: {e}")
+            
+            print(f"   Cleaned up {len(all_projects)} projects, {len(events_data)} events, {deleted_users} users")
+        except Exception as e:
+            print(f"   Warning: User cleanup failed: {e}")
+            print(f"   Cleaned up {len(all_projects)} projects and {len(events_data)} events")
+        
         test_results["cleanup_tests"] = cleanup_results
-        print(f"   Cleaned up {len(created_projects)} projects and {len(events_data)} events")
     
     # Generate reports
     print(f"\n{6 if not cleanup else 7}. Generating reports...")
