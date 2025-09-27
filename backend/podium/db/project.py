@@ -48,10 +48,17 @@ class Project(ProjectBase):
     votes: MultiRecordField = []
     collaborators: MultiRecordField = []
     owner: SingleRecordField
+    
+    # Lookup fields from Airtable to avoid N+1 queries
+    # Note: Airtable lookup fields return arrays even for single records
+    collaborator_display_names: List[str] = []
+    owner_display_name: List[str] = []
 
     """In addition to the normal fields, we also have lookup fields in Airtable so we can use formulas:
     - event_id
     - owner_id
+    - collaborator_display_names (lookup field)
+    - owner_display_name (lookup field)
     """
 
 

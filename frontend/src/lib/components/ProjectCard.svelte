@@ -1,7 +1,5 @@
 <script lang="ts">
-  import { UsersService } from "$lib/client";
   import type { PrivateProject, Project } from "$lib/client/types.gen";
-  import { handleError } from "$lib/misc";
   import { onMount } from "svelte";
   interface Props {
     project: PrivateProject | Project;
@@ -14,39 +12,22 @@
   let loadingImage = $state(true);
 
   let { project, isSelected, toggle, selectable = false }: Props = $props();
-  onMount(async () => {
-    // Merge project.collaborators and project.owner into a single array
-    const allUserIds = [
-      ...(project.collaborators || []),
-      ...(project.owner || []),
-    ];
-    let names: string[] = [];
-    for (const userId of allUserIds) {
-      const {
-        data,
-        error: err,
-        response,
-      } = await UsersService.getUserPublicUsersUserIdGet({
-        path: {
-          user_id: userId,
-        },
-        throwOnError: false,
-      });
-      if (err) {
-        handleError(err);
-      } else if (data && data.display_name) {
-        names.push(data.display_name);
-      }
-    }
+  onMount(() => {
+    // Use lookup fields from Airtable to avoid N+1 queries
+    // Note: Airtable lookup fields return arrays even for single records
+    const allNames = [
+      ...(project.collaborator_display_names || []),
+      ...(project.owner_display_name || []),
+    ].filter(Boolean); // Remove empty strings
     
     // Only format if we have valid names
-    if (names.length > 0) {
+    if (allNames.length > 0) {
       // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/ListFormat/ListFormat#parameters
       const formatter = new Intl.ListFormat("en", {
         style: "short",
         type: "conjunction",
       });
-      credits = formatter.format(names);
+      credits = formatter.format(allNames);
     } else {
       credits = "Unknown contributors";
     }

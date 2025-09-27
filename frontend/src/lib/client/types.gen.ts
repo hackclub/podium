@@ -23,6 +23,8 @@ export type AdminProject = {
     owner: [
         string
     ];
+    collaborator_display_names?: Array<(string)>;
+    owner_display_name?: Array<(string)>;
     join_code: string;
     cached_auto_quality?: (Unified | EmptyModel);
 };
@@ -150,6 +152,8 @@ export type PrivateProject = {
     owner: [
         string
     ];
+    collaborator_display_names?: Array<(string)>;
+    owner_display_name?: Array<(string)>;
     join_code: string;
 };
 
@@ -175,6 +179,8 @@ export type Project = {
     owner: [
         string
     ];
+    collaborator_display_names?: Array<(string)>;
+    owner_display_name?: Array<(string)>;
 };
 
 export type ProjectCreationPayload = {
