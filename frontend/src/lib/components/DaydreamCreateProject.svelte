@@ -8,7 +8,10 @@
 
   // Accept callback prop for when project is successfully created
   // Accept optional event to pre-fill and hide the event selector
-  let { onProjectCreated, preselectedEvent }: { 
+  let {
+    onProjectCreated,
+    preselectedEvent,
+  }: {
     onProjectCreated?: () => void;
     preselectedEvent?: Event;
   } = $props();
@@ -24,13 +27,13 @@
   });
   let events: Event[] = $state([]);
   let fetchedEvents = false;
-  
+
   // Track the selected event's demo_links_optional setting
   let selectedEvent = $derived(
-    preselectedEvent || events.find(e => e.id === project.event[0])
+    preselectedEvent || events.find((e) => e.id === project.event[0]),
   );
   let demoLinksOptional = $derived(selectedEvent?.demo_links_optional || false);
-  
+
   async function fetchEvents() {
     toast.info("Fetching events; please wait");
     const { data: userEvents, error: err } =
@@ -44,10 +47,11 @@
   }
 
   async function createProject() {
-    const { data, error: err } = await ProjectsService.createProjectProjectsPost({
-      body: project,
-      throwOnError: false,
-    });
+    const { data, error: err } =
+      await ProjectsService.createProjectProjectsPost({
+        body: project,
+        throwOnError: false,
+      });
     if (err) {
       handleError(err);
       return;
@@ -63,7 +67,7 @@
       hours_spent: 0,
     };
     await customInvalidateAll();
-    
+
     // Call the callback if provided (for auto-progression in SignupWizard)
     if (onProjectCreated) {
       onProjectCreated();
@@ -81,7 +85,9 @@
   <!-- <form onsubmit={createProject} class="space-y-4"> -->
   <fieldset class="fieldset">
     <div class="flex items-center gap-2 mb-4">
-      <span class="text-sm text-base-content/70">You can always edit this later!</span>
+      <span class="text-sm text-base-content/70"
+        >You can always edit this later!</span
+      >
     </div>
 
     <label class="label" for="project_name">Project Name</label>
@@ -132,7 +138,9 @@
     <label class="label" for="demo_url">
       Playable Itch.io URL for your game
       {#if demoLinksOptional}
-        <span class="text-sm text-base-content/70">(Optional for this event)</span>
+        <span class="text-sm text-base-content/70"
+          >(Optional for this event)</span
+        >
       {/if}
     </label>
     <input
@@ -140,16 +148,20 @@
       type="text"
       bind:value={project.demo}
       placeholder="https://yourname.itch.io/gamename"
-      class="input input-bordered w-full {project.demo && !demoUrlValid ? 'input-error' : ''}"
+      class="input input-bordered w-full {project.demo && !demoUrlValid
+        ? 'input-error'
+        : ''}"
     />
     {#if project.demo && !demoUrlValid}
       <div class="text-[#cf4960] text-sm mt-1">
-        Please enter a valid itch.io URL (format: https://username.itch.io/gamename)
+        Please enter a valid itch.io URL (format:
+        https://username.itch.io/gamename)
       </div>
     {/if}
     {#if demoLinksOptional}
       <div class="text-sm text-base-content/70 mt-1">
-        Demo links are optional for this event. Your project won't be marked as invalid if only the demo link fails validation.
+        Demo links are optional for this event. Your project won't be marked as
+        invalid if only the demo link fails validation.
       </div>
     {/if}
     <button
@@ -168,17 +180,20 @@
       type="text"
       bind:value={project.repo}
       placeholder="https://github.com/yourname/gamename"
-      class="input input-bordered w-full {project.repo && !repoUrlValid ? 'input-error' : ''}"
+      class="input input-bordered w-full {project.repo && !repoUrlValid
+        ? 'input-error'
+        : ''}"
     />
     {#if project.repo && !repoUrlValid}
       <div class="text-[#cf4960] text-sm mt-1">
-        Please enter a valid GitHub URL (format: https://github.com/username/repository)
+        Please enter a valid GitHub URL (format:
+        https://github.com/username/repository)
       </div>
     {/if}
 
     <label class="label" for="hours_spent">Rough estimate of hours spent</label>
     <input
-    id="hours_spent"
+      id="hours_spent"
       type="number"
       bind:value={project.hours_spent}
       placeholder="Hours spent"
@@ -186,8 +201,8 @@
       min="0"
     />
 
-    <button 
-      class="btn btn-accent btn-lg mt-4 btn-block hover:btn-xl transition-all duration-300" 
+    <button
+      class="btn btn-accent btn-lg mt-4 btn-block hover:btn-xl transition-all duration-300"
       onclick={createProject}
       disabled={!demoUrlValid || !repoUrlValid}
     >

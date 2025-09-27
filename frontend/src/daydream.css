@@ -1,8 +1,8 @@
 /* fonts */
-@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap");
 
 :root {
-  --font-sans: 'Atkinson Hyperlegible', 'Phantom Sans', sans-serif !important;
+  --font-sans: "Atkinson Hyperlegible", "Phantom Sans", sans-serif !important;
 }
 
 /* landing page */
@@ -13,16 +13,21 @@
 }
 
 #landing {
-  background-image: url('https://daydream.hackclub.com/brushstroking.png'), url('https://daydream.hackclub.com/cloudy-bg-dim.png'), linear-gradient(to bottom, #CCF4FD, #AECDF6);
+  background-image: url("https://daydream.hackclub.com/brushstroking.png"),
+    url("https://daydream.hackclub.com/cloudy-bg-dim.png"),
+    linear-gradient(to bottom, #ccf4fd, #aecdf6);
   background-repeat: repeat, no-repeat, no-repeat;
   background-size: contain, cover, cover;
-  background-position: center center, center 20vh, center center;
+  background-position:
+    center center,
+    center 20vh,
+    center center;
   background-blend-mode: overlay, normal, normal;
 }
 
 #landing-content {
   background-color: #fef9dc;
-  border: 2px solid #D3B180;
+  border: 2px solid #d3b180;
   width: max-content;
   margin-inline: auto;
 }
@@ -37,7 +42,7 @@
 /* #sidebar, */
 /* #home-navbar, */
 #welcome-back {
-    display: none;
+  display: none;
 }
 
 #home-navbar {
@@ -52,7 +57,7 @@
 
 #sidebar-ui {
   background-color: #fef9dc;
-  border-right: 2px solid #D3B180;
+  border-right: 2px solid #d3b180;
 }
 #sidebar-top a {
   color: rgb(131, 55, 16);
@@ -63,7 +68,8 @@
 #sidebar li {
   margin-bottom: 1rem;
 }
-#sidebar :not(#sidebar-top) a, #sidebar :not(#sidebar-top) button {
+#sidebar :not(#sidebar-top) a,
+#sidebar :not(#sidebar-top) button {
   background-color: transparent;
   border-radius: 0;
   width: 100%;
@@ -77,19 +83,25 @@
 
 svg.text-success {
   color: #8fecae;
-  filter: drop-shadow(0 0 6px #8fecae88)
+  filter: drop-shadow(0 0 6px #8fecae88);
 }
 
-body, html {
+body,
+html {
   height: max-content;
   min-height: 100vh;
 }
 
 body {
-  background-image: url('https://daydream.hackclub.com/brushstroking.png'), url('https://daydream.hackclub.com/cloudy-bg-dim.png'), linear-gradient(to bottom, #CCF4FD, #AECDF6);
+  background-image: url("https://daydream.hackclub.com/brushstroking.png"),
+    url("https://daydream.hackclub.com/cloudy-bg-dim.png"),
+    linear-gradient(to bottom, #ccf4fd, #aecdf6);
   background-repeat: repeat, no-repeat, no-repeat;
   background-size: contain, cover, cover;
-  background-position: center center, center 20vh, center center;
+  background-position:
+    center center,
+    center 20vh,
+    center center;
   background-blend-mode: overlay, normal, normal;
 }
 
@@ -150,17 +162,24 @@ input {
   border: 1px solid var(--color-base-300);
   color: rgb(139, 69, 19);
 }
-p, span {
+p,
+span {
   color: rgb(139, 69, 19);
 }
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   color: rgb(131, 55, 16);
 }
 
-.card, .modal-box {
-    border: 2px solid var(--color-base-300);
-    border-radius: 0;
+.card,
+.modal-box {
+  border: 2px solid var(--color-base-300);
+  border-radius: 0;
 }
 .card {
-    box-shadow: none;
+  box-shadow: none;
 }

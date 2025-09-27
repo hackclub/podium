@@ -13,12 +13,12 @@
     formatReasons: (reasons: string) => string;
   }
 
-  let { 
-    project, 
-    events, 
-    projectQualityResults, 
-    projectModalState, 
-    formatReasons 
+  let {
+    project,
+    events,
+    projectQualityResults,
+    projectModalState,
+    formatReasons,
   }: Props = $props();
 </script>
 
@@ -41,7 +41,7 @@
           {/if}
         {/each}
       </div>
-      
+
       <div class="grid grid-cols-3 gap-3 text-sm">
         <!-- Join Code -->
         <div class="flex flex-col items-center">
@@ -65,7 +65,9 @@
                 </span>
               {:else}
                 <button
-                  class="badge text-sm px-3 py-1 underline cursor-pointer {projectQualityResults[project.id]?.valid && projectQualityResults[project.id]?.image_valid
+                  class="badge text-sm px-3 py-1 underline cursor-pointer {projectQualityResults[
+                    project.id
+                  ]?.valid && projectQualityResults[project.id]?.image_valid
                     ? 'badge-success'
                     : 'badge-warning'}"
                   onclick={() => {
@@ -75,15 +77,13 @@
                 >
                   {#if !projectQualityResults[project.id]}
                     <span class="loading loading-dots loading-xs"></span>
+                  {:else if projectQualityResults[project.id]?.valid && projectQualityResults[project.id]?.image_valid}
+                    ✅ Valid
                   {:else}
-                    {#if projectQualityResults[project.id]?.valid && projectQualityResults[project.id]?.image_valid}
-                      ✅ Valid
-                    {:else}
-                      ❌ Invalid
-                    {/if}
+                    ❌ Invalid
                   {/if}
                 </button>
-                
+
                 {#if projectQualityResults[project.id]}
                   <!-- Quality Details Modal -->
                   <Modal
@@ -101,9 +101,11 @@
                             <span class="text-error">❌ Invalid</span>
                           {/if}
                         </div>
-                        <p class="text-sm text-base-content/70">{projectQualityResults[project.id]?.reason}</p>
+                        <p class="text-sm text-base-content/70">
+                          {projectQualityResults[project.id]?.reason}
+                        </p>
                       </div>
-                      
+
                       <!-- Image Validation Section -->
                       <div>
                         <h3 class="font-semibold mb-2">Image Validation</h3>
@@ -136,7 +138,7 @@
           <UpdateProject preselectedProject={project} {events} />
         </div>
       </div>
-      
+
       <div class="divider my-1"></div>
     </div>
 

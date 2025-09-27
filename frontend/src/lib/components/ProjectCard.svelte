@@ -19,7 +19,7 @@
       ...(project.collaborator_display_names || []),
       ...(project.owner_display_name || []),
     ].filter(Boolean); // Remove empty strings
-    
+
     // Only format if we have valid names
     if (allNames.length > 0) {
       // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/ListFormat/ListFormat#parameters

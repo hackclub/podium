@@ -14,14 +14,14 @@
 
   let updateModal: Modal = $state() as Modal;
   let deleteConfirmation: ConfirmationModal = $state() as ConfirmationModal;
-  
+
   const emptyEventUpdate: EventUpdate = {
     name: "",
     description: null,
     votable: false,
     leaderboard_enabled: false,
   };
-  
+
   // Create reactive copy of the event
   let event: EventUpdate = $state({ ...preselectedEvent });
 
@@ -58,76 +58,78 @@
   }
 </script>
 
-<button class="btn btn-sm btn-primary" onclick={() => {updateModal.openModal()}}>
+<button
+  class="btn btn-sm btn-primary"
+  onclick={() => {
+    updateModal.openModal();
+  }}
+>
   Edit Event
 </button>
-<Modal
-  bind:this={updateModal}
-  title="Update Event"
->
-<div class="p-4 max-w-md mx-auto">
-  <div class="space-y-4">
-    <fieldset class="fieldset">
-      <label class="label" for="event_name">Event Name</label>
-      <input
-        id="event_name"
-        type="text"
-        bind:value={event.name}
-        placeholder="Super cool Hackathon!"
-        class="input input-bordered w-full"
-      />
+<Modal bind:this={updateModal} title="Update Event">
+  <div class="p-4 max-w-md mx-auto">
+    <div class="space-y-4">
+      <fieldset class="fieldset">
+        <label class="label" for="event_name">Event Name</label>
+        <input
+          id="event_name"
+          type="text"
+          bind:value={event.name}
+          placeholder="Super cool Hackathon!"
+          class="input input-bordered w-full"
+        />
 
-      <label class="label" for="event_description">Event Description</label>
-      <textarea
-        id="event_description"
-        bind:value={event.description}
-        placeholder="Some cool description"
-        class="textarea textarea-bordered w-full"
-      ></textarea>
+        <label class="label" for="event_description">Event Description</label>
+        <textarea
+          id="event_description"
+          bind:value={event.description}
+          placeholder="Some cool description"
+          class="textarea textarea-bordered w-full"
+        ></textarea>
 
-      <label class="label" for="votable">
-        <span>Votable</span>
-      </label>
-      <input
-        id="votable"
-        type="checkbox"
-        class="checkbox"
-        bind:checked={event.votable}
-      />
+        <label class="label" for="votable">
+          <span>Votable</span>
+        </label>
+        <input
+          id="votable"
+          type="checkbox"
+          class="checkbox"
+          bind:checked={event.votable}
+        />
 
-      <label class="label" for="leaderboard_enabled">
-        <span>Leaderboard Enabled</span>
-      </label>
-      <input
-        id="leaderboard_enabled"
-        type="checkbox"
-        class="checkbox"
-        bind:checked={event.leaderboard_enabled}
-      />
+        <label class="label" for="leaderboard_enabled">
+          <span>Leaderboard Enabled</span>
+        </label>
+        <input
+          id="leaderboard_enabled"
+          type="checkbox"
+          class="checkbox"
+          bind:checked={event.leaderboard_enabled}
+        />
 
-      <label class="label" for="demo_links_optional">
-        <span>Demo Links Optional</span>
-      </label>
-      <input
-        id="demo_links_optional"
-        type="checkbox"
-        class="checkbox"
-        bind:checked={event.demo_links_optional}
-      />
+        <label class="label" for="demo_links_optional">
+          <span>Demo Links Optional</span>
+        </label>
+        <input
+          id="demo_links_optional"
+          type="checkbox"
+          class="checkbox"
+          bind:checked={event.demo_links_optional}
+        />
 
-      <button class="btn btn-block mt-4 btn-primary" onclick={updateEvent}>
-        Update Event
-      </button>
-      <button
-        class="btn btn-block mt-4 btn-warning"
-        type="button"
-        onclick={confirmDeleteEvent}
-      >
-        Delete Event
-      </button>
-    </fieldset>
+        <button class="btn btn-block mt-4 btn-primary" onclick={updateEvent}>
+          Update Event
+        </button>
+        <button
+          class="btn btn-block mt-4 btn-warning"
+          type="button"
+          onclick={confirmDeleteEvent}
+        >
+          Delete Event
+        </button>
+      </fieldset>
+    </div>
   </div>
-</div>
 </Modal>
 
 <ConfirmationModal

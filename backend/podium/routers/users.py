@@ -20,9 +20,6 @@ from requests import HTTPError
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-
-
-
 class UserExistsResponse(BaseModel):
     exists: bool
 
@@ -53,22 +50,23 @@ async def update_current_user(
     """
     if current_user is None:
         raise BAD_AUTH
-    
+
     # Only include non-None values in the update
     update_data = {k: v for k, v in user_update.model_dump().items() if v is not None}
-    
+
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
-    
+
     updated_user = db.users.update(current_user.id, update_data)
-    
+
     # Clear the cache for this user's public profile
     await FastAPICache.clear(namespace="users")
-    
+
     return UserPrivate.model_validate(updated_user["fields"])
 
 
 # It's important that this is under /current since otherwise /users/current will be be passed to this and `current` will be interpreted as a user_id
+
 
 # The reason we're specifying response_model here is because of https://github.com/long2ice/fastapi-cache/issues/384
 @router.get("/{user_id}", response_model=UserPublic)
@@ -84,7 +82,7 @@ async def get_user_public(
             if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
             else e
         )
-    
+
     return user[0]
 
 

@@ -1,30 +1,37 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { EventsService } from '$lib/client/sdk.gen';
-  import type { UserAttendee, Project, Event, PrivateEvent, Vote, Referral } from '$lib/client/types.gen';
-  import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
-  import UpdateEvent from './UpdateEvent.svelte';
-  import AttendeesTable from './AttendeesTable.svelte';
-  import AdminLeaderboard from './AdminLeaderboard.svelte';
-  import VotesTable from './VotesTable.svelte';
-  import ReferralsTable from './ReferralsTable.svelte';
-  import { handleError, returnLoadingText } from '$lib/misc';
-  import { getAuthenticatedUser } from '$lib/user.svelte';
-  import { toast } from 'svelte-sonner';
+  import { onMount } from "svelte";
+  import { EventsService } from "$lib/client/sdk.gen";
+  import type {
+    UserAttendee,
+    Project,
+    Event,
+    PrivateEvent,
+    Vote,
+    Referral,
+  } from "$lib/client/types.gen";
+  import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
+  import UpdateEvent from "./UpdateEvent.svelte";
+  import AttendeesTable from "./AttendeesTable.svelte";
+  import AdminLeaderboard from "./AdminLeaderboard.svelte";
+  import VotesTable from "./VotesTable.svelte";
+  import ReferralsTable from "./ReferralsTable.svelte";
+  import { handleError, returnLoadingText } from "$lib/misc";
+  import { getAuthenticatedUser } from "$lib/user.svelte";
+  import { toast } from "svelte-sonner";
 
   interface Props {
     event: PrivateEvent & { owned: boolean; partOfEvent: boolean };
   }
 
   let { event }: Props = $props();
-  
+
   // Admin state
   let attendees = $state<UserAttendee[]>([]);
   let adminLeaderboard = $state<Project[]>([]);
   let votes = $state<Vote[]>([]);
   let referrals = $state<Referral[]>([]);
   let loading = $state(false);
-  
+
   // Lookup maps for efficient data access
   let userLookup = $state<Map<string, string>>(new Map());
   let projectLookup = $state<Map<string, string>>(new Map());
@@ -39,24 +46,25 @@
   async function loadAdminData() {
     loading = true;
     try {
-      const [attendeesResult, leaderboardResult, votesResult, referralsResult] = await Promise.all([
-        EventsService.getEventAttendeesEventsAdminEventIdAttendeesGet({
-          path: { event_id: event.id },
-          throwOnError: false
-        }),
-        EventsService.getEventLeaderboardEventsAdminEventIdLeaderboardGet({
-          path: { event_id: event.id },
-          throwOnError: false
-        }),
-        EventsService.getEventVotesEventsAdminEventIdVotesGet({
-          path: { event_id: event.id },
-          throwOnError: false
-        }),
-        EventsService.getEventReferralsEventsAdminEventIdReferralsGet({
-          path: { event_id: event.id },
-          throwOnError: false
-        })
-      ]);
+      const [attendeesResult, leaderboardResult, votesResult, referralsResult] =
+        await Promise.all([
+          EventsService.getEventAttendeesEventsAdminEventIdAttendeesGet({
+            path: { event_id: event.id },
+            throwOnError: false,
+          }),
+          EventsService.getEventLeaderboardEventsAdminEventIdLeaderboardGet({
+            path: { event_id: event.id },
+            throwOnError: false,
+          }),
+          EventsService.getEventVotesEventsAdminEventIdVotesGet({
+            path: { event_id: event.id },
+            throwOnError: false,
+          }),
+          EventsService.getEventReferralsEventsAdminEventIdReferralsGet({
+            path: { event_id: event.id },
+            throwOnError: false,
+          }),
+        ]);
 
       if (attendeesResult.error) handleError(attendeesResult.error);
       else attendees = attendeesResult.data || [];
@@ -69,7 +77,7 @@
 
       if (referralsResult.error) handleError(referralsResult.error);
       else referrals = referralsResult.data || [];
-      
+
       // Build lookup maps from existing data
       buildLookupMaps();
     } catch (err) {
@@ -82,43 +90,44 @@
   function buildLookupMaps() {
     // Build user lookup from attendees (for votes and referrals)
     userLookup.clear();
-    attendees.forEach(attendee => {
-      userLookup.set(attendee.id, `${attendee.first_name} ${attendee.last_name || ''}`.trim());
+    attendees.forEach((attendee) => {
+      userLookup.set(
+        attendee.id,
+        `${attendee.first_name} ${attendee.last_name || ""}`.trim(),
+      );
     });
-    
+
     // Build project lookup from admin leaderboard
     projectLookup.clear();
-    adminLeaderboard.forEach(project => {
+    adminLeaderboard.forEach((project) => {
       projectLookup.set(project.id, project.name);
     });
   }
-
 
   function isEventOwner(userId: string): boolean {
     const currentUser = getAuthenticatedUser();
     return currentUser.user.id === userId;
   }
 
-
-
   async function removeAttendee(userId: string) {
     // Prevent event owner from removing themselves
     if (isEventOwner(userId)) {
-      toast.error('You cannot remove yourself from your own event');
+      toast.error("You cannot remove yourself from your own event");
       return;
     }
 
     try {
-      const { error } = await EventsService.removeAttendeeEventsAdminEventIdRemoveAttendeePost({
-        path: { event_id: event.id },
-        body: userId,
-        throwOnError: false
-      });
-      
+      const { error } =
+        await EventsService.removeAttendeeEventsAdminEventIdRemoveAttendeePost({
+          path: { event_id: event.id },
+          body: userId,
+          throwOnError: false,
+        });
+
       if (error) {
         handleError(error);
       } else {
-        toast.success('Attendee removed');
+        toast.success("Attendee removed");
         await loadAdminData();
       }
     } catch (err) {
@@ -129,7 +138,7 @@
 
 {#if event.owned}
   <div class="divider">Admin Panel</div>
-  
+
   {#if loading}
     <div class="flex justify-center py-8">
       <LoadingSpinner loadingText={returnLoadingText()} />
@@ -152,11 +161,11 @@
             <span class="badge badge-accent font-mono text-lg">
               {event.join_code}
             </span>
-            <button 
+            <button
               class="btn btn-sm btn-outline"
               onclick={() => {
                 navigator.clipboard.writeText(event.join_code);
-                toast.success('Join code copied to clipboard');
+                toast.success("Join code copied to clipboard");
               }}
             >
               Copy
@@ -165,29 +174,32 @@
           <p class="text-sm text-base-content/70 mt-2">
             Share this code with people who want to join your event.
           </p>
-          
+
           <div class="divider my-2"></div>
           <div class="space-y-2">
             <p class="text-sm font-medium">Share join link with attendees:</p>
             <div class="flex items-center gap-2">
-              <input 
-                type="text" 
-                readonly 
+              <input
+                type="text"
+                readonly
                 value={`${window.location.origin}/events/attend?join_code=${event.join_code}`}
                 class="input input-bordered input-sm flex-1 font-mono text-xs"
               />
-              <button 
+              <button
                 class="btn btn-sm btn-outline"
                 onclick={() => {
-                  navigator.clipboard.writeText(`${window.location.origin}/events/attend?join_code=${event.join_code}`);
-                  toast.success('Join link copied to clipboard');
+                  navigator.clipboard.writeText(
+                    `${window.location.origin}/events/attend?join_code=${event.join_code}`,
+                  );
+                  toast.success("Join link copied to clipboard");
                 }}
               >
                 Copy Link
               </button>
             </div>
             <p class="text-xs text-base-content/60">
-              When someone clicks this link, they will be automatically added to the event. To edit it, contact us.
+              When someone clicks this link, they will be automatically added to
+              the event. To edit it, contact us.
             </p>
           </div>
         </div>
@@ -197,10 +209,10 @@
       <AttendeesTable {attendees} onRemoveAttendee={removeAttendee} {event} />
 
       <!-- Admin Leaderboard -->
-      <AdminLeaderboard projects={adminLeaderboard} event={event} />
+      <AdminLeaderboard projects={adminLeaderboard} {event} />
 
       <!-- Votes Table -->
-      <VotesTable {votes} userLookup={userLookup} {projectLookup} />
+      <VotesTable {votes} {userLookup} {projectLookup} />
 
       <!-- Referrals Table -->
       <ReferralsTable {referrals} {userLookup} />

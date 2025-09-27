@@ -33,7 +33,9 @@ def _unique_name(prefix: str) -> str:
 
 
 @pytest.mark.asyncio
-async def test_admin_event_access_authorization(app_public_url, browser_session, temp_user_tokens):
+async def test_admin_event_access_authorization(
+    app_public_url, browser_session, temp_user_tokens
+):
     """Test that non-owners cannot access admin endpoints"""
     created_event_id: str | None = None
     event_name = _unique_name("Admin Test Event")
@@ -43,21 +45,23 @@ async def test_admin_event_access_authorization(app_public_url, browser_session,
     try:
         # Create a different user to own the event
         other_user_email = f"other-user-{uuid.uuid4()}@example.com"
-        other_user = db.users.create({
-            "display_name": "Other User",
-            "email": other_user_email,
-            "first_name": "Other",
-            "last_name": "User",
-            "phone": "1234567890",
-            "street_1": "123 Other St",
-            "city": "Other City",
-            "state": "CA",
-            "zip_code": "12345",
-            "country": "United States",
-            "dob": "2010-01-01",
-        })
+        other_user = db.users.create(
+            {
+                "display_name": "Other User",
+                "email": other_user_email,
+                "first_name": "Other",
+                "last_name": "User",
+                "phone": "1234567890",
+                "street_1": "123 Other St",
+                "city": "Other City",
+                "state": "CA",
+                "zip_code": "12345",
+                "country": "United States",
+                "dob": "2010-01-01",
+            }
+        )
         other_user_id = other_user["id"]
-        
+
         created = db.events.create(
             {
                 "name": event_name,
@@ -72,9 +76,15 @@ async def test_admin_event_access_authorization(app_public_url, browser_session,
 
         # Verify the event was created with correct ownership and attendance
         event = db.events.get(created_event_id)
-        assert event["fields"]["owner"] == [other_user_id], "Event should be owned by other user"
-        assert temp_user_tokens["user_id"] not in event["fields"].get("owner", []), "Test user should not be owner"
-        assert temp_user_tokens["user_id"] in event["fields"].get("attendees", []), "Test user should be an attendee"
+        assert event["fields"]["owner"] == [other_user_id], (
+            "Event should be owned by other user"
+        )
+        assert temp_user_tokens["user_id"] not in event["fields"].get("owner", []), (
+            "Test user should not be owner"
+        )
+        assert temp_user_tokens["user_id"] in event["fields"].get("attendees", []), (
+            "Test user should be an attendee"
+        )
 
         # Try to access the public event page as attendee (not owner)
         event_url = f"{app_public_url}/events/{slug}"
@@ -95,31 +105,41 @@ async def test_admin_event_access_authorization(app_public_url, browser_session,
         result = await run_browser_agent(
             prompt=prompt,
             output_model=AdminTestResult,
-            failure_result=AdminTestResult(success=False, message="Failed to test admin access"),
+            failure_result=AdminTestResult(
+                success=False, message="Failed to test admin access"
+            ),
             browser=browser_session,
         )
-        
+
         logger.info(
             f"Admin access test result: success={result.success}, message='{result.message}', steel_view={getattr(browser_session, 'viewer_url', '')}"
         )
 
         # Verify database state hasn't changed (user still not owner but still attendee)
         event_after = db.events.get(created_event_id)
-        assert event_after["fields"]["owner"] == [other_user_id], "Event ownership should remain unchanged"
-        assert temp_user_tokens["user_id"] not in event_after["fields"].get("owner", []), "Test user should still not be owner"
-        assert temp_user_tokens["user_id"] in event_after["fields"].get("attendees", []), "Test user should still be an attendee"
-        
+        assert event_after["fields"]["owner"] == [other_user_id], (
+            "Event ownership should remain unchanged"
+        )
+        assert temp_user_tokens["user_id"] not in event_after["fields"].get(
+            "owner", []
+        ), "Test user should still not be owner"
+        assert temp_user_tokens["user_id"] in event_after["fields"].get(
+            "attendees", []
+        ), "Test user should still be an attendee"
+
         # The test passes if we can verify database state - agent success is not the primary indicator
         # For authorization tests, success means the agent confirmed admin UI is properly hidden from non-owners
-        logger.info("Admin authorization test passed - database state verified and admin features properly hidden from non-owner")
-        
+        logger.info(
+            "Admin authorization test passed - database state verified and admin features properly hidden from non-owner"
+        )
+
     finally:
         if created_event_id:
             try:
                 db.events.delete(created_event_id)
             except Exception:
                 logger.warning(f"Failed to delete event {created_event_id}")
-        if 'other_user_id' in locals():
+        if "other_user_id" in locals():
             try:
                 db.users.delete(other_user_id)
             except Exception:
@@ -127,7 +147,9 @@ async def test_admin_event_access_authorization(app_public_url, browser_session,
 
 
 @pytest.mark.asyncio
-async def test_admin_event_management(app_public_url, browser_session, temp_user_tokens):
+async def test_admin_event_management(
+    app_public_url, browser_session, temp_user_tokens
+):
     """Test admin can access and manage their own events"""
     created_event_id: str | None = None
     event_name = _unique_name("Admin Owned Event")
@@ -150,7 +172,9 @@ async def test_admin_event_management(app_public_url, browser_session, temp_user
 
         # Verify the event was created with correct ownership
         event = db.events.get(created_event_id)
-        assert event["fields"]["owner"] == [temp_user_tokens["user_id"]], "Event should be owned by test user"
+        assert event["fields"]["owner"] == [temp_user_tokens["user_id"]], (
+            "Event should be owned by test user"
+        )
         assert event["fields"]["name"] == event_name, "Event name should match"
 
         # Test admin access to their own event
@@ -174,10 +198,12 @@ async def test_admin_event_management(app_public_url, browser_session, temp_user
         result = await run_browser_agent(
             prompt=prompt,
             output_model=AdminTestResult,
-            failure_result=AdminTestResult(success=False, message="Failed to test admin management"),
+            failure_result=AdminTestResult(
+                success=False, message="Failed to test admin management"
+            ),
             browser=browser_session,
         )
-        
+
         logger.info(
             f"Admin management test result: success={result.success}, message='{result.message}', steel_view={getattr(browser_session, 'viewer_url', '')}"
         )
@@ -185,13 +211,19 @@ async def test_admin_event_management(app_public_url, browser_session, temp_user
         # The test passes if we can verify database state - agent success is not the primary indicator
         # Verify database state remains consistent
         event_after = db.events.get(created_event_id)
-        assert event_after["fields"]["owner"] == [temp_user_tokens["user_id"]], "Event ownership should remain unchanged"
-        assert event_after["fields"]["name"] == event_name, "Event name should remain unchanged"
-        
+        assert event_after["fields"]["owner"] == [temp_user_tokens["user_id"]], (
+            "Event ownership should remain unchanged"
+        )
+        assert event_after["fields"]["name"] == event_name, (
+            "Event name should remain unchanged"
+        )
+
         # If the agent found admin features (even if data is empty), that's a success
         # The agent's success field is unreliable for UI exploration tests
-        logger.info("Admin management test passed - database state verified and admin features accessible")
-        
+        logger.info(
+            "Admin management test passed - database state verified and admin features accessible"
+        )
+
     finally:
         if created_event_id:
             try:
@@ -201,7 +233,9 @@ async def test_admin_event_management(app_public_url, browser_session, temp_user
 
 
 @pytest.mark.asyncio
-async def test_admin_attendees_management(app_public_url, browser_session, temp_user_tokens):
+async def test_admin_attendees_management(
+    app_public_url, browser_session, temp_user_tokens
+):
     """Test admin can view and manage attendees"""
     created_event_id: str | None = None
     attendee_user_id: str | None = None
@@ -212,23 +246,25 @@ async def test_admin_attendees_management(app_public_url, browser_session, temp_
     try:
         # Create an event with some attendees
         other_user_email = f"attendee-{uuid.uuid4()}@example.com"
-        
+
         # Create attendee user
-        attendee_user = db.users.create({
-            "display_name": "Test Attendee",
-            "email": other_user_email,
-            "first_name": "Attendee",
-            "last_name": "User",
-            "phone": "1234567890",
-            "street_1": "123 Attendee St",
-            "city": "Attendee City",
-            "state": "CA",
-            "zip_code": "12345",
-            "country": "United States",
-            "dob": "2010-01-01",
-        })
+        attendee_user = db.users.create(
+            {
+                "display_name": "Test Attendee",
+                "email": other_user_email,
+                "first_name": "Attendee",
+                "last_name": "User",
+                "phone": "1234567890",
+                "street_1": "123 Attendee St",
+                "city": "Attendee City",
+                "state": "CA",
+                "zip_code": "12345",
+                "country": "United States",
+                "dob": "2010-01-01",
+            }
+        )
         attendee_user_id = attendee_user["id"]
-        
+
         created = db.events.create(
             {
                 "name": event_name,
@@ -243,8 +279,12 @@ async def test_admin_attendees_management(app_public_url, browser_session, temp_
 
         # Verify the event was created with correct attendees
         event = db.events.get(created_event_id)
-        assert attendee_user_id in event["fields"].get("attendees", []), "Attendee should be in event attendees list"
-        assert event["fields"]["owner"] == [temp_user_tokens["user_id"]], "Event should be owned by test user"
+        assert attendee_user_id in event["fields"].get("attendees", []), (
+            "Attendee should be in event attendees list"
+        )
+        assert event["fields"]["owner"] == [temp_user_tokens["user_id"]], (
+            "Event should be owned by test user"
+        )
 
         # Test admin attendees management
         prompt = (
@@ -267,10 +307,12 @@ async def test_admin_attendees_management(app_public_url, browser_session, temp_
         result = await run_browser_agent(
             prompt=prompt,
             output_model=AdminTestResult,
-            failure_result=AdminTestResult(success=False, message="Failed to test attendees management"),
+            failure_result=AdminTestResult(
+                success=False, message="Failed to test attendees management"
+            ),
             browser=browser_session,
         )
-        
+
         logger.info(
             f"Attendees management test result: success={result.success}, message='{result.message}', steel_view={getattr(browser_session, 'viewer_url', '')}"
         )
@@ -280,15 +322,21 @@ async def test_admin_attendees_management(app_public_url, browser_session, temp_
         # Verify database state remains consistent
         event_after = db.events.get(created_event_id)
         logger.info(f"Event after browser agent: {event_after['fields']}")
-        
+
         # The agent may have removed the attendee as part of testing the remove functionality
         # This is actually correct behavior - we just need to verify the event structure is intact
-        assert event_after["fields"]["owner"] == [temp_user_tokens["user_id"]], "Event ownership should remain unchanged"
-        assert event_after["fields"]["name"] == event_name, "Event name should remain unchanged"
-        
+        assert event_after["fields"]["owner"] == [temp_user_tokens["user_id"]], (
+            "Event ownership should remain unchanged"
+        )
+        assert event_after["fields"]["name"] == event_name, (
+            "Event name should remain unchanged"
+        )
+
         # If the agent found attendee management features, that's a success
-        logger.info("Attendees management test passed - database state verified and attendee features accessible")
-        
+        logger.info(
+            "Attendees management test passed - database state verified and attendee features accessible"
+        )
+
     finally:
         if created_event_id:
             try:
@@ -303,7 +351,9 @@ async def test_admin_attendees_management(app_public_url, browser_session, temp_
 
 
 @pytest.mark.asyncio
-async def test_admin_leaderboard_access(app_public_url, browser_session, temp_user_tokens):
+async def test_admin_leaderboard_access(
+    app_public_url, browser_session, temp_user_tokens
+):
     """Test admin can access event leaderboard"""
     created_event_id: str | None = None
     project_id: str | None = None
@@ -332,25 +382,33 @@ async def test_admin_leaderboard_access(app_public_url, browser_session, temp_us
             join_code = token_urlsafe(3).upper()
             if not db.projects.first(formula=match({"join_code": join_code})):
                 break
-        
-        project = db.projects.create({
-            "name": project_name,
-            "description": "A test project for leaderboard",
-            "event": [created_event_id],
-            "owner": [temp_user_tokens["user_id"]],
-            "repo": "https://example.com/repo",
-            "demo": "https://example.com/demo",
-            "image_url": "https://example.com/image.jpg",
-            "join_code": join_code,
-            "hours_spent": 10,
-        })
+
+        project = db.projects.create(
+            {
+                "name": project_name,
+                "description": "A test project for leaderboard",
+                "event": [created_event_id],
+                "owner": [temp_user_tokens["user_id"]],
+                "repo": "https://example.com/repo",
+                "demo": "https://example.com/demo",
+                "image_url": "https://example.com/image.jpg",
+                "join_code": join_code,
+                "hours_spent": 10,
+            }
+        )
         project_id = project["id"]
 
         # Verify the project was created correctly
         project_record = db.projects.get(project_id)
-        assert project_record["fields"]["event"] == [created_event_id], "Project should be associated with event"
-        assert project_record["fields"]["owner"] == [temp_user_tokens["user_id"]], "Project should be owned by test user"
-        assert project_record["fields"]["name"] == project_name, "Project name should match"
+        assert project_record["fields"]["event"] == [created_event_id], (
+            "Project should be associated with event"
+        )
+        assert project_record["fields"]["owner"] == [temp_user_tokens["user_id"]], (
+            "Project should be owned by test user"
+        )
+        assert project_record["fields"]["name"] == project_name, (
+            "Project name should match"
+        )
 
         # Test admin leaderboard access
         prompt = (
@@ -372,10 +430,12 @@ async def test_admin_leaderboard_access(app_public_url, browser_session, temp_us
         result = await run_browser_agent(
             prompt=prompt,
             output_model=AdminTestResult,
-            failure_result=AdminTestResult(success=False, message="Failed to test leaderboard access"),
+            failure_result=AdminTestResult(
+                success=False, message="Failed to test leaderboard access"
+            ),
             browser=browser_session,
         )
-        
+
         logger.info(
             f"Leaderboard access test result: success={result.success}, message='{result.message}', steel_view={getattr(browser_session, 'viewer_url', '')}"
         )
@@ -383,13 +443,21 @@ async def test_admin_leaderboard_access(app_public_url, browser_session, temp_us
         # The test passes if we can verify database state - agent success is not the primary indicator
         # Verify database state remains consistent
         project_after = db.projects.get(project_id)
-        assert project_after["fields"]["event"] == [created_event_id], "Project should still be associated with event"
-        assert project_after["fields"]["owner"] == [temp_user_tokens["user_id"]], "Project ownership should remain unchanged"
-        assert project_after["fields"]["name"] == project_name, "Project name should remain unchanged"
-        
+        assert project_after["fields"]["event"] == [created_event_id], (
+            "Project should still be associated with event"
+        )
+        assert project_after["fields"]["owner"] == [temp_user_tokens["user_id"]], (
+            "Project ownership should remain unchanged"
+        )
+        assert project_after["fields"]["name"] == project_name, (
+            "Project name should remain unchanged"
+        )
+
         # If the agent found leaderboard features, that's a success
-        logger.info("Leaderboard access test passed - database state verified and leaderboard features accessible")
-        
+        logger.info(
+            "Leaderboard access test passed - database state verified and leaderboard features accessible"
+        )
+
     finally:
         if created_event_id:
             try:
@@ -404,7 +472,9 @@ async def test_admin_leaderboard_access(app_public_url, browser_session, temp_us
 
 
 @pytest.mark.asyncio
-async def test_admin_votes_and_referrals_access(app_public_url, browser_session, temp_user_tokens):
+async def test_admin_votes_and_referrals_access(
+    app_public_url, browser_session, temp_user_tokens
+):
     """Test admin can access votes and referrals data"""
     created_event_id: str | None = None
     project_id: str | None = None
@@ -433,33 +503,43 @@ async def test_admin_votes_and_referrals_access(app_public_url, browser_session,
             join_code = token_urlsafe(3).upper()
             if not db.projects.first(formula=match({"join_code": join_code})):
                 break
-        
-        project = db.projects.create({
-            "name": _unique_name("Vote Test Project"),
-            "description": "A project for voting",
-            "event": [created_event_id],
-            "owner": [temp_user_tokens["user_id"]],
-            "repo": "https://example.com/vote-repo",
-            "demo": "https://example.com/vote-demo",
-            "image_url": "https://example.com/vote-image.jpg",
-            "join_code": join_code,
-            "hours_spent": 5,
-        })
+
+        project = db.projects.create(
+            {
+                "name": _unique_name("Vote Test Project"),
+                "description": "A project for voting",
+                "event": [created_event_id],
+                "owner": [temp_user_tokens["user_id"]],
+                "repo": "https://example.com/vote-repo",
+                "demo": "https://example.com/vote-demo",
+                "image_url": "https://example.com/vote-image.jpg",
+                "join_code": join_code,
+                "hours_spent": 5,
+            }
+        )
         project_id = project["id"]
 
         # Create a test vote
-        vote = db.votes.create({
-            "event": [created_event_id],
-            "project": [project_id],
-            "voter": [temp_user_tokens["user_id"]],
-        })
+        vote = db.votes.create(
+            {
+                "event": [created_event_id],
+                "project": [project_id],
+                "voter": [temp_user_tokens["user_id"]],
+            }
+        )
         vote_id = vote["id"]
 
         # Verify the vote was created correctly
         vote_record = db.votes.get(vote_id)
-        assert vote_record["fields"]["event"] == [created_event_id], "Vote should be associated with event"
-        assert vote_record["fields"]["project"] == [project_id], "Vote should be associated with project"
-        assert vote_record["fields"]["voter"] == [temp_user_tokens["user_id"]], "Vote should be by test user"
+        assert vote_record["fields"]["event"] == [created_event_id], (
+            "Vote should be associated with event"
+        )
+        assert vote_record["fields"]["project"] == [project_id], (
+            "Vote should be associated with project"
+        )
+        assert vote_record["fields"]["voter"] == [temp_user_tokens["user_id"]], (
+            "Vote should be by test user"
+        )
 
         # Test admin votes and referrals access
         prompt = (
@@ -482,10 +562,12 @@ async def test_admin_votes_and_referrals_access(app_public_url, browser_session,
         result = await run_browser_agent(
             prompt=prompt,
             output_model=AdminTestResult,
-            failure_result=AdminTestResult(success=False, message="Failed to test votes and referrals access"),
+            failure_result=AdminTestResult(
+                success=False, message="Failed to test votes and referrals access"
+            ),
             browser=browser_session,
         )
-        
+
         logger.info(
             f"Votes and referrals test result: success={result.success}, message='{result.message}', steel_view={getattr(browser_session, 'viewer_url', '')}"
         )
@@ -493,13 +575,21 @@ async def test_admin_votes_and_referrals_access(app_public_url, browser_session,
         # The test passes if we can verify database state - agent success is not the primary indicator
         # Verify database state remains consistent
         vote_after = db.votes.get(vote_id)
-        assert vote_after["fields"]["event"] == [created_event_id], "Vote should still be associated with event"
-        assert vote_after["fields"]["project"] == [project_id], "Vote should still be associated with project"
-        assert vote_after["fields"]["voter"] == [temp_user_tokens["user_id"]], "Vote should still be by test user"
-        
+        assert vote_after["fields"]["event"] == [created_event_id], (
+            "Vote should still be associated with event"
+        )
+        assert vote_after["fields"]["project"] == [project_id], (
+            "Vote should still be associated with project"
+        )
+        assert vote_after["fields"]["voter"] == [temp_user_tokens["user_id"]], (
+            "Vote should still be by test user"
+        )
+
         # If the agent found votes and referrals features, that's a success
-        logger.info("Votes and referrals test passed - database state verified and voting features accessible")
-        
+        logger.info(
+            "Votes and referrals test passed - database state verified and voting features accessible"
+        )
+
     finally:
         if created_event_id:
             try:
@@ -522,7 +612,7 @@ async def test_admin_votes_and_referrals_access(app_public_url, browser_session,
 async def test_admin_error_handling(app_public_url, browser_session, temp_user_tokens):
     """Test admin error handling for non-existent events"""
     non_existent_event_id = "evt" + token_urlsafe(8)
-    
+
     # Verify the event doesn't exist in the database
     try:
         db.events.get(non_existent_event_id)
@@ -530,7 +620,7 @@ async def test_admin_error_handling(app_public_url, browser_session, temp_user_t
     except Exception:
         # Expected - event doesn't exist
         pass
-    
+
     # Test admin error handling
     prompt = (
         f"{magic_url(temp_user_tokens)} "
@@ -545,10 +635,12 @@ async def test_admin_error_handling(app_public_url, browser_session, temp_user_t
     result = await run_browser_agent(
         prompt=prompt,
         output_model=AdminTestResult,
-        failure_result=AdminTestResult(success=False, message="Failed to test error handling"),
+        failure_result=AdminTestResult(
+            success=False, message="Failed to test error handling"
+        ),
         browser=browser_session,
     )
-    
+
     logger.info(
         f"Error handling test result: success={result.success}, message='{result.message}', steel_view={getattr(browser_session, 'viewer_url', '')}"
     )
@@ -586,7 +678,9 @@ async def test_admin_ui_consistency(app_public_url, browser_session, temp_user_t
 
         # Verify the event was created correctly
         event = db.events.get(created_event_id)
-        assert event["fields"]["owner"] == [temp_user_tokens["user_id"]], "Event should be owned by test user"
+        assert event["fields"]["owner"] == [temp_user_tokens["user_id"]], (
+            "Event should be owned by test user"
+        )
         assert event["fields"]["name"] == event_name, "Event name should match"
 
         # Test admin UI consistency
@@ -607,10 +701,12 @@ async def test_admin_ui_consistency(app_public_url, browser_session, temp_user_t
         result = await run_browser_agent(
             prompt=prompt,
             output_model=AdminTestResult,
-            failure_result=AdminTestResult(success=False, message="Failed to test UI consistency"),
+            failure_result=AdminTestResult(
+                success=False, message="Failed to test UI consistency"
+            ),
             browser=browser_session,
         )
-        
+
         logger.info(
             f"UI consistency test result: success={result.success}, message='{result.message}', steel_view={getattr(browser_session, 'viewer_url', '')}"
         )
@@ -618,12 +714,18 @@ async def test_admin_ui_consistency(app_public_url, browser_session, temp_user_t
         # The test passes if we can verify database state - agent success is not the primary indicator
         # Verify database state remains consistent
         event_after = db.events.get(created_event_id)
-        assert event_after["fields"]["owner"] == [temp_user_tokens["user_id"]], "Event ownership should remain unchanged"
-        assert event_after["fields"]["name"] == event_name, "Event name should remain unchanged"
-        
+        assert event_after["fields"]["owner"] == [temp_user_tokens["user_id"]], (
+            "Event ownership should remain unchanged"
+        )
+        assert event_after["fields"]["name"] == event_name, (
+            "Event name should remain unchanged"
+        )
+
         # If the agent explored the UI, that's a success
-        logger.info("UI consistency test passed - database state verified and UI exploration completed")
-        
+        logger.info(
+            "UI consistency test passed - database state verified and UI exploration completed"
+        )
+
     finally:
         if created_event_id:
             try:

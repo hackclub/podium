@@ -20,7 +20,7 @@ router = APIRouter(tags=["auth"])
 
 SECRET_KEY = settings.jwt_secret
 ALGORITHM = str(settings.jwt_algorithm)
-ACCESS_TOKEN_EXPIRE_MINUTES: int = settings.jwt_expire_minutes # type: ignore
+ACCESS_TOKEN_EXPIRE_MINUTES: int = settings.jwt_expire_minutes  # type: ignore
 MAGIC_LINK_EXPIRE_MINUTES = 30
 
 
@@ -64,7 +64,7 @@ async def send_magic_link(email: str, redirect: str = ""):
             "transactionalId": settings.loops_transactional_id,
             "dataVariables": {
                 "auth_link": magic_link,
-            }
+            },
         }
         try:
             async with httpx.AsyncClient() as client:
@@ -72,9 +72,9 @@ async def send_magic_link(email: str, redirect: str = ""):
                     "https://app.loops.so/api/v1/transactional",
                     headers={
                         "Authorization": f"Bearer {settings.loops_api_key}",
-                        "Content-Type": "application/json"
+                        "Content-Type": "application/json",
                     },
-                    json=payload
+                    json=payload,
                 )
                 response.raise_for_status()
         except Exception:
@@ -160,6 +160,7 @@ async def get_current_user(
         raise BAD_AUTH
 
     return user
+
 
 if __name__ == "__main__":
     # create a dev access JWT and  a magic link JWT

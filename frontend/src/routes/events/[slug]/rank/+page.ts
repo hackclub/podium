@@ -8,19 +8,22 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
   client.setConfig({ fetch });
   const { event } = await parent();
   try {
-    const { data: projects, error: projectsError, response: projectsResponse} =
-      await EventsService.getEventProjectsEventsEventIdProjectsGet({
-        path: {
-          event_id: event.id,
-        },
-        query: {
-          leaderboard: false,
-        },
-        throwOnError: false,
-      });
+    const {
+      data: projects,
+      error: projectsError,
+      response: projectsResponse,
+    } = await EventsService.getEventProjectsEventsEventIdProjectsGet({
+      path: {
+        event_id: event.id,
+      },
+      query: {
+        leaderboard: false,
+      },
+      throwOnError: false,
+    });
     if (!projects || projectsError) {
-    console.error(projectsError, projectsResponse);
-    throw error(projectsResponse.status, JSON.stringify(projectsError));
+      console.error(projectsError, projectsResponse);
+      throw error(projectsResponse.status, JSON.stringify(projectsError));
     }
     let toSelect = event.max_votes_per_user;
 
@@ -43,7 +46,7 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
 
     const alreadyVoted = userVotesInEvent >= toSelect;
     toSelect = toSelect - userVotesInEvent;
-    
+
     console.debug(
       `User has ${userVotesInEvent} votes in event ${event.id}, can select ${toSelect} more projects`,
     );

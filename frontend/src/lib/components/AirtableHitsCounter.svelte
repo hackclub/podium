@@ -5,10 +5,10 @@
   // Check if we're in development (localhost or IP address) or localStorage flag is set
   const isDev = $derived.by(() => {
     if (!browser) return false;
-    
+
     // Check localStorage flag
-    if (localStorage.getItem('show_airtable_count') === 'true') return true;
-    
+    if (localStorage.getItem("show_airtable_count") === "true") return true;
+
     // Check if running on localhost/dev environment
     const hostname = window.location.hostname;
     return (

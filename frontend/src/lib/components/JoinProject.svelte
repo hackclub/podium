@@ -27,7 +27,7 @@
     await customInvalidateAll();
     // Reset
     toSend.query.join_code = "";
-    
+
     // Call the callback if provided (for auto-progression in SignupWizard)
     if (onProjectJoined) {
       onProjectJoined();

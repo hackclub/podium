@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field, StringConstraints
 from podium import constants
 
 from podium.db import tables
-from pyairtable.formulas import match, OR, EQ, Field as AirtableField    
+from pyairtable.formulas import match, OR, EQ, Field as AirtableField
 
 FirstName = Annotated[str, Field(..., min_length=1, max_length=50)]
 LastName = Annotated[str, Field(default="")]
@@ -20,18 +20,22 @@ class UserLoginPayload(BaseModel):
 class UserBase(BaseModel):
     display_name: str = ""
 
+
 class UserPublic(UserBase): ...
 
-class   _UserPrivilegedFields(UserPublic):
+
+class _UserPrivilegedFields(UserPublic):
     """This is the same as UserAttendee but without the id field so we can reduce field duplication in the signup payload. Should not be used directly, you probably want UserAttendee"""
+
     email: EmailStrippedLower
     first_name: FirstName
     last_name: LastName
 
-class UserAttendee(_UserPrivilegedFields): 
-    """This model has fields that only event owners should see (and the user themselves)"""
-    id: Annotated[str, StringConstraints(pattern=constants.RECORD_REGEX)]
 
+class UserAttendee(_UserPrivilegedFields):
+    """This model has fields that only event owners should see (and the user themselves)"""
+
+    id: Annotated[str, StringConstraints(pattern=constants.RECORD_REGEX)]
 
 
 class UserSignupPayload(_UserPrivilegedFields):
@@ -70,7 +74,8 @@ class UserSignupPayload(_UserPrivilegedFields):
 
 class UserUpdate(UserSignupPayload): ...
 
-class UserPrivate(UserSignupPayload): 
+
+class UserPrivate(UserSignupPayload):
     id: Annotated[str, StringConstraints(pattern=constants.RECORD_REGEX)]
     votes: constants.MultiRecordField = []
     projects: constants.MultiRecordField = []
@@ -79,11 +84,13 @@ class UserPrivate(UserSignupPayload):
     attending_events: constants.MultiRecordField = []
     referral: constants.MultiRecordField = []
 
+
 class UserInternal(UserPrivate): ...
 
 
-
 T = TypeVar("T", bound=UserBase)
+
+
 def get_user_by_email(email: str, model: Type[T]) -> Optional[T]:
     """
     Get a user by email and return it as the specified model type.
@@ -101,11 +108,11 @@ def get_users_from_record_ids(record_ids: List[str], model: Type[T]) -> List[T]:
     users_table = tables["users"]
     if not record_ids:
         return []
-    
+
     # Use PyAirtable's OR and EQ functions for multiple record ID matching
     expressions = [EQ(AirtableField("id"), record_id) for record_id in record_ids]
     formula = OR(*expressions)
-    
+
     # This is awesome because I'm pretty sure this only makes one request and considering how bad Airtable's rate limits are, this helps a lot.
     records = users_table.all(formula=formula)
     return [model.model_validate(record["fields"]) for record in records]

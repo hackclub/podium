@@ -40,9 +40,11 @@ app.add_middleware(
     expose_headers=["X-Airtable-Hits"],
 )
 
+
 @app.middleware("http")
 async def track_airtable_hits(request: Request, call_next):
     from podium.db.db import _current_request
+
     request.state.airtable_hits = 0
     token = _current_request.set(request)
     try:
@@ -51,6 +53,7 @@ async def track_airtable_hits(request: Request, call_next):
         return response
     finally:
         _current_request.reset(token)
+
 
 # Annotated
 # https://fastapi.tiangolo.com/tutorial/path-params-numeric-validations/#better-with-annotated

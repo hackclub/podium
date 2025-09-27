@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { fade } from 'svelte/transition';
-  import Modal from './Modal.svelte';
+  import { fade } from "svelte/transition";
+  import Modal from "./Modal.svelte";
 
   interface Props {
     title: string;
@@ -15,11 +15,11 @@
   let {
     title,
     message,
-    confirmText = 'Confirm',
-    cancelText = 'Cancel',
-    confirmClass = 'btn-error',
+    confirmText = "Confirm",
+    cancelText = "Cancel",
+    confirmClass = "btn-error",
     onConfirm,
-    onCancel
+    onCancel,
   }: Props = $props();
 
   let modal: Modal = $state() as Modal;

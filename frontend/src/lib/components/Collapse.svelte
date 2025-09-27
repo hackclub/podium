@@ -52,7 +52,7 @@
   onfocusout={handleFocusOut}
   bind:this={collapseDiv}
 > -->
-  <div class="collapse bg-base-200 collapse-plus max-w-2xl mx-auto">
+<div class="collapse bg-base-200 collapse-plus max-w-2xl mx-auto">
   <input type="checkbox" bind:checked={expandByDefault} />
   <div class="collapse-title text-xl font-medium text-center">
     {title}

@@ -26,6 +26,7 @@ from test.utils import create_temp_user_tokens
 for _name in ("pyngrok", "pyngrok.ngrok", "pyngrok.process", "pyngrok.process.ngrok"):
     logging.getLogger(_name).setLevel(logging.WARNING)
 
+
 def _wait_for_http(url: str, timeout_seconds: int = 60) -> None:
     start = time.time()
     last_error: Exception | None = None
@@ -38,7 +39,9 @@ def _wait_for_http(url: str, timeout_seconds: int = 60) -> None:
         except Exception as e:  # noqa: BLE001
             last_error = e
         time.sleep(0.5)
-    raise RuntimeError(f"Service at {url} did not become ready in {timeout_seconds}s. Last error: {last_error}")
+    raise RuntimeError(
+        f"Service at {url} did not become ready in {timeout_seconds}s. Last error: {last_error}"
+    )
 
 
 @pytest.fixture(scope="session")
@@ -72,14 +75,46 @@ def app_public_url():
         env_frontend = os.environ.copy()
         env_frontend["PUBLIC_API_URL"] = backend_tunnel_url
         port = int(APP_PORT)
-        logger.info(f"Starting frontend on port {port} with PUBLIC_API_URL={backend_tunnel_url}...")
+        logger.info(
+            f"Starting frontend on port {port} with PUBLIC_API_URL={backend_tunnel_url}..."
+        )
         # Choose runner: prefer bun, then npm, then npx vite
         if shutil.which("bun"):
-            cmd = ["bun", "run", "dev", "--", "--port", str(port), "--host", "127.0.0.1", "--strictPort"]
+            cmd = [
+                "bun",
+                "run",
+                "dev",
+                "--",
+                "--port",
+                str(port),
+                "--host",
+                "127.0.0.1",
+                "--strictPort",
+            ]
         elif shutil.which("npm"):
-            cmd = ["npm", "run", "dev", "--", "--port", str(port), "--host", "127.0.0.1", "--strictPort"]
+            cmd = [
+                "npm",
+                "run",
+                "dev",
+                "--",
+                "--port",
+                str(port),
+                "--host",
+                "127.0.0.1",
+                "--strictPort",
+            ]
         else:
-            cmd = ["npx", "--yes", "vite", "dev", "--port", str(port), "--host", "127.0.0.1", "--strictPort"]
+            cmd = [
+                "npx",
+                "--yes",
+                "vite",
+                "dev",
+                "--port",
+                str(port),
+                "--host",
+                "127.0.0.1",
+                "--strictPort",
+            ]
 
         frontend_proc = subprocess.Popen(
             cmd,
@@ -95,8 +130,14 @@ def app_public_url():
         timeout = 180
         while time.time() - start_time < timeout:
             if frontend_proc.poll() is not None:
-                out, err = frontend_proc.communicate(timeout=1) if frontend_proc.stdout else ("", "")
-                raise RuntimeError(f"Frontend process exited with code {frontend_proc.returncode}.\nSTDOUT:\n{out[-2000:]}\nSTDERR:\n{err[-2000:]}")
+                out, err = (
+                    frontend_proc.communicate(timeout=1)
+                    if frontend_proc.stdout
+                    else ("", "")
+                )
+                raise RuntimeError(
+                    f"Frontend process exited with code {frontend_proc.returncode}.\nSTDOUT:\n{out[-2000:]}\nSTDERR:\n{err[-2000:]}"
+                )
             try:
                 _wait_for_http(f"http://127.0.0.1:{port}/", timeout_seconds=2)
                 break
@@ -156,13 +197,13 @@ async def browser_session():
     """Yield a connected BrowserSession and ensure proper teardown/release."""
     steel_client = settings.steel_client
     if steel_client is None:
-        raise RuntimeError("Steel client is not configured. Ensure STEEL_API_KEY is set.")
+        raise RuntimeError(
+            "Steel client is not configured. Ensure STEEL_API_KEY is set."
+        )
 
     browser_sess = steel_client.sessions.create()
     logger.info(f"Created live session at: {browser_sess.session_viewer_url}")
-    browser_cdp_url = (
-        f"wss://connect.steel.dev?apiKey={steel_client.steel_api_key}&sessionId={browser_sess.id}"
-    )
+    browser_cdp_url = f"wss://connect.steel.dev?apiKey={steel_client.steel_api_key}&sessionId={browser_sess.id}"
 
     browser = BrowserSession(cdp_url=browser_cdp_url)
     # Attach viewer URL for downstream logging
@@ -208,13 +249,13 @@ def temp_user_tokens(app_public_url):
     """
     created_user_id: str | None = None
     email: str | None = None
-    
+
     try:
         # Create user and generate tokens using the utility function
         tokens = create_temp_user_tokens(app_public_url)
         created_user_id = tokens["user_id"]
         email = tokens["email"]
-        
+
         yield tokens
     finally:
         if created_user_id:

@@ -8,7 +8,6 @@
   import Modal from "$lib/components/Modal.svelte";
   import ConfirmationModal from "$lib/components/ConfirmationModal.svelte";
 
-
   // let events: Event[] = $state([]);
   // let fetchedEvents = false;
 
@@ -27,13 +26,15 @@
   let {
     preselectedProject,
     events,
-    }: { preselectedProject: PrivateProject; events: Array<Event>} = $props();
-  
+  }: { preselectedProject: PrivateProject; events: Array<Event> } = $props();
+
   let updateModal: Modal = $state() as Modal;
   let deleteConfirmation: ConfirmationModal = $state() as ConfirmationModal;
 
   // Track the selected event's demo_links_optional setting
-  let selectedEvent = $derived(events.find(e => e.id === preselectedProject.event[0]));
+  let selectedEvent = $derived(
+    events.find((e) => e.id === preselectedProject.event[0]),
+  );
   let demoLinksOptional = $derived(selectedEvent?.demo_links_optional || false);
 
   const emptyProjectUpdate: ProjectUpdate = {
@@ -52,14 +53,15 @@
     id: "",
   };
   // Derive           project = { ...chosenProject };
-  let project: ProjectUpdate  = $derived({ ...preselectedProject })
+  let project: ProjectUpdate = $derived({ ...preselectedProject });
   $inspect(project);
 
   async function deleteProject() {
-    const {error: err} = await ProjectsService.deleteProjectProjectsProjectIdDelete({
-      path: { project_id: preselectedProject.id },
-      throwOnError: false,
-    });
+    const { error: err } =
+      await ProjectsService.deleteProjectProjectsProjectIdDelete({
+        path: { project_id: preselectedProject.id },
+        throwOnError: false,
+      });
     if (err) {
       handleError(err);
       return;
@@ -78,11 +80,12 @@
   // });
 
   async function updateProject() {
-    const { error: err } = await ProjectsService.updateProjectProjectsProjectIdPut({
-      path: { project_id: preselectedProject.id },
-      body: preselectedProject,
-      throwOnError: false,
-    });
+    const { error: err } =
+      await ProjectsService.updateProjectProjectsProjectIdPut({
+        path: { project_id: preselectedProject.id },
+        body: preselectedProject,
+        throwOnError: false,
+      });
     if (err) {
       handleError(err);
       return;
@@ -93,17 +96,19 @@
   }
 </script>
 
-  <button class="badge text-sm px-3 py-1 underline badge-secondary cursor-pointer" onclick={() => {updateModal.openModal()}}>
-    Edit
-  </button>
-  <Modal
-    bind:this={updateModal}
-    title="Update Project"
-  >
-<div class="p-4 max-w-md mx-auto">
-  <!-- <form onsubmit={updateProject} class="space-y-4"> -->
-  <div class="space-y-4">
-    <fieldset class="fieldset">
+<button
+  class="badge text-sm px-3 py-1 underline badge-secondary cursor-pointer"
+  onclick={() => {
+    updateModal.openModal();
+  }}
+>
+  Edit
+</button>
+<Modal bind:this={updateModal} title="Update Project">
+  <div class="p-4 max-w-md mx-auto">
+    <!-- <form onsubmit={updateProject} class="space-y-4"> -->
+    <div class="space-y-4">
+      <fieldset class="fieldset">
         <label class="label" for="project_name">Project Name</label>
         <input
           id="project_name"
@@ -147,7 +152,9 @@
         <label class="label" for="demo_url">
           Demo URL
           {#if demoLinksOptional}
-            <span class="text-sm text-base-content/70">(Optional for this event)</span>
+            <span class="text-sm text-base-content/70"
+              >(Optional for this event)</span
+            >
           {/if}
         </label>
         <input
@@ -159,7 +166,8 @@
         />
         {#if demoLinksOptional}
           <div class="text-sm text-base-content/70 mt-1">
-            Demo links are optional for this event. Your project won't be marked as invalid if only the demo link fails validation.
+            Demo links are optional for this event. Your project won't be marked
+            as invalid if only the demo link fails validation.
           </div>
         {/if}
 
@@ -192,10 +200,10 @@
         >
           Delete Project
         </button>
-    </fieldset>
+      </fieldset>
+    </div>
+    <!-- </form> -->
   </div>
-  <!-- </form> -->
-</div>
 </Modal>
 
 <ConfirmationModal

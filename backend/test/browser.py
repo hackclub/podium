@@ -28,7 +28,7 @@ async def run_browser_agent(
                 use_vision=settings.use_vision,
                 max_actions_per_step=10,
             ).run(
-                # max_steps=100 
+                # max_steps=100
             )
         )
         results_raw = await asyncio.gather(agent_task)
@@ -55,4 +55,4 @@ async def run_browser_agent(
         return failure_result
 
 
-browser_use_config.BROWSER_USE_LOGGING_LEVEL="result"
+browser_use_config.BROWSER_USE_LOGGING_LEVEL = "result"

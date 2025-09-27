@@ -17,7 +17,9 @@ SingleRecordField = Annotated[
 ]
 # URL fields with regex validation
 UrlField = Annotated[str, StringConstraints(min_length=1, pattern=URL_REGEX)]
-OptionalUrlField = Annotated[str, StringConstraints(min_length=0, pattern=rf"^$|{URL_REGEX[1:-1]}")]
+OptionalUrlField = Annotated[
+    str, StringConstraints(min_length=0, pattern=rf"^$|{URL_REGEX[1:-1]}")
+]
 
 Slug = Annotated[
     str, StringConstraints(min_length=1, max_length=50, pattern=r"[-a-z0-9]+")
@@ -30,20 +32,19 @@ BAD_ACCESS = HTTPException(
 )
 
 AIRTABLE_NOT_FOUND_CODES = [404, 403]
+
+
 class FeatureFlag(Enum):
     """Known feature flags - add new ones here as they're created."""
+
     DAYDREAM = "daydream"  # Daydream-specific features
+
 
 # Comma-separated feature flags (e.g., "flag1,flag2"); regex ensures only alphanum/underscore names, no spaces.
 # Empty string is allowed for no flags
 CommaSeparatedFeatureFlags = Annotated[
-    str,
-    StringConstraints(pattern=r"^([a-zA-Z0-9_]+(,[a-zA-Z0-9_]+)*)?$")
+    str, StringConstraints(pattern=r"^([a-zA-Z0-9_]+(,[a-zA-Z0-9_]+)*)?$")
 ]
-
-
-
-
 
 
 class EmptyModel(BaseModel):

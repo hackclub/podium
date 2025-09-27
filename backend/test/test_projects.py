@@ -72,8 +72,12 @@ async def test_project_submission(app_public_url, browser_session, temp_user_tok
         assert record is not None, "Project was not created"
         created_project_id = record["id"]
         fields = record["fields"]
-        assert temp_user_tokens["user_id"] in fields.get("owner", []), "User not owner of project"
-        assert fields.get("event", []) == [created_event_id], "Project not linked to event"
+        assert temp_user_tokens["user_id"] in fields.get("owner", []), (
+            "User not owner of project"
+        )
+        assert fields.get("event", []) == [created_event_id], (
+            "Project not linked to event"
+        )
     finally:
         if created_project_id:
             try:
@@ -109,13 +113,13 @@ async def test_project_deletion(app_public_url, browser_session, temp_user_token
 
     # Create project owned by user in that event
     project_name = _unique_name("To Delete")
-    
+
     # Generate join code like the API does
     while True:
         join_code = token_urlsafe(3).upper()
         if not db.projects.first(formula=match({"join_code": join_code})):
             break
-    
+
     created_project = db.projects.create(
         {
             "name": project_name,
@@ -164,5 +168,3 @@ async def test_project_deletion(app_public_url, browser_session, temp_user_token
                 db.events.delete(created_event_id)
             except Exception:
                 pass
-
-

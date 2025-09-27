@@ -19,11 +19,11 @@
   });
   let events: Event[] = $state([]);
   let fetchedEvents = false;
-  
+
   // Track the selected event's demo_links_optional setting
-  let selectedEvent = $derived(events.find(e => e.id === project.event[0]));
+  let selectedEvent = $derived(events.find((e) => e.id === project.event[0]));
   let demoLinksOptional = $derived(selectedEvent?.demo_links_optional || false);
-  
+
   async function fetchEvents() {
     toast.info("Fetching events; please wait");
     const { data: userEvents, error: err } =
@@ -37,10 +37,11 @@
   }
 
   async function createProject() {
-    const { data, error: err } = await ProjectsService.createProjectProjectsPost({
-      body: project,
-      throwOnError: false,
-    });
+    const { data, error: err } =
+      await ProjectsService.createProjectProjectsPost({
+        body: project,
+        throwOnError: false,
+      });
     if (err) {
       handleError(err);
       return;
@@ -56,7 +57,7 @@
       hours_spent: 0,
     };
     await customInvalidateAll();
-    
+
     // Call the callback if provided (for auto-progression in SignupWizard)
     if (onProjectCreated) {
       onProjectCreated();
@@ -70,7 +71,9 @@
   <!-- <form onsubmit={createProject} class="space-y-4"> -->
   <fieldset class="fieldset">
     <div class="flex items-center gap-2 mb-4">
-      <span class="text-sm text-base-content/70">You can always edit this later!</span>
+      <span class="text-sm text-base-content/70"
+        >You can always edit this later!</span
+      >
     </div>
 
     <label class="label" for="project_name">Project Name</label>
@@ -119,7 +122,9 @@
     <label class="label" for="demo_url">
       URL to a deployed version of your project
       {#if demoLinksOptional}
-        <span class="text-sm text-base-content/70">(Optional for this event)</span>
+        <span class="text-sm text-base-content/70"
+          >(Optional for this event)</span
+        >
       {/if}
     </label>
     <input
@@ -131,7 +136,8 @@
     />
     {#if demoLinksOptional}
       <div class="text-sm text-base-content/70 mt-1">
-        Demo links are optional for this event. Your project won't be marked as invalid if only the demo link fails validation.
+        Demo links are optional for this event. Your project won't be marked as
+        invalid if only the demo link fails validation.
       </div>
     {/if}
     <button
@@ -155,7 +161,7 @@
 
     <label class="label" for="hours_spent">Rough estimate of hours spent</label>
     <input
-    id="hours_spent"
+      id="hours_spent"
       type="number"
       bind:value={project.hours_spent}
       placeholder="Hours spent"
@@ -163,7 +169,10 @@
       min="0"
     />
 
-    <button class="btn btn-accent btn-lg mt-4 btn-block hover:btn-xl transition-all duration-300" onclick={createProject}>
+    <button
+      class="btn btn-accent btn-lg mt-4 btn-block hover:btn-xl transition-all duration-300"
+      onclick={createProject}
+    >
       Ship it!
     </button>
   </fieldset>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Referral } from '$lib/client/types.gen';
+  import type { Referral } from "$lib/client/types.gen";
 
   interface Props {
     referrals: Referral[];
@@ -12,7 +12,7 @@
 <div class="card bg-base-200">
   <div class="card-body">
     <h2 class="card-title">Event Referrals ({referrals.length})</h2>
-    
+
     {#if referrals.length === 0}
       <p class="text-base-content/70">No referrals yet.</p>
     {:else}
@@ -28,11 +28,17 @@
             {#each referrals as referral}
               <tr>
                 <td>
-                  <div class="font-medium">{userLookup.get(referral.user[0]) || 'Unknown User'}</div>
-                  <div class="text-xs text-base-content/70 font-mono">{referral.user[0]}</div>
+                  <div class="font-medium">
+                    {userLookup.get(referral.user[0]) || "Unknown User"}
+                  </div>
+                  <div class="text-xs text-base-content/70 font-mono">
+                    {referral.user[0]}
+                  </div>
                 </td>
                 <td>
-                  <div class="font-medium">{referral.content || 'No referral source provided'}</div>
+                  <div class="font-medium">
+                    {referral.content || "No referral source provided"}
+                  </div>
                 </td>
               </tr>
             {/each}

@@ -7,8 +7,9 @@ export const load = () => {
     meta: [
       {
         name: "description",
-        content: "Podium - Hack Club's open-source peer-judging platform for hackathons"
-      }
-    ]
+        content:
+          "Podium - Hack Club's open-source peer-judging platform for hackathons",
+      },
+    ],
   };
 };

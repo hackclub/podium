@@ -20,18 +20,24 @@
 
   onMount(async () => {
     try {
-      const { data, error } = await EventsService.getAttendingEventsEventsGet({ throwOnError: false });
+      const { data, error } = await EventsService.getAttendingEventsEventsGet({
+        throwOnError: false,
+      });
       if (error || !data) return;
       const attending = (data.attending_events ?? []) as any[];
-      daydreams = attending.filter((e) => (e.feature_flags_list as string[]).includes("daydream"));
-      
+      daydreams = attending.filter((e) =>
+        (e.feature_flags_list as string[]).includes("daydream"),
+      );
+
       // Fetch user's projects
-      const { data: projectsData, error: projectsError } = await ProjectsService.getProjectsProjectsMineGet({ throwOnError: false });
+      const { data: projectsData, error: projectsError } =
+        await ProjectsService.getProjectsProjectsMineGet({
+          throwOnError: false,
+        });
       if (projectsError || !projectsData) return;
       projects = projectsData;
     } catch (_) {}
   });
-
 </script>
 
 {#if !getAuthenticatedUser().access_token}
@@ -39,8 +45,12 @@
   <div class="flex items-center justify-center">
     <div class="max-w-md w-full space-y-8">
       <div class="text-center">
-        <h1 class="text-4xl font-bold text-base-content mb-4">Welcome to Podium</h1>
-        <p class="text-base-content/70 mb-8">Hack Club's open-source peer-judging platform for hackathons</p>
+        <h1 class="text-4xl font-bold text-base-content mb-4">
+          Welcome to Podium
+        </h1>
+        <p class="text-base-content/70 mb-8">
+          Hack Club's open-source peer-judging platform for hackathons
+        </p>
         <a href="/login" class="btn btn-primary btn-lg">Login / Sign Up</a>
       </div>
     </div>
@@ -61,6 +71,5 @@
         <StartWizard />
       {/if}
     </div>
-
   </div>
 {/if}

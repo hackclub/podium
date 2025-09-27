@@ -14,16 +14,23 @@ export const load: PageLoad = async ({ params, fetch, depends }) => {
     throw error(401, "Unauthorized, try logging in first");
   }
 
-  const { data: events, error: eventsError, response: eventsResponse } = await EventsService.getAttendingEventsEventsGet({
+  const {
+    data: events,
+    error: eventsError,
+    response: eventsResponse,
+  } = await EventsService.getAttendingEventsEventsGet({
     throwOnError: false,
   });
   if (eventsError || !events) {
     console.error(eventsError, eventsResponse);
     throw error(eventsResponse.status, JSON.stringify(eventsError));
   }
-  
 
-  const {data: projects, error: projectsError,  response: projectsResponse} = await ProjectsService.getProjectsProjectsMineGet({
+  const {
+    data: projects,
+    error: projectsError,
+    response: projectsResponse,
+  } = await ProjectsService.getProjectsProjectsMineGet({
     throwOnError: false,
   });
   if (projectsError || !projects) {

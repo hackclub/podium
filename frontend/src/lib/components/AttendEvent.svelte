@@ -5,10 +5,10 @@
   import type { AttendEventEventsAttendPostData } from "$lib/client";
   import { afterNavigate, goto, invalidate } from "$app/navigation";
   import { onMount } from "svelte";
-  
+
   // Accept callback prop for when event is successfully joined
   let { onEventJoined }: { onEventJoined?: () => void } = $props();
-  
+
   let toSend: AttendEventEventsAttendPostData = $state({
     query: { join_code: "", referral: "" },
   });
@@ -27,7 +27,7 @@
     // Reset
     toSend.query.join_code = "";
     toSend.query.referral = "";
-    
+
     // Call the callback if provided (for auto-progression in SignupWizard)
     if (onEventJoined) {
       onEventJoined();

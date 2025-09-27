@@ -12,77 +12,77 @@ from pydantic import BaseModel, Field
 
 
 class Status(Enum):
-    pending = 'pending'
-    running = 'running'
-    completed = 'completed'
-    failed = 'failed'
+    pending = "pending"
+    running = "running"
+    completed = "completed"
+    failed = "failed"
 
 
 class Demo(BaseModel):
-    deployed: bool = Field(..., title='Deployed')
-    functional: bool = Field(..., title='Functional')
-    quality_percent: float = Field(..., title='Quality Percent')
-    reasoning: Optional[str] = Field('Failed to analyze demo', title='Reasoning')
+    deployed: bool = Field(..., title="Deployed")
+    functional: bool = Field(..., title="Functional")
+    quality_percent: float = Field(..., title="Quality Percent")
+    reasoning: Optional[str] = Field("Failed to analyze demo", title="Reasoning")
 
 
 class Project(BaseModel):
-    repo: str = Field(..., title='Repo')
-    image_url: Optional[str] = Field('', title='Image Url')
-    demo: str = Field(..., title='Demo')
+    repo: str = Field(..., title="Repo")
+    image_url: Optional[str] = Field("", title="Image Url")
+    demo: str = Field(..., title="Demo")
 
 
 class ProgramType(Enum):
-    cli = 'cli'
-    web = 'web'
-    desktop = 'desktop'
-    mobile = 'mobile'
-    other = 'other'
+    cli = "cli"
+    web = "web"
+    desktop = "desktop"
+    mobile = "mobile"
+    other = "other"
 
 
 class Readme(BaseModel):
-    features: Optional[List[str]] = Field([], title='Features')
-    program_type: Optional[ProgramType] = Field('other', title='Program Type')
-    reasoning: Optional[str] = Field('Failed to analyze README', title='Reasoning')
+    features: Optional[List[str]] = Field([], title="Features")
+    program_type: Optional[ProgramType] = Field("other", title="Program Type")
+    reasoning: Optional[str] = Field("Failed to analyze README", title="Reasoning")
 
 
 class Repo(BaseModel):
-    github: bool = Field(..., title='Github')
-    primary_language: str = Field(..., title='Primary Language')
-    valid: bool = Field(..., title='Valid')
-    features: Optional[List[str]] = Field([], title='Features')
-    reasoning: Optional[str] = Field('Failed to analyze repo', title='Reasoning')
+    github: bool = Field(..., title="Github")
+    primary_language: str = Field(..., title="Primary Language")
+    valid: bool = Field(..., title="Valid")
+    features: Optional[List[str]] = Field([], title="Features")
+    reasoning: Optional[str] = Field("Failed to analyze repo", title="Reasoning")
 
 
 class TokenData(BaseModel):
-    token_type: Literal['api'] = Field('api', title='Token Type')
-    name: str = Field(..., title='Name')
-    exp: datetime = Field(..., title='Exp')
+    token_type: Literal["api"] = Field("api", title="Token Type")
+    name: str = Field(..., title="Name")
+    exp: datetime = Field(..., title="Exp")
 
 
 class Unified(BaseModel):
-    valid: bool = Field(..., title='Valid')
+    valid: bool = Field(..., title="Valid")
     readme_result: Readme
     repo_result: Repo
     demo_result: Demo
-    reason: str = Field(..., title='Reason')
-    image_valid: bool = Field(..., title='Image Valid')
+    reason: str = Field(..., title="Reason")
+    image_valid: bool = Field(..., title="Image Valid")
 
 
 class ValidationError(BaseModel):
-    loc: List[Union[str, int]] = Field(..., title='Location')
-    msg: str = Field(..., title='Message')
-    type: str = Field(..., title='Error Type')
+    loc: List[Union[str, int]] = Field(..., title="Location")
+    msg: str = Field(..., title="Message")
+    type: str = Field(..., title="Error Type")
 
 
 class CheckStatus(BaseModel):
-    check_id: str = Field(..., title='Check Id')
-    status: Status = Field(..., title='Status')
-    created_at: datetime = Field(..., title='Created At')
-    started_at: Optional[datetime] = Field(None, title='Started At')
-    completed_at: Optional[datetime] = Field(None, title='Completed At')
+    check_id: str = Field(..., title="Check Id")
+    status: Status = Field(..., title="Status")
+    created_at: datetime = Field(..., title="Created At")
+    started_at: Optional[datetime] = Field(None, title="Started At")
+    completed_at: Optional[datetime] = Field(None, title="Completed At")
     result: Optional[Unified] = None
-    error: Optional[str] = Field(None, title='Error')
+    error: Optional[str] = Field(None, title="Error")
 
 
 class HTTPValidationError(BaseModel):
-    detail: Optional[List[ValidationError]] = Field(None, title='Detail')
+    detail: Optional[List[ValidationError]] = Field(None, title="Detail")

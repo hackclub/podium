@@ -10,7 +10,10 @@
     <h1 class="text-3xl font-bold text-base-content mb-2">
       Hello, {getAuthenticatedUser().user.first_name}!
     </h1>
-    <p class="text-base-content/70">Welcome to your profile page. Here you can view all your projects and manage your account.</p>
+    <p class="text-base-content/70">
+      Welcome to your profile page. Here you can view all your projects and
+      manage your account.
+    </p>
   </div>
 
   <!-- User Info Card -->
@@ -42,7 +45,8 @@
             <span class="label-text font-semibold">Display Name</span>
           </div>
           <div class="input input-bordered w-full bg-base-200">
-            {getAuthenticatedUser().user.display_name || `${getAuthenticatedUser().user.first_name} ${getAuthenticatedUser().user.last_name?.[0] || ''}`}
+            {getAuthenticatedUser().user.display_name ||
+              `${getAuthenticatedUser().user.first_name} ${getAuthenticatedUser().user.last_name?.[0] || ""}`}
           </div>
         </div>
         <div class="md:col-span-2">

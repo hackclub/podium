@@ -16,14 +16,14 @@ export const load: LayoutLoad = async ({ params, fetch, parent }) => {
   // Check for alias and replace slug if needed
   const slug =
     (eventSlugAliases as Record<string, string>)[params.slug] || params.slug;
-  
+
   // Get parent data (user's events) if available
   const { events } = await parent();
 
   // Check if user has this event in their events
   const ownedEvent = events?.owned_events.find((e) => e.slug === slug);
   const attendingEvent = events?.attending_events.find((e) => e.slug === slug);
-  
+
   let event: Event | PrivateEvent;
   let partOfEvent = false;
   let owned = false;
@@ -48,7 +48,7 @@ export const load: LayoutLoad = async ({ params, fetch, parent }) => {
       path: { slug },
       throwOnError: false,
     });
-    
+
     if (errSlug) {
       console.error(errSlug, responseSlug);
       throw error(responseSlug.status, JSON.stringify(errSlug));
@@ -62,12 +62,12 @@ export const load: LayoutLoad = async ({ params, fetch, parent }) => {
       path: { event_id: eventId },
       throwOnError: false,
     });
-    
+
     if (eventErr) {
       console.error(eventErr, eventResponse);
       throw error(eventResponse.status, JSON.stringify(eventErr));
     }
-    
+
     event = publicEvent;
   }
 

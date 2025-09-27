@@ -3,7 +3,12 @@ from fastapi import APIRouter, Path
 from typing import Annotated, Optional, List, Type, TypeVar, Tuple
 from fastapi import Depends, HTTPException, Query
 from fastapi_cache.decorator import cache
-from podium.db.event import InternalEvent, PrivateEvent, get_events_from_record_ids, BaseEvent
+from podium.db.event import (
+    InternalEvent,
+    PrivateEvent,
+    get_events_from_record_ids,
+    BaseEvent,
+)
 from podium.db.vote import CreateVotes, VoteCreate
 from pyairtable.formulas import match
 from secrets import token_urlsafe
@@ -26,6 +31,7 @@ from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH, BAD_ACCESS, Slu
 from slugify import slugify
 
 router = APIRouter(prefix="/events", tags=["events"])
+
 
 @router.get("/{event_id}")
 def get_event(
@@ -99,9 +105,11 @@ def create_event(
         slug=slug,
         id="",  # Placeholder to prevent an unnecessary class
     )
-    db.events.create(full_event.model_dump(exclude={"id", "max_votes_per_user", "owned", "feature_flags_list"}))[
-        "fields"
-    ]
+    db.events.create(
+        full_event.model_dump(
+            exclude={"id", "max_votes_per_user", "owned", "feature_flags_list"}
+        )
+    )["fields"]
 
 
 @router.post("/attend")
@@ -243,12 +251,14 @@ def vote(votes: CreateVotes, user: Annotated[UserInternal, Depends(get_current_u
 
 
 T = TypeVar("T", bound=ProjectBase)
-def get_projects_for_event(event_id: str, shuffle, event: Optional[InternalEvent], model: Type[T]) -> List[T]:
+
+
+def get_projects_for_event(
+    event_id: str, shuffle, event: Optional[InternalEvent], model: Type[T]
+) -> List[T]:
     if event is None:
         try:
-            event = InternalEvent.model_validate(
-                db.events.get(event_id)["fields"]
-            )
+            event = InternalEvent.model_validate(db.events.get(event_id)["fields"])
         except HTTPError as e:
             raise (
                 HTTPException(status_code=404, detail="Event not found")
@@ -265,13 +275,13 @@ def get_projects_for_event(event_id: str, shuffle, event: Optional[InternalEvent
 
 
 def get_events_for_user(
-    user: UserInternal, 
-    owned_model: Type[PrivateEvent], 
-    attending_model: Type[Event]
+    user: UserInternal, owned_model: Type[PrivateEvent], attending_model: Type[Event]
 ) -> Tuple[List[PrivateEvent], List[Event]]:
     """Get events for a user with customizable model types for owned and attending events."""
     owned_events = get_events_from_record_ids(user.owned_events, owned_model)
-    attending_events = get_events_from_record_ids(user.attending_events, attending_model)
+    attending_events = get_events_from_record_ids(
+        user.attending_events, attending_model
+    )
     return owned_events, attending_events
 
 
@@ -294,9 +304,7 @@ async def get_event_projects(
 
     if leaderboard:
         try:
-            event = InternalEvent.model_validate(
-                db.events.get(event_id)["fields"]
-            )
+            event = InternalEvent.model_validate(db.events.get(event_id)["fields"])
         except HTTPError as e:
             raise (
                 HTTPException(status_code=404, detail="Event not found")
@@ -307,13 +315,15 @@ async def get_event_projects(
             raise HTTPException(
                 status_code=403, detail="Leaderboard is not enabled for this event"
             )
-        return get_projects_for_event(event_id, shuffle=False, event=event, model=Project)
+        return get_projects_for_event(
+            event_id, shuffle=False, event=event, model=Project
+        )
     else:
         return get_projects_for_event(event_id, shuffle=True, event=None, model=Project)
 
 
 # The reason we're specifying response_model here is because of https://github.com/long2ice/fastapi-cache/issues/384
-@router.get("/id/{slug}", response_model=str) 
+@router.get("/id/{slug}", response_model=str)
 @cache(expire=60, namespace="events")
 async def get_at_id(
     slug: Annotated[Slug, Path(title="Event Slug")],
@@ -325,7 +335,7 @@ async def get_at_id(
     event = db.events.first(formula=match({"slug": slug}))
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    
+
     event = InternalEvent.model_validate(event["fields"])
-    
+
     return event.id

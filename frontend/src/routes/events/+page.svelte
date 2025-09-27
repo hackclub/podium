@@ -15,7 +15,10 @@
   <div class="card bg-base-100 shadow-lg">
     <div class="card-body">
       <h2 class="card-title text-xl mb-4">Events You're Attending</h2>
-      <p class="text-base-content/70 mb-4">Click on an event's name to view the event page, the leaderboard, or to vote on projects.</p>
+      <p class="text-base-content/70 mb-4">
+        Click on an event's name to view the event page, the leaderboard, or to
+        vote on projects.
+      </p>
       {#if data.events.attending_events.length > 0}
         <div class="overflow-x-auto">
           <table class="table table-zebra w-full">
@@ -29,7 +32,10 @@
               {#each data.events.attending_events as event}
                 <tr>
                   <td>
-                    <a href={`/events/${event.slug}`} class="link link-primary font-medium">
+                    <a
+                      href={`/events/${event.slug}`}
+                      class="link link-primary font-medium"
+                    >
                       {event.name}
                     </a>
                   </td>
@@ -43,7 +49,9 @@
         </div>
       {:else}
         <div class="text-center py-8">
-          <p class="text-base-content/70 mb-4">You're not attending any events yet.</p>
+          <p class="text-base-content/70 mb-4">
+            You're not attending any events yet.
+          </p>
           <a href="/events/attend" class="btn btn-primary">Attend an Event</a>
         </div>
       {/if}
@@ -56,7 +64,8 @@
       <div class="card-body">
         <h2 class="card-title text-xl mb-4">Events You Own</h2>
         <p class="text-base-content/70 mb-4">
-          Click on an event's name to view the event page, the leaderboard, or to vote on projects.
+          Click on an event's name to view the event page, the leaderboard, or
+          to vote on projects.
         </p>
         <div class="overflow-x-auto">
           <table class="table table-zebra w-full">
@@ -72,7 +81,10 @@
               {#each data.events.owned_events as event}
                 <tr>
                   <td>
-                    <a href={`/events/${event.slug}`} class="link link-primary font-medium">
+                    <a
+                      href={`/events/${event.slug}`}
+                      class="link link-primary font-medium"
+                    >
                       {event.name}
                     </a>
                   </td>

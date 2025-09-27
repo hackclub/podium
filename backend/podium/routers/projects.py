@@ -180,12 +180,13 @@ def get_project(project_id: Annotated[str, Path(pattern=r"^rec\w*$")]):
     return Project.model_validate(project["fields"])
 
 
-
 @router.post("/check/start")
 async def start_project_check(project: Project) -> CheckStatus:
     """Start an asynchronous project check"""
     if not settings.review_factory_token:
-        raise HTTPException(status_code=500, detail="Review Factory token not set on backend")
+        raise HTTPException(
+            status_code=500, detail="Review Factory token not set on backend"
+        )
 
     try:
         project = InternalProject.model_validate(db.projects.get(project.id)["fields"])
@@ -200,7 +201,7 @@ async def start_project_check(project: Project) -> CheckStatus:
             check_id="cached",
             status="completed",
             created_at=datetime.now(),
-            result=project.cached_auto_quality
+            result=project.cached_auto_quality,
         )
 
     # Start the check
@@ -210,7 +211,7 @@ async def start_project_check(project: Project) -> CheckStatus:
             json={
                 "repo": str(project.repo),
                 "image_url": str(project.image_url) if project.image_url else "",
-                "demo": str(project.demo) if project.demo else ""
+                "demo": str(project.demo) if project.demo else "",
             },
             headers={
                 "Authorization": f"Bearer {settings.review_factory_token}",
@@ -225,11 +226,15 @@ async def start_project_check(project: Project) -> CheckStatus:
 async def poll_project_check(check_id: str) -> CheckStatus:
     """Poll the status of a project check"""
     if not settings.review_factory_token:
-        raise HTTPException(status_code=500, detail="Review Factory token not set on backend")
+        raise HTTPException(
+            status_code=500, detail="Review Factory token not set on backend"
+        )
 
     # Handle cached results
     if check_id == "cached":
-        raise HTTPException(status_code=404, detail="Cached results should be returned immediately")
+        raise HTTPException(
+            status_code=404, detail="Cached results should be returned immediately"
+        )
 
     # Poll the Review Factory API
     async with httpx.AsyncClient(timeout=30.0) as client:
@@ -242,4 +247,3 @@ async def poll_project_check(check_id: str) -> CheckStatus:
         )
         response.raise_for_status()
         return CheckStatus.model_validate(response.json())
-

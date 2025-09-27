@@ -1,5 +1,11 @@
 from __future__ import annotations
-from podium.constants import EmptyModel, SingleRecordField, MultiRecordField, UrlField, OptionalUrlField
+from podium.constants import (
+    EmptyModel,
+    SingleRecordField,
+    MultiRecordField,
+    UrlField,
+    OptionalUrlField,
+)
 from podium.generated.review_factory_models import Unified
 from pydantic import BaseModel, Field, StringConstraints, field_validator
 from typing import Annotated, Optional, List, Type, TypeVar
@@ -36,19 +42,20 @@ class ProjectCreationPayload(ProjectBase): ...
 
 
 class ProjectUpdate(ProjectBase): ...
-    
+
+
 class Project(ProjectBase):
     # Trust data from the db in case old events have invalid URLs
     repo: str
     image_url: str
     demo: str = ""
-    
+
     id: str
     points: int = 0
     votes: MultiRecordField = []
     collaborators: MultiRecordField = []
     owner: SingleRecordField
-    
+
     # Lookup fields from Airtable to avoid N+1 queries
     # Note: Airtable lookup fields return arrays even for single records
     collaborator_display_names: List[str] = []
@@ -64,11 +71,13 @@ class Project(ProjectBase):
 
 class PrivateProject(Project):
     """This is for project owners and project collaborators"""
+
     join_code: str
 
 
 class AdminProject(PrivateProject):
     """Event admins should see the AdminProject version of each project associated with an event"""
+
     cached_auto_quality: Unified | EmptyModel = EmptyModel()
 
     @field_validator("cached_auto_quality", mode="before")
@@ -83,22 +92,24 @@ class AdminProject(PrivateProject):
         return v
 
 
-
 class InternalProject(AdminProject):
     """This should never exit the backend"""
+
     ...
 
 
 T = TypeVar("T", bound=ProjectBase)
+
+
 def get_projects_from_record_ids(record_ids: List[str], model: Type[T]) -> List[T]:
     projects_table = tables["projects"]
     if not record_ids:
         return []
-    
+
     # Use PyAirtable's OR and EQ functions for multiple record ID matching
     expressions = [EQ(AirtableField("id"), record_id) for record_id in record_ids]
     formula = OR(*expressions)
-    
+
     records = projects_table.all(formula=formula)
     return [model.model_validate(record["fields"]) for record in records]
 
@@ -112,6 +123,5 @@ def validate_demo_field(project: ProjectCreationPayload | ProjectUpdate, event) 
     if not event.demo_links_optional:
         if not project.demo or project.demo.strip() == "":
             raise HTTPException(
-                status_code=422, 
-                detail="Demo URL is required for this event"
+                status_code=422, detail="Demo URL is required for this event"
             )

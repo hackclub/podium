@@ -16,10 +16,10 @@
   let showSignupFields = $state(false);
   let expandedDueTo = "";
   let userInfo: UserSignupPayload = $state({
-...defaultUser
+    ...defaultUser,
   });
   $inspect(userInfo);
-  $inspect(showSignupFields); 
+  $inspect(showSignupFields);
   let redirectUrl: string;
 
   // Convert countries to a list of objects with name and code
@@ -42,22 +42,22 @@
 
   async function checkUserExists(): Promise<boolean> {
     isLoading = true;
-      const { data, error: err } = await UsersService.userExistsUsersExistsGet({
-        query: { email: userInfo.email },
-        throwOnError: false,
-      });
-      isLoading = false;
-      if (err || !data) {
-        handleError(err);
-        return false;
-      }
-      if (data.exists) {
-        showSignupFields = false;
-        return true;
-      } else {
-        return false;
-        // If the user doesn't exist, login() will toast and show the signup fields
-      }
+    const { data, error: err } = await UsersService.userExistsUsersExistsGet({
+      query: { email: userInfo.email },
+      throwOnError: false,
+    });
+    isLoading = false;
+    if (err || !data) {
+      handleError(err);
+      return false;
+    }
+    if (data.exists) {
+      showSignupFields = false;
+      return true;
+    } else {
+      return false;
+      // If the user doesn't exist, login() will toast and show the signup fields
+    }
   }
 
   // Function to handle login
@@ -106,24 +106,26 @@
     // Generate display name if not provided or only whitespace
     if (!userInfo.display_name || userInfo.display_name.trim() === "") {
       const first = userInfo.first_name?.trim() || "";
-      const lastInitial = userInfo.last_name?.trim() ? userInfo.last_name.trim()[0] + "." : "";
+      const lastInitial = userInfo.last_name?.trim()
+        ? userInfo.last_name.trim()[0] + "."
+        : "";
       userInfo.display_name = `${first} ${lastInitial}`.trim();
     }
-    const {error: err} = await UsersService.createUserUsersPost({
-        body: userInfo,
-        throwOnError: false,
-      });
-      isLoading = false;
-      if (err) {
-        handleError(err);
-        return;
-      }
-      await login();
-      // toast(`Signed up! Check your email for a magic link!`);
-      // Clear values
-      userInfo = {
-        ...defaultUser,
-      };
+    const { error: err } = await UsersService.createUserUsersPost({
+      body: userInfo,
+      throwOnError: false,
+    });
+    isLoading = false;
+    if (err) {
+      handleError(err);
+      return;
+    }
+    await login();
+    // toast(`Signed up! Check your email for a magic link!`);
+    // Clear values
+    userInfo = {
+      ...defaultUser,
+    };
   }
 
   // Function to handle verification link
@@ -243,7 +245,7 @@
           bind:value={userInfo.last_name}
         />
 
-          <!-- Display name; if it's not set, use first name and last initial -->
+        <!-- Display name; if it's not set, use first name and last initial -->
         <label class="label flex justify-between" for="display_name">
           <span>Display Name</span>
           <span>Optional, default is First Name + Last Initial</span>

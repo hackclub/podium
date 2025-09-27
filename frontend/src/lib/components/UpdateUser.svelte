@@ -7,20 +7,23 @@
   import Modal from "$lib/components/Modal.svelte";
 
   let { user }: { user: UserPrivate } = $props();
-  
+
   let updateModal: Modal = $state() as Modal;
 
   async function updateUser() {
     // If display_name is empty or whitespace, set it to 'FirstName LastInitial.'
     if (!user.display_name || user.display_name.trim() === "") {
       const first = user.first_name?.trim() || "";
-      const lastInitial = user.last_name?.trim() ? user.last_name.trim()[0] + "." : "";
+      const lastInitial = user.last_name?.trim()
+        ? user.last_name.trim()[0] + "."
+        : "";
       user.display_name = `${first} ${lastInitial}`.trim();
     }
-    const { data, error: err } = await UsersService.updateCurrentUserUsersCurrentPut({
-      body: user,
-      throwOnError: false,
-    });
+    const { data, error: err } =
+      await UsersService.updateCurrentUserUsersCurrentPut({
+        body: user,
+        throwOnError: false,
+      });
     if (err || !data) {
       handleError(err);
       return;
@@ -31,14 +34,16 @@
   }
 </script>
 
-<button class="btn btn-outline btn-sm" onclick={() => {updateModal.openModal()}}>
+<button
+  class="btn btn-outline btn-sm"
+  onclick={() => {
+    updateModal.openModal();
+  }}
+>
   Edit Profile
 </button>
 
-<Modal
-  bind:this={updateModal}
-  title="Update Profile"
->
+<Modal bind:this={updateModal} title="Update Profile">
   <div class="p-4 max-w-md mx-auto">
     <div class="space-y-4">
       <fieldset class="fieldset">
@@ -146,4 +151,4 @@
       </fieldset>
     </div>
   </div>
-</Modal> 
+</Modal>

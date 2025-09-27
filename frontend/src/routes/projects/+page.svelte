@@ -18,7 +18,7 @@
   }
 
   let projectQualityResults: Record<string, Unified> = $state({});
-  
+
   onMount(async () => {
     for (const project of data.projects) {
       const result = await checkProjectQuality(project);
@@ -30,8 +30,6 @@
 </script>
 
 <div class="max-w-6xl mx-auto space-y-8">
-
-
   <!-- Your Projects -->
   <div class="card bg-base-100 shadow-lg">
     <div class="card-body">
@@ -52,9 +50,12 @@
         </div>
       {:else}
         <div class="text-center py-8">
-          <p class="text-base-content/70 mb-4">You haven't created any projects yet.</p>
+          <p class="text-base-content/70 mb-4">
+            You haven't created any projects yet.
+          </p>
           <div class="flex gap-2 justify-center">
-            <a href="/projects/create" class="btn btn-primary">Create Project</a>
+            <a href="/projects/create" class="btn btn-primary">Create Project</a
+            >
             <a href="/projects/join" class="btn btn-outline">Join Project</a>
           </div>
         </div>
