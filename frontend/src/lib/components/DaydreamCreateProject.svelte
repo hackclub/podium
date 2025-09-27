@@ -73,7 +73,7 @@
 
   // URL validation regexes
   const itchioRegex = /^(https?:\/\/)?[a-zA-Z0-9\-_]+\.itch\.io\/[a-zA-Z0-9\-_]+/;
-  const githubRegex = /^(https?:\/\/)?github\.com\/[a-zA-Z0-9\-_]+\/[a-zA-Z0-9\-_.]+/;
+  const githubRegex = /^(https?:\/\/)?(github\.com|gitee\.com)\/[a-zA-Z0-9\-_]+\/[a-zA-Z0-9\-_.]+/;
 
   // Validation state
   let demoUrlValid = $derived(!project.demo || itchioRegex.test(project.demo));
@@ -147,7 +147,7 @@
     />
     {#if project.demo && !demoUrlValid}
       <div class="text-[#cf4960] text-sm mt-1">
-        Please enter a valid itch.io URL (format: username.itch.io/gamename)
+        Please enter a valid itch.io URL (format: https://username.itch.io/gamename)
       </div>
     {/if}
     {#if demoLinksOptional}
@@ -175,7 +175,7 @@
     />
     {#if project.repo && !repoUrlValid}
       <div class="text-[#cf4960] text-sm mt-1">
-        Please enter a valid GitHub URL (format: github.com/username/repository)
+        Please enter a valid GitHub URL (format: https://github.com/username/repository)
       </div>
     {/if}
 

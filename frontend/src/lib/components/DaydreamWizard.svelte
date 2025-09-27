@@ -1,14 +1,35 @@
 <script lang="ts">
   import DaydreamCreateProject from "./DaydreamCreateProject.svelte";
   import JoinProject from "./JoinProject.svelte";
+  import type { PrivateProject } from "$lib/client";
   
-  // Accept list of Daydream events from the parent
-  let { daydreams = [] }: { daydreams: any[] } = $props();
+  // Accept list of Daydream events and user's projects from the parent
+  let { daydreams = [], projects = [] }: { daydreams: any[], projects: PrivateProject[] } = $props();
   let currentDaydream = daydreams[0];
   console.log(currentDaydream);
   
+  // Check if user already has a project for the current daydream event
+  let hasExistingProject = $derived(() => {
+    if (!currentDaydream || !projects.length) return false;
+    return projects.some(project => project.event[0] === currentDaydream.id);
+  });
+
+  // Initialize step - will be updated when hasExistingProject is available
   let currentStep = $state("chooseProject"); // "chooseProject", "createProject", "joinProject", "validateLoading", "validateSuccess", or "validateFailure"
   let validationState = $state("loading"); // "loading", "success", "failure"
+  
+  // Update step when data is available
+  $effect(() => {
+    if (hasExistingProject()) {
+      currentStep = "validateProject";
+      validationState = "success";
+    }
+  });
+  
+  // TODO: These regex patterns are temporary until external API validation is set up
+  // URL validation regexes (same as in DaydreamCreateProject.svelte)
+  const itchioRegex = /^(https?:\/\/)?[a-zA-Z0-9\-_]+\.itch\.io\/[a-zA-Z0-9\-_]+/;
+  const githubRegex = /^(https?:\/\/)?(github\.com|gitee\.com)\/[a-zA-Z0-9\-_]+\/[a-zA-Z0-9\-_.]+/;
   
   function goToCreateProject() {
     currentStep = "createProject";
@@ -22,9 +43,21 @@
     validationState = "loading";
     currentStep = "validateProject";
 
-    // TODO: REMOVE THIS WHEN HOOKING STUFF UP
+    // TODO: Replace with external API validation when available
+    // For now, use regex validation as temporary solution
     // ---------------------------------------
-    setTimeout(() => validationState = "failure", 0);
+    setTimeout(() => {
+      // TODO: This is temporary validation using regex until external API is set up
+      // Replace this with actual API call to validate project URLs and content
+      
+      // For now, we'll simulate validation by always succeeding
+      // In a real implementation, this would validate:
+      // - GitHub repo exists and contains game files
+      // - Itch.io link has a play button
+      // - URLs are accessible and valid
+      
+      validationState = "success"; // Temporary: always succeed for testing
+    }, 2000); // Simulate API call delay
   }
   
   function revalidate() {
@@ -37,6 +70,12 @@
     setTimeout(() => {
       goToValidateProject();
     }, 1000); // Small delay to show success feedback
+  }
+
+  // Handle "submit another project" action
+  function submitAnotherProject() {
+    currentStep = "chooseProject";
+    validationState = "loading";
   }
 </script>
 
@@ -116,7 +155,11 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <h1 class="text-3xl font-bold text-success mb-4">All Set!</h1>
-              <p class="text-base-content/70 mb-6">Your project has been submitted successfully, and you can now vote on others' projects!</p>
+              {#if hasExistingProject()}
+                <p class="text-base-content/70 mb-6">You already have a project submitted for <span class="underline">{currentDaydream.name}</span>. You can now vote on others' projects!</p>
+              {:else}
+                <p class="text-base-content/70 mb-6">Your project has been submitted successfully, and you can now vote on others' projects!</p>
+              {/if}
             </div>
             
             <div class="space-y-3">
@@ -126,6 +169,14 @@
               <a href="/events" class="btn btn-outline btn-lg btn-wide">
                 Events (Voting/Galleries)
               </a>
+              {#if hasExistingProject()}
+                <button 
+                  class="btn btn-ghost btn-sm text-base-content/60 hover:text-base-content"
+                  onclick={submitAnotherProject}
+                >
+                  Submit Another Project
+                </button>
+              {/if}
             </div>
           </div>
         {:else if validationState === "failure"}

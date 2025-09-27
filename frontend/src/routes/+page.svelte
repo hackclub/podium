@@ -7,7 +7,7 @@
   import UpdateUser from "$lib/components/UpdateUser.svelte";
 
   import { onMount } from "svelte";
-  import { EventsService } from "$lib/client/sdk.gen";
+  import { EventsService, ProjectsService } from "$lib/client/sdk.gen";
   import type { PrivateProject, UserEvents } from "$lib/client";
   import { handleError } from "$lib/misc";
   import ProjectCard from "$lib/components/ProjectCard.svelte";
@@ -24,6 +24,11 @@
       if (error || !data) return;
       const attending = (data.attending_events ?? []) as any[];
       daydreams = attending.filter((e) => (e.feature_flags_list as string[]).includes("daydream"));
+      
+      // Fetch user's projects
+      const { data: projectsData, error: projectsError } = await ProjectsService.getProjectsProjectsMineGet({ throwOnError: false });
+      if (projectsError || !projectsData) return;
+      projects = projectsData;
     } catch (_) {}
   });
 
@@ -50,11 +55,11 @@
     </div>
 
     <div class="min-h-[60vh] flex items-center justify-center">
-      <!-- {#if daydreams.length} -->
-        <!-- <DaydreamWizard {daydreams} /> -->
-      <!-- {:else} -->
+      {#if daydreams.length}
+        <DaydreamWizard {daydreams} {projects} />
+      {:else}
         <StartWizard />
-      <!-- {/if} -->
+      {/if}
     </div>
 
   </div>
