@@ -50,11 +50,11 @@
     </div>
 
     <div class="min-h-[60vh] flex items-center justify-center">
-      {#if daydreams.length}
-        <DaydreamWizard {daydreams} />
-      {:else}
+      <!-- {#if daydreams.length} -->
+        <!-- <DaydreamWizard {daydreams} /> -->
+      <!-- {:else} -->
         <StartWizard />
-      {/if}
+      <!-- {/if} -->
     </div>
 
   </div>
