@@ -33,35 +33,108 @@ def load_report_data(json_file: str) -> Dict[str, Any]:
 
 
 def extract_response_times(report: Dict[str, Any]) -> List[Tuple[str, float, int]]:
-    """Extract response times from the report data."""
+    """Extract response times from the report data, grouping similar endpoints."""
     response_times = []
     
-    # Extract from endpoints data
+    # Create a mapping from actual endpoint paths to methods using api_tests data
+    endpoint_to_methods = defaultdict(set)
+    api_tests = report.get("test_results", {}).get("api_tests", [])
+    if api_tests:
+        for test in api_tests:
+            full_endpoint = test.get("endpoint", "")
+            if " " in full_endpoint:
+                method, path = full_endpoint.split(" ", 1)
+                
+                # Map API test paths to actual endpoint paths
+                # This handles cases where api_tests has {event_id} but endpoints has actual paths
+                actual_path = map_api_test_path_to_endpoint_path(path)
+                if actual_path:
+                    endpoint_to_methods[actual_path].add(method)
+    
+    # Group endpoints by their cleaned names, now with method information
+    grouped_endpoints = defaultdict(lambda: {"total_requests": 0, "total_time": 0, "status_codes": []})
+    
     for endpoint, stats in report.get("endpoints", {}).items():
+        cleaned_path = clean_endpoint_name(endpoint)
         request_count = stats.get("request_count", 0)
         avg_time = stats.get("avg_response_time", 0)
         status_codes = stats.get("status_codes", [200])
         
-        # Create synthetic response times based on average
-        # This is an approximation since we don't have individual request times
-        for i in range(request_count):
-            # Add some variation to the average time
-            variation = np.random.normal(0, avg_time * 0.1)  # 10% variation
-            synthetic_time = max(0.001, avg_time + variation)
+        # Get methods for this actual endpoint path, or default to GET
+        methods = endpoint_to_methods.get(endpoint, {"GET"})
+        
+        # Distribute requests across methods (simple equal distribution)
+        requests_per_method = max(1, request_count // len(methods))
+        
+        for method in methods:
+            cleaned_endpoint = f"{method} {cleaned_path}"
+            grouped_endpoints[cleaned_endpoint]["total_requests"] += requests_per_method
+            grouped_endpoints[cleaned_endpoint]["total_time"] += avg_time * requests_per_method
+            grouped_endpoints[cleaned_endpoint]["status_codes"].extend(status_codes)
+    
+    # Now create response times for grouped endpoints
+    for cleaned_endpoint, group_stats in grouped_endpoints.items():
+        total_requests = group_stats["total_requests"]
+        total_time = group_stats["total_time"]
+        status_codes = group_stats["status_codes"]
+        
+        if total_requests > 0:
+            # Calculate weighted average response time
+            avg_time = total_time / total_requests
             
-            # Use the most common status code
-            status_code = status_codes[0] if status_codes else 200
-            
-            response_times.append((endpoint, synthetic_time, status_code))
+            # Create synthetic response times based on average
+            for i in range(total_requests):
+                # Add some variation to the average time
+                variation = np.random.normal(0, avg_time * 0.1)  # 10% variation
+                synthetic_time = max(0.001, avg_time + variation)
+                
+                # Use the most common status code
+                status_code = max(set(status_codes), key=status_codes.count) if status_codes else 200
+                
+                response_times.append((cleaned_endpoint, synthetic_time, status_code))
     
     return response_times
+
+
+def map_api_test_path_to_endpoint_path(api_path: str) -> str:
+    """Map API test path (with placeholders) to actual endpoint path."""
+    # Direct mappings for common patterns
+    mappings = {
+        "/events/{event_id}": "/events/rec***",
+        "/events/{event_id}/projects": "/events/rec***/projects", 
+        "/events/{event_id}/leaderboard": "/events/rec***/leaderboard",
+        "/events/{event_id}/rank": "/events/rec***/rank",
+        "/events/admin/{event_id}": "/events/admin/rec***",
+        "/events/admin/{event_id}/leaderboard": "/events/admin/rec***/leaderboard",
+        "/events/admin/{event_id}/attendees": "/events/admin/rec***/attendees",
+        "/events/admin/{event_id}/votes": "/events/admin/rec***/votes",
+        "/events/admin/{event_id}/referrals": "/events/admin/rec***/referrals",
+        "/projects/{project_id}": "/projects/rec***",
+        "/users/{user_id}": "/users/rec***",
+    }
+    
+    # Check for exact matches first
+    if api_path in mappings:
+        return mappings[api_path]
+    
+    # For paths that don't have placeholders, return as-is
+    if "{" not in api_path:
+        return api_path
+    
+    # Try to find a pattern match
+    for pattern, replacement in mappings.items():
+        if api_path.startswith(pattern.split("{")[0]):
+            return replacement
+    
+    # If no pattern matches, return the original path
+    return api_path
 
 
 def clean_endpoint_name(endpoint: str) -> str:
     """Clean endpoint names for better readability in graphs."""
     import re
     
-    # Remove query parameters
+    # Remove query parameters to group similar endpoints
     if "?" in endpoint:
         endpoint = endpoint.split("?")[0]
     
@@ -74,6 +147,27 @@ def clean_endpoint_name(endpoint: str) -> str:
     
     # Handle admin endpoints with record IDs
     endpoint = re.sub(r'/events/admin/rec[A-Za-z0-9]{14,}/', '/events/admin/rec***/', endpoint)
+    
+    # Group similar endpoints by removing specific IDs and parameters
+    # Group all /events/attend endpoints together
+    if endpoint.startswith("/events/attend"):
+        endpoint = "/events/attend"
+    
+    # Group all /events/rec***/projects endpoints together
+    if "/events/rec***/projects" in endpoint:
+        endpoint = "/events/rec***/projects"
+    
+    # Group all /events/rec***/leaderboard endpoints together
+    if "/events/rec***/leaderboard" in endpoint:
+        endpoint = "/events/rec***/leaderboard"
+    
+    # Group all /events/rec***/rank endpoints together
+    if "/events/rec***/rank" in endpoint:
+        endpoint = "/events/rec***/rank"
+    
+    # Group all /events/admin/rec***/ endpoints together
+    if "/events/admin/rec***/" in endpoint:
+        endpoint = "/events/admin/rec***/*"
     
     # Shorten common patterns
     endpoint = endpoint.replace("/events/admin/", "/admin/")
@@ -124,7 +218,7 @@ def create_improved_response_time_graph(
     endpoints = [ep[0] for ep in top_endpoints]
     times_by_endpoint = [ep[1][0] for ep in top_endpoints]
     
-    box_plot = ax1.boxplot(times_by_endpoint, labels=endpoints, patch_artist=True)
+    box_plot = ax1.boxplot(times_by_endpoint, tick_labels=endpoints, patch_artist=True)
     
     # Color boxes by response time
     colors = plt.cm.RdYlGn_r(np.linspace(0.2, 0.8, len(endpoints)))

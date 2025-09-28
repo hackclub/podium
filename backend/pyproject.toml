@@ -26,6 +26,7 @@ dependencies = [
     "langchain (>=0.3.26,<0.4.0)",
     "langchain-google-genai (>=2.1.7,<3.0.0)",
     "datamodel-code-generator>=0.32.0",
+    "matplotlib>=3.10.6",
 ]
 
 [project.optional-dependencies]
