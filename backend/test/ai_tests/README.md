@@ -3,11 +3,14 @@
 ## Running Tests
 
 ```bash
-# Run all tests
+# Run all tests (including AI tests)
 uv run pytest -s
 
-# Run specific test file
-uv run pytest -s test_admin.py
+# Run only AI tests
+uv run pytest -s test/ai_tests/
+
+# Run specific AI test file
+uv run pytest -s test/ai_tests/test_admin.py
 
 # Run specific test
 uv run pytest -s -k "test_admin_event_management"

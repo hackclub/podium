@@ -5,8 +5,8 @@ from podium import db
 import pytest
 from loguru import logger
 from pydantic import BaseModel
-from test import settings
-from test.browser import run_browser_agent
+from test.ai_tests.config import settings
+from test.ai_tests.browser import run_browser_agent
 
 
 class SignupResult(BaseModel):

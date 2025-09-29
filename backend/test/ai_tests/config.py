@@ -31,7 +31,7 @@ class AiTestSettings(BaseModel):
     )
     llm: Annotated[Optional[BaseChatModel], Field(default=None)]
     steel_client: Optional[Steel] = Field(default=None, exclude=True)
-    ngrok_auth_token: str = config("NGROK_AUTHTOKEN")
+    ngrok_auth_token: str = config("NGROK_AUTHTOKEN", default="")
 
     @model_validator(mode="after")
     def configure_llm(self) -> Self:
@@ -53,4 +53,9 @@ class AiTestSettings(BaseModel):
         return self
 
 
-settings = AiTestSettings()
+# Only create settings if required environment variables are available
+try:
+    settings = AiTestSettings()
+except Exception as e:
+    logger.warning(f"Could not initialize AI test settings: {e}")
+    settings = None

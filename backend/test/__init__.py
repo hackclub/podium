@@ -1,4 +1,4 @@
-from test.config import (
+from test.ai_tests.config import (
     settings as settings,
     AiTestSettings as AiTestSettings,
     APP_PORT as APP_PORT,

@@ -11,7 +11,7 @@ import pytest
 from pyngrok import ngrok
 import httpx
 import shutil
-from test import APP_PORT, settings
+from test.ai_tests.config import APP_PORT, settings
 import atexit
 from browser_use import BrowserSession
 import pytest_asyncio
@@ -19,7 +19,7 @@ import steel
 from loguru import logger
 
 from podium import db
-from test.utils import create_temp_user_tokens
+from test.ai_tests.utils import create_temp_user_tokens
 
 
 # Reduce verbosity of pyngrok loggers to hide INFO-level noise during tests

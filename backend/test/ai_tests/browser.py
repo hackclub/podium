@@ -2,7 +2,7 @@ import asyncio
 import contextlib
 from browser_use import Agent, BrowserSession, Controller
 from browser_use.config import CONFIG as browser_use_config
-from test import settings, AiTestSettings
+from test.ai_tests.config import settings, AiTestSettings
 from loguru import logger
 from typing import Type, TypeVar
 from pydantic import BaseModel, ValidationError

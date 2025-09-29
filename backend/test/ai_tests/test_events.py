@@ -8,8 +8,8 @@ from secrets import token_urlsafe
 from slugify import slugify
 
 from podium import db
-from test.browser import run_browser_agent
-from test.utils import magic_url
+from test.ai_tests.browser import run_browser_agent
+from test.ai_tests.utils import magic_url
 
 
 class SimpleResult(BaseModel):
