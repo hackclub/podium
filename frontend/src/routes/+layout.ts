@@ -5,7 +5,7 @@ export const ssr = false;
 
 // Provide default meta tags for all pages
 export const load = () => {
-  redirect(307, "https://hack.club/submit");
+  // redirect(307, "https://hack.club/submit");
   return {
     meta: [
       {
