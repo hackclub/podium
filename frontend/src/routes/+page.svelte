@@ -13,22 +13,11 @@
   import ProjectCard from "$lib/components/ProjectCard.svelte";
   import { fade } from "svelte/transition";
   import StartWizard from "$lib/components/StartWizard.svelte";
-  import DaydreamWizard from "$lib/components/DaydreamWizard.svelte";
 
   let projects = $state() as Array<PrivateProject>;
-  let daydreams = $state([]) as any[];
 
   onMount(async () => {
     try {
-      const { data, error } = await EventsService.getAttendingEventsEventsGet({
-        throwOnError: false,
-      });
-      if (error || !data) return;
-      const attending = (data.attending_events ?? []) as any[];
-      daydreams = attending.filter((e) =>
-        (e.feature_flags_list as string[]).includes("daydream"),
-      );
-
       // Fetch user's projects
       const { data: projectsData, error: projectsError } =
         await ProjectsService.getProjectsProjectsMineGet({
@@ -65,11 +54,7 @@
     </div>
 
     <div class="min-h-[60vh] flex items-center justify-center">
-      {#if daydreams.length}
-        <DaydreamWizard {daydreams} {projects} />
-      {:else}
         <StartWizard />
-      {/if}
     </div>
   </div>
 {/if}

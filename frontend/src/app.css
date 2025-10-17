@@ -1,7 +1,5 @@
 @import "tailwindcss";
 
-@import "daydream.css";
-
 @plugin '@tailwindcss/typography';
 
 @plugin "daisyui" {
@@ -14,7 +12,7 @@
 
 @plugin "daisyui/theme" {
   name: "undercity";
-  default: false;
+  default: true;
   prefersdark: true;
   --color-base-100: #2e2a54;
   --color-base-200: #272239;
@@ -48,7 +46,7 @@
 
 @plugin "daisyui/theme" {
   name: "daydream";
-  default: true;
+  default: false;
   prefersdark: false;
   --color-base-100: #fef9dc;
   --color-base-200: #fffef2;
