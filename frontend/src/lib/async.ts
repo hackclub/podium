@@ -1,4 +1,6 @@
 import { ProjectsService, type Unified } from "./client";
+import { getEventFeature } from "./event-features/registry";
+import type { ValidationResult } from "./event-features/types";
 
 /**
  * Poll for completion of a project quality check
@@ -43,11 +45,26 @@ export async function pollForCompletion(
 }
 
 /**
- * Check project quality with async polling
+ * Check project quality - uses event validators for flagship events, review-factory otherwise
  */
 export async function checkProjectQuality(
   project: any,
-): Promise<Unified | null> {
+  eventFeatureFlag?: string,
+): Promise<Unified | ValidationResult | null> {
+  // If this is a flagship event with a custom validator, use that instead of review-factory
+  if (eventFeatureFlag) {
+    const eventFeature = getEventFeature(eventFeatureFlag);
+    if (eventFeature?.validateProject) {
+      try {
+        return await Promise.resolve(eventFeature.validateProject(project));
+      } catch (error) {
+        console.error("Event validator error:", error);
+        return null;
+      }
+    }
+  }
+
+  // Fall back to review-factory for non-flagship events
   try {
     const { data: checkStatus, error } =
       await ProjectsService.startProjectCheckProjectsCheckStartPost({

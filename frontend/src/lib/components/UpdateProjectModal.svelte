@@ -26,10 +26,18 @@
   let {
     preselectedProject,
     events,
-  }: { preselectedProject: PrivateProject; events: Array<Event> } = $props();
+    modal = $bindable(),
+  }: { preselectedProject: PrivateProject; events: Array<Event>; modal?: Modal } = $props();
 
-  let updateModal: Modal = $state() as Modal;
+  let localModal: Modal = $state() as Modal;
   let deleteConfirmation: ConfirmationModal = $state() as ConfirmationModal;
+
+  // Sync local modal to bindable prop
+  $effect(() => {
+    if (localModal) {
+      modal = localModal;
+    }
+  });
 
   // Track the selected event's demo_links_optional setting
   let selectedEvent = $derived(
@@ -68,7 +76,7 @@
     }
     toast.success("Project deleted successfully");
     await customInvalidateAll();
-    updateModal.closeModal();
+    localModal.closeModal();
   }
 
   function confirmDeleteProject() {
@@ -92,19 +100,11 @@
     }
     toast.success("Project updated successfully");
     await customInvalidateAll();
-    updateModal.closeModal();
+    localModal.closeModal();
   }
 </script>
 
-<button
-  class="badge text-sm px-3 py-1 underline badge-secondary cursor-pointer"
-  onclick={() => {
-    updateModal.openModal();
-  }}
->
-  Edit
-</button>
-<Modal bind:this={updateModal} title="Update Project">
+<Modal bind:this={localModal} title="Update Project">
   <div class="p-4 max-w-md mx-auto">
     <!-- <form onsubmit={updateProject} class="space-y-4"> -->
     <div class="space-y-4">

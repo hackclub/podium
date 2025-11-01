@@ -1,5 +1,5 @@
 <script lang="ts">
-  import UpdateProject from "$lib/components/UpdateProject.svelte";
+  import UpdateProjectModal from "$lib/components/UpdateProjectModal.svelte";
   import DOMPurify from "dompurify";
   import type { PageData } from "./$types";
   import ProjectCardWrapper from "$lib/components/ProjectCardWrapper.svelte";
@@ -17,11 +17,15 @@
     return DOMPurify.sanitize(reasons.replace(/\n/g, "<br>"));
   }
 
-  let projectQualityResults: Record<string, Unified> = $state({});
+  let projectQualityResults: Record<string, any> = $state({});
 
   onMount(async () => {
     for (const project of data.projects) {
-      const result = await checkProjectQuality(project);
+      // Find the event for this project to check if it has a feature flag
+      const projectEvent = data.events.find((e) => e.id === project.event[0]);
+      const featureFlag = projectEvent?.feature_flags_list?.[0];
+      
+      const result = await checkProjectQuality(project, featureFlag);
       if (result) {
         projectQualityResults[project.id] = result;
       }

@@ -8,16 +8,39 @@
 
   import { onMount } from "svelte";
   import { EventsService, ProjectsService } from "$lib/client/sdk.gen";
-  import type { PrivateProject, UserEvents } from "$lib/client";
+  import type { PrivateProject, PrivateEvent } from "$lib/client";
   import { handleError } from "$lib/misc";
   import ProjectCard from "$lib/components/ProjectCard.svelte";
   import { fade } from "svelte/transition";
   import StartWizard from "$lib/components/StartWizard.svelte";
+  import FlagshipEventWizard from "$lib/components/FlagshipEventWizard.svelte";
+  import {
+    getActiveFlagshipEvent,
+    isFlagshipEvent,
+  } from "$lib/event-features/flagship-config";
 
   let projects = $state() as Array<PrivateProject>;
+  let flagshipEvents = $state<PrivateEvent[]>([]);
 
   onMount(async () => {
     try {
+      // Check for flagship events
+      const activeFlagship = getActiveFlagshipEvent();
+      if (activeFlagship) {
+        const { data, error } = await EventsService.getAttendingEventsEventsGet(
+          {
+            throwOnError: false,
+          },
+        );
+        if (!error && data) {
+          const attending = (data.attending_events ?? []) as PrivateEvent[];
+          // Filter for events matching the active flagship feature flag
+          flagshipEvents = attending.filter((e) =>
+            e.feature_flags_list?.includes(activeFlagship.featureFlag),
+          );
+        }
+      }
+
       // Fetch user's projects
       const { data: projectsData, error: projectsError } =
         await ProjectsService.getProjectsProjectsMineGet({
@@ -54,7 +77,16 @@
     </div>
 
     <div class="min-h-[60vh] flex items-center justify-center">
+    {#if flagshipEvents.length}
+        {@const activeFlagship = getActiveFlagshipEvent()}
+        <FlagshipEventWizard
+          {flagshipEvents}
+          {projects}
+          welcomeMessage={activeFlagship?.welcomeMessage}
+        />
+      {:else}
         <StartWizard />
+      {/if}
     </div>
   </div>
 {/if}

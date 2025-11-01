@@ -221,7 +221,7 @@
               <a href="/projects" class="btn btn-primary btn-lg btn-wide">
                 View / Edit Your Projects
               </a>
-              <a href="/events" class="btn btn-outline btn-lg btn-wide">
+              <a href="/events/{currentDaydream.slug}" class="btn btn-outline btn-lg btn-wide">
                 Events (Voting/Galleries)
               </a>
               {#if hasExistingProject()}

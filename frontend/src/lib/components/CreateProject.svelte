@@ -6,7 +6,14 @@
   import Modal from "$lib/components/Modal.svelte";
 
   // Accept callback prop for when project is successfully created
-  let { onProjectCreated }: { onProjectCreated?: () => void } = $props();
+  // Accept optional event to pre-fill and hide the event selector
+  let {
+    onProjectCreated,
+    preselectedEvent,
+  }: {
+    onProjectCreated?: () => void;
+    preselectedEvent?: Event;
+  } = $props();
 
   let project: ProjectCreationPayload = $state({
     name: "",
@@ -14,15 +21,18 @@
     demo: "",
     image_url: "",
     description: "",
-    event: [""],
+    event: [preselectedEvent?.id || ""],
     hours_spent: 0,
   });
   let events: Event[] = $state([]);
   let fetchedEvents = false;
 
   // Track the selected event's demo_links_optional setting
-  let selectedEvent = $derived(events.find((e) => e.id === project.event[0]));
+  let selectedEvent = $derived(
+    preselectedEvent || events.find((e) => e.id === project.event[0]),
+  );
   let demoLinksOptional = $derived(selectedEvent?.demo_links_optional || false);
+
 
   async function fetchEvents() {
     toast.info("Fetching events; please wait");
@@ -85,20 +95,22 @@
       class="input input-bordered w-full"
     />
 
-    <label class="label" for="event">Event</label>
-    <select
-      id="event"
-      bind:value={project.event[0]}
-      class="select select-bordered w-full"
-      onfocus={() => {
-        if (!fetchedEvents) fetchEvents();
-      }}
-    >
-      <option value="" disabled selected>Select an event</option>
-      {#each events as event}
-        <option value={event.id}>{event.name}</option>
-      {/each}
-    </select>
+    {#if !preselectedEvent}
+      <label class="label" for="event">Event</label>
+      <select
+        id="event"
+        bind:value={project.event[0]}
+        class="select select-bordered w-full"
+        onfocus={() => {
+          if (!fetchedEvents) fetchEvents();
+        }}
+      >
+        <option value="" disabled selected>Select an event</option>
+        {#each events as event}
+          <option value={event.id}>{event.name}</option>
+        {/each}
+      </select>
+    {/if}
 
     <label class="label" for="project_description">Project Description</label>
     <textarea
