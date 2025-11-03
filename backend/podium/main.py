@@ -84,12 +84,15 @@ app.add_middleware(
 @app.middleware("http")
 async def track_airtable_hits(request: Request, call_next):
     from podium.db.db import _current_request
+    from podium.cache.operations import _cache_status
 
     request.state.airtable_hits = 0
     token = _current_request.set(request)
     try:
         response = await call_next(request)
         response.headers["X-Airtable-Hits"] = str(request.state.airtable_hits)
+        # Add cache status header
+        response.headers["X-Cache"] = _cache_status.get()
         return response
     finally:
         _current_request.reset(token)

@@ -10,24 +10,27 @@ Implements cache-aside pattern:
 
 from typing import List, Optional, Type, TypeVar
 import random
+from contextvars import ContextVar
 from podium.db import tables
 from podium.db.project import Project
-from podium.db.event import Event, PrivateEvent, InternalEvent
+from podium.db.event import Event, PrivateEvent
 from podium.db.user import UserPrivate, UserPublic
 from podium.db.vote import Vote
 from podium.db.referral import Referral
-from pyairtable.formulas import match, EQ, OR, Field as AirtableField
-
-from .models import (
+from pyairtable.formulas import match
+from podium.cache.models import (
     ProjectCache,
     EventCache,  # Now stores PrivateEvent
     UserCache,   # Now stores UserPrivate
     VoteCache,
     ReferralCache,
 )
-from .client import get_redis_client
+from podium.cache.client import get_redis_client
 
 T = TypeVar("T")
+
+# Context variable to track cache hits/misses per request
+_cache_status: ContextVar[str] = ContextVar("cache_status", default="BYPASS")
 
 # Cache TTL: 8 hours with ±5% jitter to prevent synchronized expiration
 # Configurable: adjust based on how often you manually edit Airtable vs cache hit rate
@@ -86,17 +89,21 @@ def _get_from_cache_or_airtable(
     """
     # Check tombstone first (record known to not exist)
     if _check_tombstone(table_name, record_id):
+        _cache_status.set("HIT")
         return None
     
     # Try cache first
     try:
         cached = cache_model.get(record_id)
         if cached:
+            _cache_status.set("HIT")
             # Revalidate with original Pydantic model
             return pydantic_model(**cached.dict())
     except Exception:
         # Cache miss or error, continue to Airtable
         pass
+    
+    _cache_status.set("MISS")
     
     # Fetch from Airtable
     try:

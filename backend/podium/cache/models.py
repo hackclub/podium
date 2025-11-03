@@ -3,7 +3,6 @@
 from redis_om import JsonModel, Field as RedisField
 from typing import Type
 from pydantic import BaseModel, create_model
-
 from podium.db.project import Project
 from podium.db.event import Event, PrivateEvent
 from podium.db.user import UserPrivate, UserPublic

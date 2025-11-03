@@ -7,8 +7,9 @@ IMPORTANT: All deletes must go through delete_* functions (not direct Airtable a
 This ensures cache invalidation and tombstone marking.
 """
 
-from .client import get_redis_client
-from .operations import (
+from podium.cache.client import get_redis_client
+from podium.cache.operations import _cache_status
+from podium.cache.operations import (
     # Read operations
     get_project,
     get_projects_for_event,
