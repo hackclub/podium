@@ -68,7 +68,7 @@ settings.validators.register(
         ),
         Validator(
             "redis_url",
-            default="redis://localhost:6379",
+            # default="redis://localhost:6379",
         ),
         Validator(
             "airtable_webhook_secret",

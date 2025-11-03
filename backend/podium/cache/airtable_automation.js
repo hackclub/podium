@@ -1,22 +1,73 @@
 /**
- * Airtable Automation Script
+ * Airtable Automation Script for Cache Invalidation
  * 
- * Setup: Create separate automations for each table (Users, Events, Projects, Votes, Referrals)
- * Trigger: "When record created or updated"
- * Action: "Run script"
+ * Sends webhook to backend when records change to update Valkey/Redis cache.
  * 
- * Configuration:
- * 1. Create an "Invalidate Config" table with fields: "key" (text), "value" (text)
- * 2. Add two records:
- *    - key: "webhook_url", value: "https://your-backend.com/api/webhooks/airtable"
- *    - key: "webhook_secret", value: "your-secret-key-here"
- * 3. Select the appropriate TABLE_NAME for each automation
+ * ══════════════════════════════════════════════════════════════
+ * SETUP INSTRUCTIONS (Create 5 automations, one per table)
+ * ══════════════════════════════════════════════════════════════
+ * 
+ * For EACH table (Users, Events, Projects, Votes, Referrals):
+ * 
+ * 1. Create New Automation
+ *    - Name: "Sync [TableName] to Cache"
+ * 
+ * 2. Add Trigger: "When record is created or updated"
+ *    - Select the specific table
+ * 
+ * 3. Add Action: "Run a script"
+ *    - Paste this entire script below
+ *    - Update TABLE_NAME constant (line 51)
+ *    - Click "+ Add input variable(s)" button
+ *      • Name: recordId
+ *      • Value: Click blue "+" → Select "Record ID" from Step 1
+ * 
+ * 4. Test the automation
+ *    - Click "Test" button
+ *    - Or update a record in the table manually
+ *    - Check execution log for success/errors
+ * 
+ * 5. Enable the automation
+ * 
+ * ══════════════════════════════════════════════════════════════
+ * TROUBLESHOOTING
+ * ══════════════════════════════════════════════════════════════
+ * 
+ * ERROR: "recordId not configured"
+ *   → You forgot step 3: Add input variable "recordId"
+ * 
+ * ERROR: "Record not found in [Table]"
+ *   → TABLE_NAME doesn't match your table name exactly
+ * 
+ * ERROR: "Configuration missing"
+ *   → Create "Invalidate Config" table with webhook_url and webhook_secret
+ * 
+ * ERROR: "Webhook failed with status XXX"
+ *   → Backend is down or webhook_secret doesn't match
  */
 
-// ===== CONFIGURATION =====
-const TABLE_NAME = "Projects"; // Change per automation: "Users", "Events", "Projects", "Votes", "Referrals"
+// ══════════════════════════════════════════════════════════════
+// CONFIGURATION (Update for each automation)
+// ══════════════════════════════════════════════════════════════
+const TABLE_NAME = "Projects"; // Change to: "Users", "Events", "Projects", "Votes", or "Referrals"
 
-// Fetch config from Airtable
+// ══════════════════════════════════════════════════════════════
+// GET INPUT VARIABLE
+// ══════════════════════════════════════════════════════════════
+const inputConfig = input.config();
+const recordId = inputConfig.recordId;
+
+if (!recordId) {
+    console.error("Missing input variable 'recordId'");
+    console.error("Fix: In the 'Run a script' action, click '+ Add input variable(s)'");
+    console.error("  Name: recordId");
+    console.error("  Value: Select 'Record ID' from Step 1 (trigger)");
+    throw new Error("recordId not configured");
+}
+
+// ══════════════════════════════════════════════════════════════
+// FETCH WEBHOOK CONFIG FROM AIRTABLE
+// ══════════════════════════════════════════════════════════════
 const configTable = base.getTable("Invalidate Config");
 const configRecords = await configTable.selectRecordsAsync();
 
@@ -33,18 +84,18 @@ const WEBHOOK_URL = config.webhook_url;
 const WEBHOOK_SECRET = config.webhook_secret;
 
 if (!WEBHOOK_URL || !WEBHOOK_SECRET) {
-    console.error("Missing webhook_url or webhook_secret in Invalidate Config table");
+    console.error("Missing webhook_url or webhook_secret in 'Invalidate Config' table");
+    console.error("Fix: Create 'Invalidate Config' table with:");
+    console.error("  Record 1: key='webhook_url', value='https://your-backend.com/api/webhooks/airtable'");
+    console.error("  Record 2: key='webhook_secret', value='<your-generated-secret>'");
     throw new Error("Configuration missing");
 }
 
-// ===== SCRIPT =====
-const inputConfig = input.config();
-const recordId = inputConfig.recordId;
-
-// Fetch the full record that triggered the automation
+// ══════════════════════════════════════════════════════════════
+// FETCH THE RECORD
+// ══════════════════════════════════════════════════════════════
 const table = base.getTable(TABLE_NAME);
-const queryResult = await table.selectRecordsAsync();
-const record = queryResult.records.find(r => r.id === recordId);
+const record = await table.selectRecordAsync(recordId);
 
 if (!record) {
     console.error(`Record ${recordId} not found in ${TABLE_NAME}`);
@@ -52,24 +103,41 @@ if (!record) {
 }
 
 // Extract all field values
+// Use the table's field definitions to iterate over all fields
+const tableFields = table.fields;
 const fields = {};
-for (const [fieldName, value] of Object.entries(record._rawJson.fields)) {
+
+for (const field of tableFields) {
+    const fieldName = field.name;
+    let value = record.getCellValue(fieldName);
+    
+    // Skip null/undefined values
+    if (value === null || value === undefined) {
+        continue;
+    }
+    
+    // Transform linked records from [{id: 'recXXX', name: '...'}] to ['recXXX']
+    // Airtable returns linked records as arrays of objects, but our backend expects arrays of IDs
+    if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && 'id' in value[0]) {
+        value = value.map(item => item.id);
+    }
+    
     fields[fieldName] = value;
 }
 
 // Add record ID to fields
 fields.id = record.id;
 
-// Prepare webhook payload
+// ══════════════════════════════════════════════════════════════
+// SEND WEBHOOK TO BACKEND
+// ══════════════════════════════════════════════════════════════
 const payload = {
     table: TABLE_NAME,
     record: fields,
     timestamp: new Date().toISOString(),
-    // Include record ID separately for easier processing
     record_id: record.id
 };
 
-// Send to backend
 try {
     const response = await fetch(WEBHOOK_URL, {
         method: 'POST',
@@ -87,33 +155,9 @@ try {
     }
 
     const result = await response.json();
-    console.log(`Successfully sent ${TABLE_NAME} record ${recordId} to backend:`, result);
+    console.log(`✓ Successfully sent ${TABLE_NAME} record ${record.id} to cache`);
+    console.log(`  Response:`, result);
 } catch (error) {
-    console.error(`Error sending webhook for ${TABLE_NAME}:`, error);
+    console.error(`✗ Error sending webhook for ${TABLE_NAME}:`, error);
     throw error;
 }
-
-/**
- * SETUP INSTRUCTIONS:
- * 
- * For each table (Users, Events, Projects, Votes, Referrals):
- * 
- * 1. Create a new Automation in Airtable
- * 2. Name it: "Sync [TableName] to Cache"
- * 3. Trigger: "When record is created or updated"
- *    - Select the specific table
- *    - (Optional) Add conditions if you want to filter which records trigger
- * 4. Action: "Run script"
- *    - Paste this code
- *    - Update TABLE_NAME constant to match (e.g., "Projects", "Users")
- *    - Set WEBHOOK_URL to your backend URL
- *    - Set WEBHOOK_SECRET to match your backend configuration
- * 5. Test the automation with a sample record update
- * 6. Enable the automation
- * 
- * NOTES:
- * - Airtable Enterprise has no automation limits
- * - The script sends the FULL record to your backend (all fields)
- * - Linked records are sent as arrays of record IDs (Airtable standard)
- * - Your backend will validate the secret and update the cache
- */

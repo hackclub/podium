@@ -16,7 +16,8 @@ def get_redis_client() -> Redis:
     global _redis_client
     
     if _redis_client is None:
-        redis_url = getattr(settings, "redis_url", "redis://localhost:6379")
+        # redis_url = getattr(settings, "redis_url", "redis://localhost:6379")
+        redis_url = getattr(settings, "redis_url")
         _redis_client = Redis.from_url(
             redis_url,
             decode_responses=False,  # redis-om handles encoding
