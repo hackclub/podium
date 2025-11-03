@@ -118,8 +118,8 @@ for (const field of tableFields) {
     
     // Transform linked records from [{id: 'recXXX', name: '...'}] to ['recXXX']
     // Airtable returns linked records as arrays of objects, but our backend expects arrays of IDs
-    if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && 'id' in value[0]) {
-        value = value.map(item => item.id);
+    if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && value[0] !== null && 'id' in value[0]) {
+        value = value.map(item => item && item.id).filter(id => id);  // Filter out null/undefined
     }
     
     fields[fieldName] = value;
