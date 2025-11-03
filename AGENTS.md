@@ -66,9 +66,14 @@ flowchart LR
 - Required/validated keys include Airtable IDs/tokens, JWT settings, SendGrid key, Review Factory URL/token ([`config.py`](file:///home/augie/Code/hackclub/podium/backend/podium/config.py#L16-L75)).
 - Non-secret IDs and defaults live in [`settings.toml`](file:///home/augie/Code/hackclub/podium/backend/settings.toml#L1-L19). Use `.secrets.toml` or env vars for secrets (see top-level [README.md](file:///home/augie/Code/hackclub/podium/README.md#L57-L65)).
 
-### Data Layer (Airtable)
+### Data Layer (Airtable + Valkey Cache)
 
 - Tables are attached on import in [`db/db.py`](file:///home/augie/Code/hackclub/podium/backend/podium/db/db.py#L14-L30) under the global `tables` dict: `events`, `users`, `projects`, `referrals`, `votes`.
+- **Cache layer**: Valkey/Redis (redis-om) provides cache-aside pattern with 8hr TTL, webhook invalidation, and daily sweep. See [`cache/`](file:///home/sonder/Documents/Coding/showcase/backend/podium/cache) and [CACHING.md](file:///home/sonder/Documents/Coding/showcase/backend/CACHING.md).
+  - **Strategy**: Cache full PrivateEvent/UserPrivate, derive public views on read. Eliminates dual-update issues.
+  - **Invalidation**: Airtable automations POST to `/api/webhooks/airtable` on record changes.
+  - **Deletion handling**: Use `cache.delete_*()` functions (not `db.*.delete()`) for atomic Airtable+cache+tombstone updates.
+  - **Orphan cleanup**: Daily sweep with reference checking (90%+ Airtable API reduction vs naive approach).
 - Pydantic models define schema, validation, and serialization for all entities:
   - Events: [`db/event.py`](file:///home/augie/Code/hackclub/podium/backend/podium/db/event.py#L11-L81)
   - Projects: [`db/project.py`](file:///home/augie/Code/hackclub/podium/backend/podium/db/project.py#L8-L67)

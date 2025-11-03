@@ -23,8 +23,48 @@ sentry_sdk.init(
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    # Initialize legacy in-memory cache for backwards compatibility
     FastAPICache.init(InMemoryBackend())
+    
+    # Initialize Redis/Valkey client for cache operations
+    from podium.cache.client import get_redis_client, close_redis_client
+    from podium.cache.models import (
+        ProjectCache,
+        EventCache,
+        UserCache,
+        VoteCache,
+        ReferralCache,
+    )
+    
+    try:
+        client = get_redis_client()
+        client.ping()  # Verify connection
+        print("✓ Redis/Valkey connection established")
+        
+        # Create RediSearch indices at startup (idempotent)
+        print("Creating RediSearch indices...")
+        for model_name, model in [
+            ("ProjectCache", ProjectCache),
+            ("EventCache", EventCache),
+            ("UserCache", UserCache),
+            ("VoteCache", VoteCache),
+            ("ReferralCache", ReferralCache),
+        ]:
+            try:
+                model.create_index()
+                print(f"  ✓ {model_name} index created")
+            except Exception as e:
+                # Index might already exist or RediSearch not available
+                print(f"  ℹ {model_name} index: {e}")
+        
+    except Exception as e:
+        print(f"⚠ Redis/Valkey connection failed: {e}")
+        print("  Cache operations will fall back to Airtable")
+    
     yield
+    
+    # Cleanup on shutdown
+    close_redis_client()
 
 
 app = FastAPI(lifespan=lifespan)

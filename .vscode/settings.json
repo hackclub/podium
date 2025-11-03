@@ -24,6 +24,9 @@
     }
   ],
   "search.exclude": {
-    "**/.vscode/*.md": true
+    "**/.venv/*": true,
+    "**/.vscode/*.md": true,
+    ".ruff_cache/*": true,
+    "**/__pycache__/*": true,
   }
   }

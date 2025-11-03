@@ -29,27 +29,29 @@ from podium.db import (
 from podium.db.project import Project, ProjectBase, get_projects_from_record_ids
 from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH, BAD_ACCESS, Slug
 from slugify import slugify
+from podium.cache.operations import (
+    get_event,
+    get_event_by_slug,
+    get_projects_for_event,
+)
 
 router = APIRouter(prefix="/events", tags=["events"])
 
 
 @router.get("/{event_id}")
-def get_event(
+def get_event_endpoint(
     event_id: Annotated[str, Path(title="Event Airtable ID")],
 ) -> Event:
     """
     Get a public event by its ID. For admin features, use the admin endpoints.
     """
-    try:
-        event = db.events.get(event_id)
-    except HTTPError as e:
-        raise (
-            HTTPException(status_code=404, detail="Event not found")
-            if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
-            else e
-        )
-
-    return Event.model_validate(event["fields"])
+    # Use cache-first lookup
+    event = get_event(event_id, private=False)
+    
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    return event
 
 
 # Used to be /attending
@@ -287,7 +289,6 @@ def get_events_for_user(
 
 # The reason we're specifying response_model here is because of https://github.com/long2ice/fastapi-cache/issues/384
 @router.get("/{event_id}/projects", response_model=List[Project])
-@cache(expire=30, namespace="events")
 async def get_event_projects(
     event_id: Annotated[str, Path(title="Event ID")],
     leaderboard: Annotated[
@@ -299,40 +300,37 @@ async def get_event_projects(
     ],
 ) -> List[Project]:
     """
-    Get the projects for a specific event in a random order
+    Get the projects for a specific event
     """
-
+    # Use cache-first lookup for projects
     if leaderboard:
-        try:
-            event = InternalEvent.model_validate(db.events.get(event_id)["fields"])
-        except HTTPError as e:
-            raise (
-                HTTPException(status_code=404, detail="Event not found")
-                if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
-                else e
-            )
+        # Verify event exists and has leaderboard enabled
+        event = get_event(event_id, private=True)
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
         if not event.leaderboard_enabled:
             raise HTTPException(
                 status_code=403, detail="Leaderboard is not enabled for this event"
             )
-        return get_projects_for_event(
-            event_id, shuffle=False, event=event, model=Project
-        )
+        # Return sorted by points (cache handles sorting)
+        return get_projects_for_event(event_id, sort_by_points=True)
     else:
-        return get_projects_for_event(event_id, shuffle=True, event=None, model=Project)
+        # Return in random order
+        projects = get_projects_for_event(event_id, sort_by_points=False)
+        random.shuffle(projects)
+        return projects
 
 
 # The reason we're specifying response_model here is because of https://github.com/long2ice/fastapi-cache/issues/384
 @router.get("/id/{slug}", response_model=str)
-@cache(expire=60, namespace="events")
 async def get_at_id(
     slug: Annotated[Slug, Path(title="Event Slug")],
 ) -> str:
     """
     Get an event's Airtable ID by its slug.
     """
-    # Query database
-    event = db.events.first(formula=match({"slug": slug}))
+    # Use cache-first slug lookup
+    event = get_event_by_slug(slug, private=False)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 

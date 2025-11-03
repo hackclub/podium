@@ -66,6 +66,14 @@ settings.validators.register(
             "review_factory_token",
             default="",
         ),
+        Validator(
+            "redis_url",
+            default="redis://localhost:6379",
+        ),
+        Validator(
+            "airtable_webhook_secret",
+            # must_exist=False,  # Optional - only needed if using cache invalidation webhooks
+        ),
     ],
 )
 

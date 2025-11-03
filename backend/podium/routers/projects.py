@@ -20,6 +20,7 @@ from podium.db.project import (
 from podium.db.event import PrivateEvent
 from podium.generated.review_factory_models import CheckStatus
 from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH, BAD_ACCESS, EmptyModel
+from podium.cache.operations import get_project, get_event
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -55,14 +56,10 @@ def create_project(
         raise BAD_AUTH
     owner = [user.id]
 
-    # Fetch the event to validate demo field and check attendees
-    try:
-        event_record = db.events.get(project.event[0])
-        event = PrivateEvent.model_validate(event_record["fields"])
-    except HTTPError as e:
-        if e.response.status_code in AIRTABLE_NOT_FOUND_CODES:
-            raise HTTPException(status_code=404, detail="Event not found")
-        raise e
+    # Fetch the event to validate demo field and check attendees (cache-first)
+    event = get_event(project.event[0], private=True)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
 
     # Validate demo field based on event's demo_links_optional setting
     validate_demo_field(project, event)
@@ -168,16 +165,12 @@ def delete_project(
 
 @router.get("/{project_id}")
 # The regex here is to ensure that the path parameter starts with "rec" and is followed by any number of alphanumeric characters
-def get_project(project_id: Annotated[str, Path(pattern=r"^rec\w*$")]):
-    try:
-        project = db.projects.get(project_id)
-    except HTTPError as e:
-        raise (
-            HTTPException(status_code=404, detail="Project not found")
-            if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
-            else e
-        )
-    return Project.model_validate(project["fields"])
+def get_project_endpoint(project_id: Annotated[str, Path(pattern=r"^rec\w*$")]):
+    # Use cache-first lookup
+    project = get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project
 
 
 @router.post("/check/start")

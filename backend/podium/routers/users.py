@@ -16,6 +16,7 @@ from podium.db.user import (
 from podium.routers.auth import get_current_user
 from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH
 from requests import HTTPError
+from podium.cache.operations import get_user, get_user_by_email as get_user_by_email_cached
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -27,7 +28,8 @@ class UserExistsResponse(BaseModel):
 @router.get("/exists")
 def user_exists(email: Annotated[EmailStr, Query(...)]) -> UserExistsResponse:
     email = email.strip().lower()
-    exists = True if db.user.get_user_by_email(email, UserBase) else False
+    # Use cache-first lookup
+    exists = True if get_user_by_email_cached(email) else False
     return UserExistsResponse(exists=exists)
 
 
@@ -70,20 +72,16 @@ async def update_current_user(
 
 # The reason we're specifying response_model here is because of https://github.com/long2ice/fastapi-cache/issues/384
 @router.get("/{user_id}", response_model=UserPublic)
-# @cache(expire=15*60, namespace="users")
 async def get_user_public(
     user_id: Annotated[str, Path(title="User Airtable ID")],
 ) -> UserPublic:
-    try:
-        user = db.user.get_users_from_record_ids([user_id], UserPublic)
-    except HTTPError as e:
-        raise (
-            HTTPException(status_code=404, detail="User not found")
-            if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
-            else e
-        )
-
-    return user[0]
+    # Use cache-first lookup
+    user = get_user(user_id, private=False)
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return user
 
 
 # Eventually, this should probably be rate-limited
