@@ -20,6 +20,8 @@
     projectModalState,
     formatReasons,
   }: Props = $props();
+
+  let editModal: Modal;
 </script>
 
 <div class="m-4">
@@ -154,7 +156,7 @@
           <span class="text-xs text-base-content/70 mb-1">Actions</span>
           <button
             class="badge text-sm px-3 py-1 underline badge-secondary cursor-pointer"
-            onclick={() => projectModalState[project.id]?.openModal()}
+            onclick={() => editModal?.openModal()}
           >
             Edit
           </button>
@@ -178,4 +180,4 @@
   </div>
 </div>
 
-<UpdateProjectModal preselectedProject={project} {events} modal={projectModalState[project.id]} />
+<UpdateProjectModal preselectedProject={project} {events} bind:modal={editModal} />
