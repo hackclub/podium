@@ -1,55 +1,21 @@
 /**
- * Airtable Automation Script for Cache Invalidation
+ * Airtable Automation: {{TABLE_NAME}}
  * 
- * Sends webhook to backend when records change to update Valkey/Redis cache.
+ * Auto-generated - DO NOT EDIT MANUALLY
+ * Edit: backend/podium/cache/airtable_automation_template.js
+ * Generate: python -m podium.cache.generate_automation_scripts
  * 
- * ══════════════════════════════════════════════════════════════
- * SETUP INSTRUCTIONS (Create 5 automations, one per table)
- * ══════════════════════════════════════════════════════════════
- * 
- * For EACH table (Users, Events, Projects, Votes, Referrals):
- * 
- * 1. Create New Automation
- *    - Name: "Sync [TableName] to Cache"
- * 
- * 2. Add Trigger: "When record is created or updated"
- *    - Select the specific table
- * 
- * 3. Add Action: "Run a script"
- *    - Paste this entire script below
- *    - Update TABLE_NAME constant (line 51)
- *    - Click "+ Add input variable(s)" button
- *      • Name: recordId
- *      • Value: Click blue "+" → Select "Record ID" from Step 1
- * 
- * 4. Test the automation
- *    - Click "Test" button
- *    - Or update a record in the table manually
- *    - Check execution log for success/errors
- * 
- * 5. Enable the automation
- * 
- * ══════════════════════════════════════════════════════════════
- * TROUBLESHOOTING
- * ══════════════════════════════════════════════════════════════
- * 
- * ERROR: "recordId not configured"
- *   → You forgot step 3: Add input variable "recordId"
- * 
- * ERROR: "Record not found in [Table]"
- *   → TABLE_NAME doesn't match your table name exactly
- * 
- * ERROR: "Configuration missing"
- *   → Create "Invalidate Config" table with webhook_url and webhook_secret
- * 
- * ERROR: "Webhook failed with status XXX"
- *   → Backend is down or webhook_secret doesn't match
+ * SETUP:
+ * 1. Trigger: "When record is created or updated" → "{{TABLE_NAME}}" table
+ * 2. Action: "Run a script" → Paste this script
+ * 3. Add input variable: recordId → Record ID from Step 1
+ * 4. Test and enable
  */
 
 // ══════════════════════════════════════════════════════════════
-// CONFIGURATION (Update for each automation)
+// CONFIGURATION
 // ══════════════════════════════════════════════════════════════
-const TABLE_NAME = "Projects"; // Change to: "Users", "Events", "Projects", "Votes", or "Referrals"
+const TABLE_NAME = "{{TABLE_NAME}}";
 
 // ══════════════════════════════════════════════════════════════
 // GET INPUT VARIABLE

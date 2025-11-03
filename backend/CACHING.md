@@ -24,13 +24,17 @@ airtable_webhook_secret = "<generated-secret>"
   - `webhook_url` → `https://your-backend.com/api/webhooks/airtable`
   - `webhook_secret` → `<paste-generated-secret>`
 
+**Generate ready-to-paste scripts:**
+```bash
+python -m podium.cache.generate_automation_scripts
+# Creates cache/generated/{users,events,projects,votes,referrals}_automation.js
+```
+
 **Create 5 automations** (Users, Events, Projects, Votes, Referrals):
 1. Trigger: "When record is created or updated" → Select table
-2. Action: "Run a script"
-   - Paste from `podium/cache/airtable_automation.js`
-   - Update `TABLE_NAME`
-   - Click "+ Add input variable(s)": `recordId` → Record ID from Step 1
-3. Test and enable
+2. Action: "Run a script" → Copy from `cache/generated/{table}_automation.js`
+3. Click "+ Add input variable(s)": `recordId` → Record ID from Step 1
+4. Test and enable
 
 ### 4. Schedule Daily Sweep
 

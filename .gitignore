@@ -2,4 +2,5 @@
 tmp/
 quality_check_results/
 sample_projects.csv
-logs/ 
+logs/
+backend/podium/cache/generated/
