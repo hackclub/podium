@@ -160,9 +160,22 @@ def _fetch_airtable_by_index(
 
 
 def _cast_to_requested(cached: BaseModel, model: Type[TModel]) -> Optional[TModel]:
-    """Cast cached model to requested model type."""
+    """Cast cached model to requested model type, denormalizing SingleRecordFields."""
     try:
-        return _to_model(model, cached.model_dump())
+        from typing import get_origin, get_args
+        
+        data = cached.model_dump()
+        
+        # Re-wrap normalized string fields back to lists for SingleRecordField types
+        for name, field_info in model.model_fields.items():
+            if name in data and isinstance(data[name], str):
+                # Check if field expects a list
+                origin = get_origin(field_info.annotation)
+                if origin is list:
+                    # Convert string back to single-element list
+                    data[name] = [data[name]]
+        
+        return _to_model(model, data)
     except Exception:
         return None
 
@@ -282,12 +295,17 @@ def get_by_index(
         pass
 
     # Fetch from Airtable
-    fetched = _fetch_airtable_by_index(spec, where)
-    items = []
-    for f in fetched:
-        casted = _cast_to_requested(f, target_model)
-        if casted is not None:
-            items.append(casted)
+    try:
+        fetched = _fetch_airtable_by_index(spec, where)
+        items = []
+        for f in fetched:
+            casted = _cast_to_requested(f, target_model)
+            if casted is not None:
+                items.append(casted)
+    except Exception as e:
+        import logging
+        logging.warning(f"Cache index query failed for {entity} with {where}: {e}")
+        items = []
     # Sort in Python if needed (cache couldn't sort)
     if sort and items:
         field, direction = sort

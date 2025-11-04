@@ -117,7 +117,7 @@ ENTITIES: Dict[str, EntitySpec] = {
         cache_model=ReferralCache,
         cache_pydantic=Referral,
         default_read_model=Referral,
-        index_to_airtable={"event": "event"},
+        index_to_airtable={"event": "event_id"},  # Airtable uses flattened lookup
         normalize_before_cache=_normalize_referral,
     ),
 }
