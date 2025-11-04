@@ -40,6 +40,39 @@ def _normalize_user(data: dict) -> dict:
     return data
 
 
+def _normalize_vote(data: dict) -> dict:
+    """Flatten SingleRecordField lists to strings for indexing."""
+    for field in ["event", "project", "voter"]:
+        if field in data and isinstance(data[field], list) and len(data[field]) > 0:
+            data[field] = data[field][0]
+    return data
+
+
+def _normalize_referral(data: dict) -> dict:
+    """Flatten SingleRecordField lists to strings for indexing."""
+    for field in ["event", "user"]:
+        if field in data and isinstance(data[field], list) and len(data[field]) > 0:
+            data[field] = data[field][0]
+    return data
+
+
+def _normalize_project(data: dict) -> dict:
+    """Flatten SingleRecordField lists to strings for indexing."""
+    # event and owner are SingleRecordFields that need flattening for index queries
+    for field in ["event", "owner"]:
+        if field in data and isinstance(data[field], list) and len(data[field]) > 0:
+            data[field] = data[field][0]
+    return data
+
+
+def _normalize_event(data: dict) -> dict:
+    """Flatten SingleRecordField lists to strings for indexing."""
+    # owner is SingleRecordField that needs flattening for index queries
+    if "owner" in data and isinstance(data["owner"], list) and len(data["owner"]) > 0:
+        data["owner"] = data["owner"][0]
+    return data
+
+
 # Entity registry: all cacheable entities
 ENTITIES: Dict[str, EntitySpec] = {
     "projects": EntitySpec(
@@ -49,6 +82,7 @@ ENTITIES: Dict[str, EntitySpec] = {
         cache_pydantic=Project,
         default_read_model=Project,
         index_to_airtable={"event": "event_id"},  # Airtable uses flattened lookup
+        normalize_before_cache=_normalize_project,
     ),
     "events": EntitySpec(
         name="events",
@@ -57,6 +91,7 @@ ENTITIES: Dict[str, EntitySpec] = {
         cache_pydantic=PrivateEvent,  # Cache the richest model
         default_read_model=Event,  # Default to public view
         index_to_airtable={"slug": "slug", "owner": "owner"},
+        normalize_before_cache=_normalize_event,
     ),
     "users": EntitySpec(
         name="users",
@@ -74,6 +109,7 @@ ENTITIES: Dict[str, EntitySpec] = {
         cache_pydantic=Vote,
         default_read_model=Vote,
         index_to_airtable={"event": "event_id", "project": "project_id", "voter": "user_id"},
+        normalize_before_cache=_normalize_vote,
     ),
     "referrals": EntitySpec(
         name="referrals",
@@ -82,5 +118,6 @@ ENTITIES: Dict[str, EntitySpec] = {
         cache_pydantic=Referral,
         default_read_model=Referral,
         index_to_airtable={"event": "event"},
+        normalize_before_cache=_normalize_referral,
     ),
 }
