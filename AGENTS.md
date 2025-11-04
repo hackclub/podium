@@ -1,3 +1,67 @@
+# Frequently Used Commands
+
+Run before committing:
+```bash
+cd backend && uv run ruff check --fix && cd ../frontend && bun run check && bun run build
+```
+
+Test backend:
+```bash
+cd backend && uv run pytest
+```
+
+Run locally:
+```bash
+# Backend (from backend/)
+uv run podium
+
+# Frontend (from frontend/)  
+bun dev
+```
+
+# Cache System (Zero-Touch Configuration)
+
+**Adding fields to models requires ZERO cache code changes!**
+
+The cache system auto-detects configuration from Pydantic models.
+
+## Adding a New Field
+
+Just add to your Pydantic model - that's it!
+
+```python
+class Event(BaseEvent):
+    owner: SingleRecordField  # Auto-indexed, auto-mapped to owner_id
+    sponsor: str = ""         # Works automatically
+    capacity: int = 0         # Works automatically
+```
+
+The cache automatically:
+- Stores and retrieves it
+- Indexes it (if `SingleRecordField`)
+- Maps to Airtable lookups (SingleRecordField → `*_id`)
+- Normalizes/denormalizes correctly
+
+## Field Type Guide
+
+- **`SingleRecordField`** → Auto-indexed, auto-mapped to Airtable `{field}_id`
+- **`MultiRecordField`** → Stored as-is, not indexed
+- **`Field(json_schema_extra={"indexed": True})`** → Indexed for queries
+- **`Field(json_schema_extra={"sortable": True})`** → Sortable in cache
+- **Scalar fields (str, int, bool)** → Just work, no config needed
+
+## Cache Architecture
+
+See [`backend/CACHING.md`](backend/CACHING.md) for complete details.
+
+Key components:
+- `cache/auto_config.py` - Auto-detects configuration from models
+- `cache/operations.py` - Generic cache operations (get_one, get_by_index, etc.)
+- `cache/specs.py` - Entity registry (auto-configured)
+- `constants.py` - `SingleRecordField` with built-in indexing metadata
+
+---
+
 # Podium: Full System Overview and Architecture Report
 
 This document provides a comprehensive overview of Podium: its purpose, architecture, subsystems, data model, flows, operational concerns, and development practices. All file references link to exact files and where useful, specific lines.
