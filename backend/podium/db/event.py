@@ -154,17 +154,4 @@ class UserEvents(BaseModel):
     attending_events: List[Event]
 
 
-T = TypeVar("T", bound=BaseEvent)
 
-
-def get_events_from_record_ids(record_ids: List[str], model: Type[T]) -> List[T]:
-    events_table = tables["events"]
-    if not record_ids:
-        return []
-
-    # Use PyAirtable's OR and EQ functions for multiple record ID matching
-    expressions = [EQ(AirtableField("id"), record_id) for record_id in record_ids]
-    formula = OR(*expressions)
-
-    records = events_table.all(formula=formula)
-    return [model.model_validate(record["fields"]) for record in records]

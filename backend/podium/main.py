@@ -4,8 +4,6 @@ from pathlib import Path
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi_cache import FastAPICache
-from fastapi_cache.backends.inmemory import InMemoryBackend
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 import sentry_sdk
@@ -23,9 +21,6 @@ sentry_sdk.init(
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    # Initialize legacy in-memory cache for backwards compatibility
-    FastAPICache.init(InMemoryBackend())
-    
     # Initialize Redis/Valkey client for cache operations
     from podium.cache.client import get_redis_client, close_redis_client
     from podium.cache.models import (
@@ -77,7 +72,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-Airtable-Hits"],
+    expose_headers=["X-Airtable-Hits", "X-Cache"],
 )
 
 
@@ -87,15 +82,20 @@ async def track_airtable_hits(request: Request, call_next):
     from podium.cache.operations import _cache_status
 
     request.state.airtable_hits = 0
-    token = _current_request.set(request)
+    token_req = _current_request.set(request)
+
+    # Create a per-request mutable cache status container
+    cache_state = {"value": "BYPASS"}
+    token_cache = _cache_status.set(cache_state)
+
     try:
         response = await call_next(request)
         response.headers["X-Airtable-Hits"] = str(request.state.airtable_hits)
-        # Add cache status header
-        response.headers["X-Cache"] = _cache_status.get()
+        response.headers["X-Cache"] = cache_state["value"]
         return response
     finally:
-        _current_request.reset(token)
+        _current_request.reset(token_req)
+        _cache_status.reset(token_cache)
 
 
 # Annotated

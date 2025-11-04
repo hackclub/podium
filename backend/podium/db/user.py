@@ -104,15 +104,4 @@ def get_user_by_email(email: str, model: Type[T]) -> Optional[T]:
     return model.model_validate(records[0]["fields"])
 
 
-def get_users_from_record_ids(record_ids: List[str], model: Type[T]) -> List[T]:
-    users_table = tables["users"]
-    if not record_ids:
-        return []
 
-    # Use PyAirtable's OR and EQ functions for multiple record ID matching
-    expressions = [EQ(AirtableField("id"), record_id) for record_id in record_ids]
-    formula = OR(*expressions)
-
-    # This is awesome because I'm pretty sure this only makes one request and considering how bad Airtable's rate limits are, this helps a lot.
-    records = users_table.all(formula=formula)
-    return [model.model_validate(record["fields"]) for record in records]

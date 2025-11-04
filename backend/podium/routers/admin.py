@@ -1,17 +1,14 @@
-from fastapi import APIRouter, Body
-from podium import db
-from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_ACCESS
-from pyairtable.formulas import match
-from podium.db.event import PrivateEvent, InternalEvent
-from podium.routers.auth import get_current_user
-from fastapi import Depends, HTTPException, Path
+from fastapi import APIRouter, Body, Depends, HTTPException, Path
 from typing import Annotated, List
-from podium.db.user import get_users_from_record_ids, UserAttendee
-from podium.routers.auth import UserInternal
-from podium.db.project import AdminProject, Project
+from podium import db
+from podium.constants import BAD_ACCESS
+from podium.db.event import PrivateEvent
+from podium.routers.auth import get_current_user
+from podium.db.user import UserAttendee, UserInternal
+from podium.cache.operations import get_user, get_projects_for_event, get_event, get_votes_for_event, get_referrals_for_event
+from podium.db.project import AdminProject
 from podium.db.vote import Vote
 from podium.db.referral import Referral
-from podium.routers.events import get_projects_for_event
 
 router = APIRouter(prefix="/events/admin", tags=["events"])
 
@@ -21,20 +18,15 @@ def is_user_event_owner(user: UserInternal, event_id: str) -> bool:
 
 
 @router.get("/{event_id}")
-def get_event(
+def get_event_admin(
     event_id: Annotated[str, Path(title="Event ID")],
     user: Annotated[UserInternal, Depends(get_current_user)],
 ) -> PrivateEvent:
     if not is_user_event_owner(user, event_id):
         raise BAD_ACCESS
-    try:
-        event = PrivateEvent.model_validate(db.events.get(event_id)["fields"])
-    except HTTPException as e:
-        raise (
-            HTTPException(status_code=404, detail="Event not found")
-            if e.status_code in AIRTABLE_NOT_FOUND_CODES
-            else e
-        )
+    event = get_event(event_id, model=PrivateEvent)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
     return event
 
 
@@ -47,10 +39,11 @@ def get_event_attendees(
     if not is_user_event_owner(user, event_id):
         raise BAD_ACCESS
 
-    attendees = get_users_from_record_ids(
-        db.events.get(event_id)["fields"].get("attendees", []), UserAttendee
-    )
-    return attendees
+    # Fetch attendees from cache
+    event = get_event(event_id, model=PrivateEvent)
+    attendee_ids = event.attendees if event else []
+    attendees = [get_user(user_id, model=UserAttendee) for user_id in attendee_ids]
+    return [a for a in attendees if a is not None]
 
 
 @router.post("/{event_id}/remove-attendee")
@@ -85,19 +78,12 @@ def get_event_leaderboard(
     if not is_user_event_owner(user, event_id):
         raise BAD_ACCESS
 
-    try:
-        event = InternalEvent.model_validate(db.events.get(event_id)["fields"])
-    except HTTPException as e:
-        raise (
-            HTTPException(status_code=404, detail="Event not found")
-            if e.status_code in AIRTABLE_NOT_FOUND_CODES
-            else e
-        )
+    event = get_event(event_id, model=PrivateEvent)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
 
-    # Get projects sorted by points (leaderboard order)
-    return get_projects_for_event(
-        event_id, shuffle=False, event=event, model=AdminProject
-    )
+    # Get projects sorted by points (leaderboard order) with AdminProject model
+    return get_projects_for_event(event_id, sort_by_points=True, model=AdminProject)
 
 
 @router.get("/{event_id}/votes")
@@ -109,19 +95,13 @@ def get_event_votes(
     if not is_user_event_owner(user, event_id):
         raise BAD_ACCESS
 
-    try:
-        db.events.get(event_id)
-    except HTTPException as e:
-        raise (
-            HTTPException(status_code=404, detail="Event not found")
-            if e.status_code in AIRTABLE_NOT_FOUND_CODES
-            else e
-        )
+    event = get_event(event_id, model=PrivateEvent)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
 
     # Get all votes for this event
-    formula = match({"event_id": event_id})
-    votes = db.votes.all(formula=formula)
-    return [Vote.model_validate(vote["fields"]) for vote in votes]
+    votes = get_votes_for_event(event_id)
+    return votes
 
 
 @router.get("/{event_id}/referrals")
@@ -133,16 +113,10 @@ def get_event_referrals(
     if not is_user_event_owner(user, event_id):
         raise BAD_ACCESS
 
-    try:
-        db.events.get(event_id)
-    except HTTPException as e:
-        raise (
-            HTTPException(status_code=404, detail="Event not found")
-            if e.status_code in AIRTABLE_NOT_FOUND_CODES
-            else e
-        )
+    event = get_event(event_id, model=PrivateEvent)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
 
     # Get all referrals for this event
-    formula = match({"event_id": event_id})
-    referrals = db.referrals.all(formula=formula)
-    return [Referral.model_validate(referral["fields"]) for referral in referrals]
+    referrals = get_referrals_for_event(event_id)
+    return referrals

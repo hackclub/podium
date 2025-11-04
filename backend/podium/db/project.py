@@ -98,20 +98,7 @@ class InternalProject(AdminProject):
     ...
 
 
-T = TypeVar("T", bound=ProjectBase)
 
-
-def get_projects_from_record_ids(record_ids: List[str], model: Type[T]) -> List[T]:
-    projects_table = tables["projects"]
-    if not record_ids:
-        return []
-
-    # Use PyAirtable's OR and EQ functions for multiple record ID matching
-    expressions = [EQ(AirtableField("id"), record_id) for record_id in record_ids]
-    formula = OR(*expressions)
-
-    records = projects_table.all(formula=formula)
-    return [model.model_validate(record["fields"]) for record in records]
 
 
 def validate_demo_field(project: ProjectCreationPayload | ProjectUpdate, event) -> None:

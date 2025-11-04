@@ -2,20 +2,15 @@ from typing import Annotated
 from pydantic import BaseModel, EmailStr
 from podium import db
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
-from fastapi_cache.decorator import cache
-from fastapi_cache import FastAPICache
 from podium.db.user import (
     UserSignupPayload,
     UserInternal,
     UserPublic,
     UserPrivate,
     UserUpdate,
-    UserBase,
-    get_user_by_email,
 )
 from podium.routers.auth import get_current_user
-from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH
-from requests import HTTPError
+from podium.constants import BAD_AUTH
 from podium.cache.operations import get_user, get_user_by_email as get_user_by_email_cached
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -61,9 +56,7 @@ async def update_current_user(
 
     updated_user = db.users.update(current_user.id, update_data)
 
-    # Clear the cache for this user's public profile
-    await FastAPICache.clear(namespace="users")
-
+    # Cache will be invalidated by Airtable webhook
     return UserPrivate.model_validate(updated_user["fields"])
 
 
@@ -76,7 +69,7 @@ async def get_user_public(
     user_id: Annotated[str, Path(title="User Airtable ID")],
 ) -> UserPublic:
     # Use cache-first lookup
-    user = get_user(user_id, private=False)
+    user = get_user(user_id, model=UserPublic)
     
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -88,7 +81,7 @@ async def get_user_public(
 @router.post("/")
 def create_user(user: UserSignupPayload):
     # Check if the user already exists
-    existing_user = get_user_by_email(user.email, UserBase)
+    existing_user = get_user_by_email_cached(user.email)
     if existing_user:
         raise HTTPException(status_code=400, detail="User already exists")
     db.users.create(user.model_dump())

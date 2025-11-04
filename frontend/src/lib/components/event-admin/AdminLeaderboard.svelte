@@ -26,7 +26,7 @@
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {#each projects as project, index}
           <div class="relative">
-            <div class="absolute -top-2 -right-2 z-10">
+            <div class="absolute -top-2 -right-2 z-30">
               <div class="badge badge-primary badge-lg">#{index + 1}</div>
             </div>
             <div class="absolute top-2 left-2 z-10">

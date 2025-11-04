@@ -8,13 +8,13 @@ Implements cache-aside pattern:
 4. Return validated Pydantic model
 """
 
-from typing import List, Optional, Type, TypeVar
+from typing import List, Optional, Type, TypeVar, overload
 import random
 from contextvars import ContextVar
 from podium.db import tables
-from podium.db.project import Project
-from podium.db.event import Event, PrivateEvent
-from podium.db.user import UserPrivate, UserPublic
+from podium.db.project import Project, ProjectBase
+from podium.db.event import Event, PrivateEvent, BaseEvent
+from podium.db.user import UserPrivate, UserPublic, UserBase
 from podium.db.vote import Vote
 from podium.db.referral import Referral
 from pyairtable.formulas import match
@@ -30,7 +30,14 @@ from podium.cache.client import get_redis_client
 T = TypeVar("T")
 
 # Context variable to track cache hits/misses per request
-_cache_status: ContextVar[str] = ContextVar("cache_status", default="BYPASS")
+# Holds a mutable dict so updates in threadpool propagate back to middleware
+_cache_status: ContextVar[dict] = ContextVar("cache_status")
+
+def _mark_cache(status: str) -> None:
+    """Mark cache status for the current request (safe for threadpool execution)."""
+    state = _cache_status.get(None)
+    if state is not None:
+        state["value"] = status
 
 # Cache TTL: 8 hours with ±5% jitter to prevent synchronized expiration
 # Configurable: adjust based on how often you manually edit Airtable vs cache hit rate
@@ -89,21 +96,21 @@ def _get_from_cache_or_airtable(
     """
     # Check tombstone first (record known to not exist)
     if _check_tombstone(table_name, record_id):
-        _cache_status.set("HIT")
+        _mark_cache("HIT")
         return None
     
     # Try cache first
     try:
         cached = cache_model.get(record_id)
         if cached:
-            _cache_status.set("HIT")
+            _mark_cache("HIT")
             # Revalidate with original Pydantic model
             return pydantic_model(**cached.dict())
     except Exception:
         # Cache miss or error, continue to Airtable
         pass
     
-    _cache_status.set("MISS")
+    _mark_cache("MISS")
     
     # Fetch from Airtable
     try:
@@ -116,7 +123,9 @@ def _get_from_cache_or_airtable(
         
         # Store in cache for next time with TTL (fire and forget)
         try:
-            cache_model(pk=record["id"], **validated.dict()).save(ttl=_get_ttl())
+            inst = cache_model(pk=record["id"], **validated.dict())
+            inst.save()
+            inst.expire(_get_ttl())
         except Exception:
             # Cache write failed, but we have the data
             pass
@@ -131,14 +140,22 @@ def _get_from_cache_or_airtable(
 
 # ===== PROJECT OPERATIONS =====
 
-def get_project(project_id: str) -> Optional[Project]:
+P = TypeVar("P", bound=ProjectBase)
+
+def get_project(project_id: str, model: Type[P] = Project) -> Optional[P]:
     """Get project by ID from cache or Airtable."""
-    return _get_from_cache_or_airtable(
+    # Cache always stores as Project, we convert to requested type
+    cached = _get_from_cache_or_airtable(
         ProjectCache, Project, "projects", project_id
     )
+    if not cached:
+        return None
+    # Re-fetch from Airtable with full fields if requested model needs more data
+    # For now, just convert what we have
+    return model(**cached.dict())
 
 
-def get_projects_for_event(event_id: str, sort_by_points: bool = False) -> List[Project]:
+def get_projects_for_event(event_id: str, sort_by_points: bool = False, model: Type[P] = Project) -> List[P]:
     """
     Get all projects for an event.
     
@@ -154,28 +171,41 @@ def get_projects_for_event(event_id: str, sort_by_points: bool = False) -> List[
         cached_projects = query.all()
         
         if cached_projects:
-            # Revalidate with Pydantic
-            return [Project(**p.dict()) for p in cached_projects]
+            _mark_cache("HIT")
+            # Convert cached Project to requested model type
+            # Note: if model needs extra fields (like join_code), cache miss to Airtable
+            try:
+                return [model(**p.dict()) for p in cached_projects]
+            except Exception:
+                # Cache hit but conversion failed (missing fields), fall through to Airtable
+                pass
     except Exception:
         pass
+    
+    _mark_cache("MISS")
     
     # Cache miss - fetch from Airtable and populate cache
     try:
         table = tables["projects"]
-        # Query by event using Airtable formula (assumes event field contains single record ID)
-        formula = match({"event": event_id})
+        # Query by event_id (flattened lookup field, not the linked record array)
+        formula = match({"event_id": event_id})
         records = table.all(formula=formula)
         
         projects = []
         for record in records:
             # Inject id from record["id"]
             fields = {**record["fields"], "id": record["id"]}
-            project = Project.model_validate(fields)
+            # Validate as requested model type to preserve all fields
+            project = model.model_validate(fields)
             projects.append(project)
             
-            # Populate cache with TTL (fire and forget)
+            # Populate cache with TTL (fire and forget) - cache stores base Project
             try:
-                ProjectCache(pk=record["id"], **project.dict()).save(ttl=_get_ttl())
+                # Always cache as Project (base type with common fields)
+                base_project = Project.model_validate(fields)
+                inst = ProjectCache(pk=record["id"], **base_project.dict())
+                inst.save()
+                inst.expire(_get_ttl())
             except Exception:
                 pass
         
@@ -200,18 +230,26 @@ def invalidate_project(project_id: str):
 def upsert_project(project: Project):
     """Update or insert project in cache (called by webhook)."""
     try:
-        ProjectCache(pk=project.id, **project.dict()).save(ttl=_get_ttl())
+        inst = ProjectCache(pk=project.id, **project.dict())
+        inst.save()
+        inst.expire(_get_ttl())
     except Exception:
         pass  # Cache write failed
 
 
 # ===== EVENT OPERATIONS =====
 
-def get_event(event_id: str, private: bool = False) -> Optional[Event | PrivateEvent]:
+E = TypeVar("E", bound=BaseEvent)
+
+def get_event(event_id: str, model: Type[E] = Event) -> Optional[E]:
     """
     Get event by ID from cache or Airtable.
     
-    Always caches PrivateEvent, derives public Event on read if needed.
+    Always caches PrivateEvent, derives requested model type on read.
+    
+    Args:
+        event_id: Airtable record ID
+        model: Model type to return (Event or PrivateEvent)
     """
     # Always fetch PrivateEvent from cache
     private_event = _get_from_cache_or_airtable(
@@ -221,29 +259,106 @@ def get_event(event_id: str, private: bool = False) -> Optional[Event | PrivateE
     if not private_event:
         return None
     
-    if private:
-        return private_event
+    # Return as requested type
+    return model(**private_event.dict())
+
+
+def get_events_by_ids(event_ids: list[str], model: Type[E] = Event) -> list[E]:
+    """
+    Batch fetch events by IDs from cache or Airtable.
     
-    # Derive public Event by stripping private fields
-    return Event(**private_event.dict())
+    Uses single Airtable query for all missing IDs instead of N queries.
+    Preserves input order.
+    """
+    if not event_ids:
+        return []
+    
+    result_map: dict[str, PrivateEvent] = {}
+    missing: list[str] = []
+    
+    # Try cache first for each ID
+    for eid in event_ids:
+        try:
+            cached = EventCache.get(eid)
+            if cached:
+                result_map[eid] = PrivateEvent(**cached.dict())
+            else:
+                missing.append(eid)
+        except Exception:
+            missing.append(eid)
+    
+    # Single Airtable fallback for all missing IDs
+    if missing:
+        _mark_cache("MISS")
+        try:
+            table = tables["events"]
+            # Use OR() with RECORD_ID() for batch fetch
+            from pyairtable.formulas import OR, EQ, FIELD
+            formulas = [f"RECORD_ID()='{eid}'" for eid in missing]
+            formula = "OR(" + ",".join(formulas) + ")"
+            records = table.all(formula=formula)
+            
+            for rec in records:
+                fields = {**rec["fields"], "id": rec["id"]}
+                pe = PrivateEvent.model_validate(fields)
+                result_map[pe.id] = pe
+                
+                # Store in cache
+                try:
+                    inst = EventCache(pk=pe.id, **pe.dict())
+                    inst.save()
+                    inst.expire(_get_ttl())
+                except Exception:
+                    pass
+        except Exception:
+            pass
+    elif result_map:
+        _mark_cache("HIT")
+    
+    # Preserve input order and convert to requested model
+    return [model(**result_map[eid].dict()) for eid in event_ids if eid in result_map]
 
 
-def get_event_by_slug(slug: str, private: bool = False) -> Optional[Event | PrivateEvent]:
+def get_events_by_owner(owner_id: str, model: Type[E] = Event) -> list[E]:
+    """
+    Get all events owned by a user using RediSearch index.
+    
+    Fast cache-only lookup, returns empty list on miss.
+    """
+    try:
+        # Query cache using owner index
+        cached = EventCache.find(EventCache.owner == owner_id).all()
+        if cached:
+            _mark_cache("HIT")
+            return [model(**c.dict()) for c in cached]
+    except Exception:
+        pass
+    
+    # Don't mark MISS here - let caller decide fallback strategy
+    return []
+
+
+def get_event_by_slug(slug: str, model: Type[E] = Event) -> Optional[E]:
     """
     Get event by slug using cache index.
     Falls back to Airtable if not in cache.
-    Always caches PrivateEvent, derives Event if needed.
+    Always caches PrivateEvent, derives requested model type on read.
+    
+    Args:
+        slug: Event slug
+        model: Model type to return (Event or PrivateEvent)
     """
     try:
         # Query cache using slug index (always PrivateEvent)
         result = EventCache.find(EventCache.slug == slug).first()
         if result:
+            _mark_cache("HIT")
             private_event = PrivateEvent(**result.dict())
-            if private:
-                return private_event
-            return Event(**private_event.dict())
+            return model(**private_event.dict())
     except Exception:
         pass
+    
+    _mark_cache("MISS")
     
     # Cache miss - fetch from Airtable by slug
     try:
@@ -258,13 +373,13 @@ def get_event_by_slug(slug: str, private: bool = False) -> Optional[Event | Priv
             
             # Store in cache with TTL
             try:
-                EventCache(pk=private_event.id, **private_event.dict()).save(ttl=_get_ttl())
+                inst = EventCache(pk=private_event.id, **private_event.dict())
+                inst.save()
+                inst.expire(_get_ttl())
             except Exception:
                 pass
             
-            if private:
-                return private_event
-            return Event(**private_event.dict())
+            return model(**private_event.dict())
     except Exception:
         pass
     
@@ -293,18 +408,26 @@ def upsert_event(event: Event | PrivateEvent):
             # Upgrade Event to PrivateEvent by adding empty private fields
             private_event = PrivateEvent(**event.dict())
         
-        EventCache(pk=private_event.id, **private_event.dict()).save(ttl=_get_ttl())
+        inst = EventCache(pk=private_event.id, **private_event.dict())
+        inst.save()
+        inst.expire(_get_ttl())
     except Exception:
         pass
 
 
 # ===== USER OPERATIONS =====
 
-def get_user(user_id: str, private: bool = True) -> Optional[UserPrivate | UserPublic]:
+U = TypeVar("U", bound=UserBase)
+
+def get_user(user_id: str, model: Type[U] = UserPrivate) -> Optional[U]:
     """
     Get user by ID from cache or Airtable.
     
-    Always caches UserPrivate, derives UserPublic on read if needed.
+    Always caches UserPrivate, derives requested model type on read.
+    
+    Args:
+        user_id: Airtable record ID
+        model: Model type to return (UserPrivate, UserPublic, UserAttendee, etc.)
     """
     # Always fetch UserPrivate from cache
     private_user = _get_from_cache_or_airtable(
@@ -314,11 +437,8 @@ def get_user(user_id: str, private: bool = True) -> Optional[UserPrivate | UserP
     if not private_user:
         return None
     
-    if private:
-        return private_user
-    
-    # Derive public UserPublic by stripping private fields
-    return UserPublic(**private_user.dict())
+    # Return as requested type
+    return model(**private_user.dict())
 
 
 def get_user_by_email(email: str) -> Optional[UserPrivate]:
@@ -333,9 +453,12 @@ def get_user_by_email(email: str) -> Optional[UserPrivate]:
         # Query cache using email index
         result = UserCache.find(UserCache.email == normalized_email).first()
         if result:
+            _mark_cache("HIT")
             return UserPrivate(**result.dict())
     except Exception:
         pass
+    
+    _mark_cache("MISS")
     
     # Cache miss - fetch from Airtable
     try:
@@ -350,7 +473,9 @@ def get_user_by_email(email: str) -> Optional[UserPrivate]:
             
             # Store in cache with TTL
             try:
-                UserCache(pk=records[0]["id"], **validated.dict()).save(ttl=_get_ttl())
+                inst = UserCache(pk=records[0]["id"], **validated.dict())
+                inst.save()
+                inst.expire(_get_ttl())
             except Exception:
                 pass
             return validated
@@ -380,7 +505,9 @@ def upsert_user(user: UserPrivate):
         if "email" in user_data and user_data["email"]:
             user_data["email"] = user_data["email"].lower().strip()
         
-        UserCache(pk=user.id, **user_data).save(ttl=_get_ttl())
+        inst = UserCache(pk=user.id, **user_data)
+        inst.save()
+        inst.expire(_get_ttl())
     except Exception:
         pass
 
@@ -418,7 +545,9 @@ def get_votes_for_event(event_id: str) -> List[Vote]:
             
             # Populate cache with TTL
             try:
-                VoteCache(pk=record["id"], **vote.dict()).save(ttl=_get_ttl())
+                inst = VoteCache(pk=record["id"], **vote.dict())
+                inst.save()
+                inst.expire(_get_ttl())
             except Exception:
                 pass
         
@@ -451,7 +580,9 @@ def get_votes_for_project(project_id: str) -> List[Vote]:
             
             # Populate cache with TTL
             try:
-                VoteCache(pk=record["id"], **vote.dict()).save(ttl=_get_ttl())
+                inst = VoteCache(pk=record["id"], **vote.dict())
+                inst.save()
+                inst.expire(_get_ttl())
             except Exception:
                 pass
         
@@ -471,7 +602,9 @@ def invalidate_vote(vote_id: str):
 def upsert_vote(vote: Vote):
     """Update or insert vote in cache (called by webhook)."""
     try:
-        VoteCache(pk=vote.id, **vote.dict()).save(ttl=_get_ttl())
+        inst = VoteCache(pk=vote.id, **vote.dict())
+        inst.save()
+        inst.expire(_get_ttl())
     except Exception:
         pass
 
@@ -509,7 +642,9 @@ def get_referrals_for_event(event_id: str) -> List[Referral]:
             
             # Populate cache with TTL
             try:
-                ReferralCache(pk=record["id"], **referral.dict()).save(ttl=_get_ttl())
+                inst = ReferralCache(pk=record["id"], **referral.dict())
+                inst.save()
+                inst.expire(_get_ttl())
             except Exception:
                 pass
         
@@ -529,7 +664,9 @@ def invalidate_referral(referral_id: str):
 def upsert_referral(referral: Referral):
     """Update or insert referral in cache (called by webhook)."""
     try:
-        ReferralCache(pk=referral.id, **referral.dict()).save(ttl=_get_ttl())
+        inst = ReferralCache(pk=referral.id, **referral.dict())
+        inst.save()
+        inst.expire(_get_ttl())
     except Exception:
         pass
 

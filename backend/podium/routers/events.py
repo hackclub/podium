@@ -1,21 +1,9 @@
 import random
-from fastapi import APIRouter, Path
-from typing import Annotated, Optional, List, Type, TypeVar, Tuple
-from fastapi import Depends, HTTPException, Query
-from fastapi_cache.decorator import cache
-from podium.db.event import (
-    InternalEvent,
-    PrivateEvent,
-    get_events_from_record_ids,
-    BaseEvent,
-)
-from podium.db.vote import CreateVotes, VoteCreate
-from pyairtable.formulas import match
 from secrets import token_urlsafe
-
-
-from requests import HTTPError
-
+from typing import Annotated, List
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from pyairtable.formulas import match
+from slugify import slugify
 from podium.routers.auth import get_current_user
 from podium.db.user import UserInternal
 from podium import db
@@ -26,13 +14,17 @@ from podium.db import (
     Event,
     ReferralBase,
 )
-from podium.db.project import Project, ProjectBase, get_projects_from_record_ids
-from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH, BAD_ACCESS, Slug
-from slugify import slugify
+from podium.db.event import PrivateEvent
+from podium.db.vote import CreateVotes, VoteCreate
+from podium.db.project import Project
+from podium.constants import BAD_AUTH, BAD_ACCESS, Slug
 from podium.cache.operations import (
     get_event,
     get_event_by_slug,
+    get_events_by_ids,
+    get_events_by_owner,
     get_projects_for_event,
+    get_project,
 )
 
 router = APIRouter(prefix="/events", tags=["events"])
@@ -46,7 +38,7 @@ def get_event_endpoint(
     Get a public event by its ID. For admin features, use the admin endpoints.
     """
     # Use cache-first lookup
-    event = get_event(event_id, private=False)
+    event = get_event(event_id, model=Event)
     
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -67,7 +59,13 @@ def get_attending_events(
 
     # Eventually it might be better to return a user object. Otherwise, the client that the event owner is using would need to fetch the user. Since user emails probably shouldn't be public with just a record ID as a parameter, we would need to check if the person calling GET /users?user=ID has an event wherein that user ID is present. To avoid all this, the user object could be returned.
 
-    owned_events, attending_events = get_events_for_user(user, PrivateEvent, Event)
+    # Batch fetch owned events - try indexed query first, fall back to batch-by-IDs
+    owned_events = get_events_by_owner(user.id, model=PrivateEvent)
+    if not owned_events and user.owned_events:
+        owned_events = get_events_by_ids(user.owned_events, model=PrivateEvent)
+    
+    # Batch fetch attending events - single Airtable query for all missing IDs
+    attending_events = get_events_by_ids(user.attending_events, model=Event)
 
     return UserEvents(owned_events=owned_events, attending_events=attending_events)
 
@@ -187,15 +185,9 @@ def vote(votes: CreateVotes, user: Annotated[UserInternal, Depends(get_current_u
     Vote for the top 3 projects in an event. The client must provide the event ID and a list of the top 3 projects. If there are less than 20 projects in the event, only the top 2 projects are required.
     """
 
-    try:
-        event = db.events.get(votes.event)
-        event = PrivateEvent.model_validate(event["fields"])
-    except HTTPError as e:
-        raise (
-            HTTPException(status_code=404, detail="Event not found")
-            if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
-            else e
-        )
+    event = get_event(votes.event, model=PrivateEvent)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
 
     # Check if the user is not None and is attending the event
     if user is None or user.id not in event.attendees:
@@ -207,14 +199,9 @@ def vote(votes: CreateVotes, user: Annotated[UserInternal, Depends(get_current_u
             event=[event.id],
             voter=[user.id],
         )
-        try:
-            project = db.projects.get(project_id)
-        except HTTPError as e:
-            if e.response.status_code in AIRTABLE_NOT_FOUND_CODES:
-                raise HTTPException(status_code=404, detail="Project not found")
-            else:
-                raise e
-        project = Project.model_validate(project["fields"])
+        project = get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
 
         # Check if the project is in the event
         if project.event != [event.id]:
@@ -252,39 +239,7 @@ def vote(votes: CreateVotes, user: Annotated[UserInternal, Depends(get_current_u
         db.votes.create(vote.model_dump())
 
 
-T = TypeVar("T", bound=ProjectBase)
 
-
-def get_projects_for_event(
-    event_id: str, shuffle, event: Optional[InternalEvent], model: Type[T]
-) -> List[T]:
-    if event is None:
-        try:
-            event = InternalEvent.model_validate(db.events.get(event_id)["fields"])
-        except HTTPError as e:
-            raise (
-                HTTPException(status_code=404, detail="Event not found")
-                if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
-                else e
-            )
-
-    projects = get_projects_from_record_ids(event.projects, model)
-    if shuffle:
-        random.shuffle(projects)
-    else:
-        projects.sort(key=lambda project: project.points, reverse=True)
-    return projects
-
-
-def get_events_for_user(
-    user: UserInternal, owned_model: Type[PrivateEvent], attending_model: Type[Event]
-) -> Tuple[List[PrivateEvent], List[Event]]:
-    """Get events for a user with customizable model types for owned and attending events."""
-    owned_events = get_events_from_record_ids(user.owned_events, owned_model)
-    attending_events = get_events_from_record_ids(
-        user.attending_events, attending_model
-    )
-    return owned_events, attending_events
 
 
 # The reason we're specifying response_model here is because of https://github.com/long2ice/fastapi-cache/issues/384
@@ -305,7 +260,7 @@ async def get_event_projects(
     # Use cache-first lookup for projects
     if leaderboard:
         # Verify event exists and has leaderboard enabled
-        event = get_event(event_id, private=True)
+        event = get_event(event_id, model=PrivateEvent)
         if not event:
             raise HTTPException(status_code=404, detail="Event not found")
         if not event.leaderboard_enabled:
@@ -330,10 +285,8 @@ async def get_at_id(
     Get an event's Airtable ID by its slug.
     """
     # Use cache-first slug lookup
-    event = get_event_by_slug(slug, private=False)
+    event = get_event_by_slug(slug, model=Event)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-
-    event = InternalEvent.model_validate(event["fields"])
 
     return event.id

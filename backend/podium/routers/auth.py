@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 # from email.mime.text import MIMEText
 from typing import Annotated
 
-from podium import db, settings
+from podium import db, settings, cache
 
 from fastapi import APIRouter, HTTPException, Query, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -155,7 +155,7 @@ async def get_current_user(
         # raise credentials_exception
         raise BAD_AUTH
     # Check if the user exists and get the user data in one request
-    user = db.user.get_user_by_email(email, UserInternal)
+    user = cache.get_user_by_email(email)
     if user is None:
         raise BAD_AUTH
 

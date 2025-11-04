@@ -1,13 +1,17 @@
 """Redis-OM JsonModel definitions for caching."""
 
-from redis_om import JsonModel, Field as RedisField
+from redis_om import JsonModel, Field as RedisField, get_redis_connection
 from typing import Type
-from pydantic import BaseModel, create_model
+from pydantic import BaseModel
 from podium.db.project import Project
-from podium.db.event import Event, PrivateEvent
-from podium.db.user import UserPrivate, UserPublic
+from podium.db.event import PrivateEvent
+from podium.db.user import UserPrivate
 from podium.db.vote import Vote
 from podium.db.referral import Referral
+from podium.config import settings
+
+# Get shared Redis connection for all models
+_redis_conn = get_redis_connection(url=settings.redis_url, decode_responses=False)
 
 
 def make_json_model(
@@ -32,31 +36,40 @@ def make_json_model(
     indexed_fields = indexed_fields or set()
     sortable_fields = sortable_fields or set()
     
-    field_defs = {}
+    # Build field definitions with proper redis-om Field descriptors
+    class_dict = {'__annotations__': {}}
+    
     for name, field_info in base_model.model_fields.items():
         annotation = field_info.annotation
+        class_dict['__annotations__'][name] = annotation
         
         is_indexed = name in indexed_fields
         is_sortable = name in sortable_fields
         
         if is_indexed and is_sortable:
             # Both indexed and sortable (NUMERIC field only)
-            field_defs[name] = (annotation, RedisField(index=True, sortable=True))
+            class_dict[name] = RedisField(index=True, sortable=True)
         elif is_indexed:    
-            # Index only (TAG field for exact match - disable full-text tokenization)
-            field_defs[name] = (annotation, RedisField(index=True, full_text_search=False))
+            # Index only (TAG field for exact match)
+            class_dict[name] = RedisField(index=True, full_text_search=False)
         elif is_sortable:
             # Sortable only (for ordering without filtering)
-            field_defs[name] = (annotation, RedisField(sortable=True))
-        else:
-            # Regular field (not queryable, only fetchable by primary key)
-            field_defs[name] = (annotation, field_info)
+            class_dict[name] = RedisField(sortable=True)
     
-    return create_model(
+    # Create Meta class with Redis connection
+    class Meta:
+        database = _redis_conn
+    
+    class_dict['Meta'] = Meta
+    
+    # Create the model class
+    model_class = type(
         f"{base_model.__name__}Cache",
-        __base__=JsonModel,
-        **field_defs
+        (JsonModel,),
+        class_dict
     )
+    
+    return model_class
 
 
 # Create cache models with indexed fields for efficient querying
@@ -64,32 +77,29 @@ def make_json_model(
 # sortable_fields: NUMERIC fields for sorting (points, etc.)
 #
 # Strategy: Cache only "Private" variants (full data), derive public views on read
-# This eliminates dual-update issues and simplifies invalidation
 
 ProjectCache = make_json_model(
     Project,
-    indexed_fields={"event", "owner"},  # Query by event, owner (TAG fields)
-    sortable_fields={"points"}  # Sort by points (NUMERIC field)
+    indexed_fields={"event", "owner"},
+    sortable_fields={"points"}
 )
 
-# Cache PrivateEvent only - derive Event (public) on read
 EventCache = make_json_model(
     PrivateEvent,
-    indexed_fields={"slug", "owner"}  # Query by slug, owner (TAG fields)
+    indexed_fields={"slug", "owner"}
 )
 
-# Cache UserPrivate only - derive UserPublic on read
 UserCache = make_json_model(
     UserPrivate,
-    indexed_fields={"email"}  # Query by email (TAG field)
+    indexed_fields={"email"}
 )
 
 VoteCache = make_json_model(
     Vote,
-    indexed_fields={"event", "project", "voter"}  # Query votes by event/project/voter (TAG fields)
+    indexed_fields={"event", "project", "voter"}
 )
 
 ReferralCache = make_json_model(
     Referral,
-    indexed_fields={"event"}  # Query referrals by event (TAG field)
+    indexed_fields={"event"}
 )

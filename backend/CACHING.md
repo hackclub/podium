@@ -48,8 +48,9 @@ python -m podium.cache.generate_automation_scripts
 ### Read Operations
 ```python
 from podium.cache import get_event, get_project, get_user
+from podium.db.event import Event
 
-event = get_event(event_id, private=False)  # Cache-first, 1-5ms
+event = get_event(event_id, model=Event)  # Cache-first, 1-5ms, type-safe
 ```
 
 ### Delete Operations

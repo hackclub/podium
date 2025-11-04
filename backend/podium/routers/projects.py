@@ -1,25 +1,22 @@
 from secrets import token_urlsafe
 from typing import Annotated
 from datetime import datetime
-from podium import settings
-from requests import HTTPError
-from podium import db
+import httpx
+from podium import settings, db
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pyairtable.formulas import match
 from podium.routers.auth import get_current_user
 from podium.db.user import UserInternal
-import httpx
 from podium.db.project import (
     InternalProject,
     PrivateProject,
     Project,
     ProjectCreationPayload,
-    get_projects_from_record_ids,
     validate_demo_field,
 )
 from podium.db.event import PrivateEvent
 from podium.generated.review_factory_models import CheckStatus
-from podium.constants import AIRTABLE_NOT_FOUND_CODES, BAD_AUTH, BAD_ACCESS, EmptyModel
+from podium.constants import BAD_AUTH, BAD_ACCESS, EmptyModel
 from podium.cache.operations import get_project, get_event
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -39,8 +36,9 @@ def get_projects(
 
     # Combine owned and collaborated project IDs
     all_project_ids = user.projects + user.collaborations
-    projects = get_projects_from_record_ids(all_project_ids, PrivateProject)
-    return projects
+    # Fetch projects from cache using PrivateProject model for join_code
+    projects = [get_project(project_id, model=PrivateProject) for project_id in all_project_ids]
+    return [p for p in projects if p is not None]
 
 
 # It's up to the client to provide the event record ID
@@ -57,7 +55,7 @@ def create_project(
     owner = [user.id]
 
     # Fetch the event to validate demo field and check attendees (cache-first)
-    event = get_event(project.event[0], private=True)
+    event = get_event(project.event[0], model=PrivateEvent)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
@@ -109,8 +107,8 @@ def join_project(
         )
 
     # Ensure the user is part of the event that the project is associated with
-    # TODO: replace with pydantic model
-    event_attendees = db.events.get(project.event[0])["fields"].get("attendees", [])
+    event = get_event(project.event[0], model=PrivateEvent)
+    event_attendees = event.attendees if event else []
     if user.id not in event_attendees:
         raise BAD_ACCESS
 
@@ -128,19 +126,14 @@ def update_project(
     Update a project by replacing it
     """
     # Check if the user is an owner of the project or if they even exist
-    if user is None or user.id not in db.projects.get(project_id)["fields"].get(
-        "owner", []
-    ):
+    p = get_project(project_id)
+    if user is None or not p or user.id not in p.owner:
         raise BAD_ACCESS
 
     # Fetch the event to validate demo field
-    try:
-        event_record = db.events.get(project.event[0])
-        event = PrivateEvent.model_validate(event_record["fields"])
-    except HTTPError as e:
-        if e.response.status_code in AIRTABLE_NOT_FOUND_CODES:
-            raise HTTPException(status_code=404, detail="Event not found")
-        raise e
+    event = get_event(project.event[0], model=PrivateEvent)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
 
     # Validate demo field based on event's demo_links_optional setting
     validate_demo_field(project, event)
@@ -155,9 +148,8 @@ def delete_project(
     user: Annotated[UserInternal, Depends(get_current_user)],
 ):
     # Check if the user is an owner of the project or if they even exist
-    if user is None or user.id not in db.projects.get(project_id)["fields"].get(
-        "owner", []
-    ):
+    p = get_project(project_id)
+    if user is None or not p or user.id not in p.owner:
         raise BAD_ACCESS
 
     return db.projects.delete(project_id)
@@ -181,11 +173,8 @@ async def start_project_check(project: Project) -> CheckStatus:
             status_code=500, detail="Review Factory token not set on backend"
         )
 
-    try:
-        project = InternalProject.model_validate(db.projects.get(project.id)["fields"])
-    except HTTPError as e:
-        if e.response.status_code not in AIRTABLE_NOT_FOUND_CODES:
-            raise e
+    project = get_project(project.id, model=InternalProject)
+    if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
     # If we have cached results, return them immediately
