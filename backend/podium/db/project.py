@@ -49,10 +49,10 @@ class Project(ProjectBase):
     demo: str = ""
 
     id: str
-    points: int = 0
+    points: Annotated[int, Field(default=0, json_schema_extra={"sortable": True})]
     votes: MultiRecordField = []
     collaborators: MultiRecordField = []
-    owner: SingleRecordField
+    owner: SingleRecordField  # Automatically indexed via SingleRecordField
 
     # Lookup fields from Airtable to avoid N+1 queries
     # Note: Airtable lookup fields return arrays even for single records

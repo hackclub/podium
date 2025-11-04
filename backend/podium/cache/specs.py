@@ -6,6 +6,7 @@ from typing import Callable, Dict, Optional, Type
 from pydantic import BaseModel
 from redis_om import JsonModel
 
+from podium.cache.auto_config import auto_detect_cache_config
 from podium.cache.models import (
     EventCache,
     ProjectCache,
@@ -14,7 +15,7 @@ from podium.cache.models import (
     VoteCache,
 )
 from podium.db.event import Event, PrivateEvent
-from podium.db.project import Project
+from podium.db.project import Project, PrivateProject
 from podium.db.referral import Referral
 from podium.db.user import UserPrivate, UserPublic
 from podium.db.vote import Vote
@@ -40,38 +41,18 @@ def _normalize_user(data: dict) -> dict:
     return data
 
 
-def _normalize_vote(data: dict) -> dict:
-    """Flatten SingleRecordField lists to strings for indexing."""
-    for field in ["event", "project", "voter"]:
-        if field in data and isinstance(data[field], list) and len(data[field]) > 0:
-            data[field] = data[field][0]
+# Auto-detect cache configurations for each entity
+_project_config = auto_detect_cache_config(PrivateProject)
+_event_config = auto_detect_cache_config(PrivateEvent)
+_user_config = auto_detect_cache_config(UserPrivate)
+_vote_config = auto_detect_cache_config(Vote)
+_referral_config = auto_detect_cache_config(Referral)
+
+# Compose user normalization with auto-normalization
+def _normalize_user_composed(data: dict) -> dict:
+    data = _normalize_user(data)  # Email lowercasing
+    data = _user_config["normalize_fn"](data)  # Auto-normalize SingleRecordFields
     return data
-
-
-def _normalize_referral(data: dict) -> dict:
-    """Flatten SingleRecordField lists to strings for indexing."""
-    for field in ["event", "user"]:
-        if field in data and isinstance(data[field], list) and len(data[field]) > 0:
-            data[field] = data[field][0]
-    return data
-
-
-def _normalize_project(data: dict) -> dict:
-    """Flatten SingleRecordField lists to strings for indexing."""
-    # event and owner are SingleRecordFields that need flattening for index queries
-    for field in ["event", "owner"]:
-        if field in data and isinstance(data[field], list) and len(data[field]) > 0:
-            data[field] = data[field][0]
-    return data
-
-
-def _normalize_event(data: dict) -> dict:
-    """Flatten SingleRecordField lists to strings for indexing."""
-    # owner is SingleRecordField that needs flattening for index queries
-    if "owner" in data and isinstance(data["owner"], list) and len(data["owner"]) > 0:
-        data["owner"] = data["owner"][0]
-    return data
-
 
 # Entity registry: all cacheable entities
 ENTITIES: Dict[str, EntitySpec] = {
@@ -79,28 +60,28 @@ ENTITIES: Dict[str, EntitySpec] = {
         name="projects",
         table="projects",
         cache_model=ProjectCache,
-        cache_pydantic=Project,
+        cache_pydantic=PrivateProject,
         default_read_model=Project,
-        index_to_airtable={"event": "event_id"},  # Airtable uses flattened lookup
-        normalize_before_cache=_normalize_project,
+        index_to_airtable=_project_config["index_to_airtable"],
+        normalize_before_cache=_project_config["normalize_fn"],
     ),
     "events": EntitySpec(
         name="events",
         table="events",
         cache_model=EventCache,
-        cache_pydantic=PrivateEvent,  # Cache the richest model
-        default_read_model=Event,  # Default to public view
-        index_to_airtable={"slug": "slug", "owner": "owner_id"},  # Airtable uses flattened lookup
-        normalize_before_cache=_normalize_event,
+        cache_pydantic=PrivateEvent,
+        default_read_model=Event,
+        index_to_airtable=_event_config["index_to_airtable"],
+        normalize_before_cache=_event_config["normalize_fn"],
     ),
     "users": EntitySpec(
         name="users",
         table="users",
         cache_model=UserCache,
-        cache_pydantic=UserPrivate,  # Cache the richest model
-        default_read_model=UserPublic,  # Default to public view
-        index_to_airtable={"email": "email"},
-        normalize_before_cache=_normalize_user,
+        cache_pydantic=UserPrivate,
+        default_read_model=UserPublic,
+        index_to_airtable=_user_config["index_to_airtable"],
+        normalize_before_cache=_normalize_user_composed,
     ),
     "votes": EntitySpec(
         name="votes",
@@ -108,8 +89,8 @@ ENTITIES: Dict[str, EntitySpec] = {
         cache_model=VoteCache,
         cache_pydantic=Vote,
         default_read_model=Vote,
-        index_to_airtable={"event": "event_id", "project": "project_id", "voter": "user_id"},
-        normalize_before_cache=_normalize_vote,
+        index_to_airtable=_vote_config["index_to_airtable"],
+        normalize_before_cache=_vote_config["normalize_fn"],
     ),
     "referrals": EntitySpec(
         name="referrals",
@@ -117,7 +98,7 @@ ENTITIES: Dict[str, EntitySpec] = {
         cache_model=ReferralCache,
         cache_pydantic=Referral,
         default_read_model=Referral,
-        index_to_airtable={"event": "event_id"},  # Airtable uses flattened lookup
-        normalize_before_cache=_normalize_referral,
+        index_to_airtable=_referral_config["index_to_airtable"],
+        normalize_before_cache=_referral_config["normalize_fn"],
     ),
 }

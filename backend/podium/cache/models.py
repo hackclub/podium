@@ -3,7 +3,8 @@
 from redis_om import JsonModel, Field as RedisField, get_redis_connection
 from typing import Type
 from pydantic import BaseModel
-from podium.db.project import Project
+from podium.cache.auto_config import auto_detect_cache_config
+from podium.db.project import Project, PrivateProject
 from podium.db.event import PrivateEvent
 from podium.db.user import UserPrivate
 from podium.db.vote import Vote
@@ -72,34 +73,42 @@ def make_json_model(
     return model_class
 
 
-# Create cache models with indexed fields for efficient querying
-# indexed_fields: TAG fields for exact match queries (IDs, slugs, emails)
-# sortable_fields: NUMERIC fields for sorting (points, etc.)
-#
+# Create cache models with auto-detected indexed fields
 # Strategy: Cache only "Private" variants (full data), derive public views on read
+
+# Auto-detect configurations
+_project_config = auto_detect_cache_config(PrivateProject)
+_event_config = auto_detect_cache_config(PrivateEvent)
+_user_config = auto_detect_cache_config(UserPrivate)
+_vote_config = auto_detect_cache_config(Vote)
+_referral_config = auto_detect_cache_config(Referral)
 
 ProjectCache = make_json_model(
     Project,
-    indexed_fields={"event", "owner"},
-    sortable_fields={"points"}
+    indexed_fields=_project_config["indexed_fields"],
+    sortable_fields=_project_config["sortable_fields"]
 )
 
 EventCache = make_json_model(
     PrivateEvent,
-    indexed_fields={"slug", "owner"}
+    indexed_fields=_event_config["indexed_fields"],
+    sortable_fields=_event_config["sortable_fields"]
 )
 
 UserCache = make_json_model(
     UserPrivate,
-    indexed_fields={"email"}
+    indexed_fields=_user_config["indexed_fields"],
+    sortable_fields=_user_config["sortable_fields"]
 )
 
 VoteCache = make_json_model(
     Vote,
-    indexed_fields={"event", "project", "voter"}
+    indexed_fields=_vote_config["indexed_fields"],
+    sortable_fields=_vote_config["sortable_fields"]
 )
 
 ReferralCache = make_json_model(
     Referral,
-    indexed_fields={"event"}
+    indexed_fields=_referral_config["indexed_fields"],
+    sortable_fields=_referral_config["sortable_fields"]
 )

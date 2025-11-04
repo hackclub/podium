@@ -5,8 +5,9 @@ from podium.constants import (
     CommaSeparatedFeatureFlags,
     FeatureFlag,
 )
-from pydantic import BaseModel, StringConstraints, computed_field
+from pydantic import BaseModel, Field, StringConstraints, computed_field
 from typing import Annotated, List, Optional
+from functools import cached_property
 
 
 
@@ -27,8 +28,8 @@ class EventUpdate(BaseEvent): ...
 
 class Event(EventCreationPayload):
     id: str
-    owner: SingleRecordField
-    slug: Slug  # Slug is auto-generated
+    owner: SingleRecordField  # Automatically indexed via SingleRecordField
+    slug: Annotated[Slug, Field(json_schema_extra={"indexed": True})]  # Slug is auto-generated and indexed
     feature_flags_csv: CommaSeparatedFeatureFlags = ""
 
     """In addition to the normal fields, we also have lookup fields in Airtable so we can use formulas:
@@ -101,18 +102,21 @@ class Event(EventCreationPayload):
     ysws_checks_enabled: bool = False
 
     @computed_field
-    @property
+    @cached_property
     def max_votes_per_user(self) -> int:
         from podium.cache.operations import get_one
         
-        # Fetch as PrivateEvent to get project count
-        # This won't cause recursion because PrivateEvent.max_votes_per_user uses self.projects directly
-        event = get_one("events", self.id, model=PrivateEvent)
+        # Use cache-first lookup to get project count (returns None instead of raising 404)
+        event = get_one("events", self.id, model=InternalEvent)
         if not event:
             return 1
-        
-        # Use the PrivateEvent's implementation (which uses self.projects)
-        return event.max_votes_per_user
+
+        if len(event.projects) >= 20:
+            return 3
+        elif len(event.projects) >= 4:
+            return 2
+        else:
+            return 1
 
 
 class PrivateEvent(Event):
@@ -128,17 +132,6 @@ class PrivateEvent(Event):
     referrals: MultiRecordField = []
     # If the frontend has a PrivateEvent object, it means the user has owner access to the event
     owned: Optional[bool] = True
-    
-    @computed_field
-    @property
-    def max_votes_per_user(self) -> int:
-        # Compute from self.projects - no external calls needed
-        if len(self.projects) >= 20:
-            return 3
-        elif len(self.projects) >= 4:
-            return 2
-        else:
-            return 1
 
 
 class InternalEvent(PrivateEvent): ...

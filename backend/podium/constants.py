@@ -1,7 +1,7 @@
 from typing import Annotated, List
 from annotated_types import Len
 from fastapi import HTTPException
-from pydantic import BaseModel, StringConstraints
+from pydantic import BaseModel, Field, StringConstraints
 from enum import Enum
 
 
@@ -11,9 +11,11 @@ URL_REGEX = r"^(https?://)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(:\d+)?(/[\w\-./?%&=]*)
 
 # https://docs.pydantic.dev/latest/api/types/#pydantic.types.constr--__tabbed_1_2
 MultiRecordField = List[Annotated[str, StringConstraints(pattern=RECORD_REGEX)]]
+# SingleRecordField is automatically indexed for cache queries
 SingleRecordField = Annotated[
     List[Annotated[str, StringConstraints(pattern=RECORD_REGEX)]],
     Len(min_length=1, max_length=1),
+    Field(json_schema_extra={"indexed": True}),
 ]
 # URL fields with regex validation
 UrlField = Annotated[str, StringConstraints(min_length=1, pattern=URL_REGEX)]
