@@ -16,19 +16,12 @@ from pydantic import BaseModel
 from pyairtable.formulas import match
 
 from podium.cache.client import get_redis_client
-from podium.cache.models import (
-    EventCache,
-    ProjectCache,
-    ReferralCache,
-    UserCache,
-    VoteCache,
-)
 from podium.cache.specs import ENTITIES, EntitySpec
 from podium.db import tables
 from podium.db.event import BaseEvent, Event, PrivateEvent
 from podium.db.project import Project, ProjectBase
 from podium.db.referral import Referral
-from podium.db.user import UserBase, UserPrivate, UserPublic
+from podium.db.user import UserBase, UserPrivate
 from podium.db.vote import Vote
 
 T = TypeVar("T")
@@ -162,7 +155,7 @@ def _fetch_airtable_by_index(
 def _cast_to_requested(cached: BaseModel, model: Type[TModel]) -> Optional[TModel]:
     """Cast cached model to requested model type, denormalizing SingleRecordFields."""
     try:
-        from typing import get_origin, get_args
+        from typing import get_origin
         
         data = cached.model_dump()
         

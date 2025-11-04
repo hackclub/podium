@@ -88,3 +88,4 @@ delete_event(event_id)  # Deletes Airtable + invalidates cache + tombstone
 
 **Empty results after restart**  
 → Normal, cache warms up as requests arrive
+    

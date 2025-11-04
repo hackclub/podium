@@ -13,10 +13,10 @@ from podium.cache.models import (
     UserCache,
     VoteCache,
 )
-from podium.db.event import BaseEvent, Event, PrivateEvent
-from podium.db.project import Project, ProjectBase
+from podium.db.event import Event, PrivateEvent
+from podium.db.project import Project
 from podium.db.referral import Referral
-from podium.db.user import UserBase, UserPrivate, UserPublic
+from podium.db.user import UserPrivate, UserPublic
 from podium.db.vote import Vote
 
 

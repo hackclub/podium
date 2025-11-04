@@ -350,7 +350,7 @@ def create_or_find_user(daydream_event: Dict[str, Any]) -> Optional[str]:
         print(f"   ✅ Created user {email} ({user_link})")
 
         # Print full record data for verification
-        print(f"   📋 User Record Data:")
+        print("   📋 User Record Data:")
         for key, value in record["fields"].items():
             print(f"      {key}: {value}")
         print()
@@ -387,7 +387,7 @@ def create_daydream_event(
     duplicate_check = check_event_exists(event_name, slug)
     if duplicate_check["exists"]:
         if duplicate_check["by_name"] and duplicate_check["by_slug"]:
-            print(f"   ⚠️  Event already exists with both same name and slug:")
+            print("   ⚠️  Event already exists with both same name and slug:")
             name_link = format_record_id(
                 duplicate_check["name_match"]["id"],
                 PRODUCTION_BASE_ID,
@@ -419,7 +419,7 @@ def create_daydream_event(
             )
             print(f"   ⚠️  Event already exists with same slug: {slug_link}")
 
-        print(f"   ⏭️  Skipping event creation to avoid duplicates")
+        print("   ⏭️  Skipping event creation to avoid duplicates")
         return "DUPLICATE_EVENT"
 
     # Create event payload with daydream settings
@@ -473,7 +473,7 @@ def create_daydream_event(
         print(f"   ✅ Created event '{event_name}' ({event_link})")
 
         # Print full record data for verification
-        print(f"   📋 Event Record Data:")
+        print("   📋 Event Record Data:")
         for key, value in record["fields"].items():
             print(f"      {key}: {value}")
         print()
@@ -806,7 +806,7 @@ def find_latest_migration_file() -> Optional[str]:
 
 def confirm_event_migration(event_name: str, event_id: str, owner_email: str) -> bool:
     """Ask user for confirmation before migrating a specific event."""
-    print(f"\n📋 READY TO MIGRATE EVENT:")
+    print("\n📋 READY TO MIGRATE EVENT:")
     print(f"   Name: {event_name}")
     print(
         f"   Daydream Event: {format_record_id(event_id, DAYDREAM_BASE_ID, DAYDREAM_TABLE_ID)}"
@@ -820,10 +820,10 @@ def confirm_event_migration(event_name: str, event_id: str, owner_email: str) ->
             existing_user_id, PRODUCTION_BASE_ID, PROD_USERS_TABLE_ID, "View User"
         )
         print(f"   User Status: ✅ EXISTING USER ({user_link})")
-        print(f"   Action: Will set existing user as event owner")
+        print("   Action: Will set existing user as event owner")
     else:
-        print(f"   User Status: 🆕 NEW USER")
-        print(f"   Action: Will create new user and set as event owner")
+        print("   User Status: 🆕 NEW USER")
+        print("   Action: Will create new user and set as event owner")
 
     print(
         f"   Mode: {'DRY RUN (no changes)' if TEST_RUN else 'PRODUCTION (will create event)'}"
@@ -875,7 +875,7 @@ def migrate_daydream_events(
             else:
                 print("   ⏭️  Skipping record verification")
         else:
-            print(f"   ❌ Could not load previous progress, starting fresh")
+            print("   ❌ Could not load previous progress, starting fresh")
             resume_from_file = None
     elif not TEST_RUN:
         # Auto-detect latest migration file for resuming
@@ -896,7 +896,7 @@ def migrate_daydream_events(
                     else:
                         print("   ⏭️  Skipping record verification")
                 else:
-                    print(f"   ❌ Could not load previous progress, starting fresh")
+                    print("   ❌ Could not load previous progress, starting fresh")
                     resume_from_file = None
 
     # Pull Daydream events and attendees
@@ -921,7 +921,7 @@ def migrate_daydream_events(
 
     if TEST_RUN:
         events_to_migrate = events_to_migrate[:1]  # Only first event for test run
-        print(f"[DRY RUN] Processing only first event for testing")
+        print("[DRY RUN] Processing only first event for testing")
 
     # Filter out already processed events if resuming
     if previous_progress:
@@ -969,7 +969,7 @@ def migrate_daydream_events(
         # Ask for confirmation for this specific event (if enabled)
         if ENABLE_PER_EVENT_CONFIRMATION:
             if not confirm_event_migration(event_name, event_id, owner_email):
-                print(f"   ⏭️  Skipped by user")
+                print("   ⏭️  Skipped by user")
                 skipped_migrations.append(
                     {
                         "event_id": event_id,
@@ -995,12 +995,12 @@ def migrate_daydream_events(
                 save_migration_progress(current_results, results_file)
                 continue
         else:
-            print(f"   ⚡ Auto-proceeding (confirmations disabled)")
+            print("   ⚡ Auto-proceeding (confirmations disabled)")
 
         # Create or find user
         owner_id = create_or_find_user(event)
         if not owner_id:
-            print(f"   ❌ Failed to create/find user")
+            print("   ❌ Failed to create/find user")
             failed_migrations.append(
                 {
                     "event_id": event_id,
@@ -1029,7 +1029,7 @@ def migrate_daydream_events(
         # Create event
         podium_event_id = create_daydream_event(event, owner_id)
         if not podium_event_id:
-            print(f"   ❌ Failed to create event")
+            print("   ❌ Failed to create event")
             failed_migrations.append(
                 {
                     "event_id": event_id,
@@ -1055,7 +1055,7 @@ def migrate_daydream_events(
             save_migration_progress(current_results, results_file)
             continue
         elif podium_event_id == "DUPLICATE_EVENT":
-            print(f"   ⏭️  Skipped duplicate event")
+            print("   ⏭️  Skipped duplicate event")
             duplicate_migrations.append(
                 {
                     "event_id": event_id,
@@ -1149,7 +1149,7 @@ def migrate_daydream_events(
     print(f"Skipped by user: {len(skipped_migrations)}")
     print(f"Duplicate events (skipped): {len(duplicate_migrations)}")
     print()
-    print(f"ATTENDEE STATISTICS:")
+    print("ATTENDEE STATISTICS:")
     print(f"Total attendees processed: {total_attendees}")
     print(f"Successful attendee migrations: {successful_attendees}")
     print(f"Failed attendee migrations: {failed_attendees}")

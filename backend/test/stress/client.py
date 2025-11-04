@@ -1,6 +1,5 @@
 """HTTP client for stress testing."""
 
-import asyncio
 import time
 from typing import Dict, Any, Optional, List, Tuple
 import httpx

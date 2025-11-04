@@ -1,6 +1,5 @@
-import logging
 import uuid
-from typing import Mapping, Any, Dict, List, Optional
+from typing import Mapping, Any, Dict, Optional
 from datetime import timedelta
 from loguru import logger
 

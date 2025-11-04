@@ -157,7 +157,7 @@ def create_or_find_user(source_event: Dict[str, Any]) -> Optional[str]:
 
     email = fields.get(FIELD_MAPPINGS["poc_email"], "").strip().lower()
     if not email:
-        print(f"No email found for event")
+        print("No email found for event")
         return None
 
     # Check if user exists
@@ -199,7 +199,7 @@ def create_event(source_event: Dict[str, Any], owner_id: str) -> Optional[str]:
 
     event_name = fields.get(FIELD_MAPPINGS["event_name"], "").strip()
     if not event_name:
-        print(f"   ❌ No event name found")
+        print("   ❌ No event name found")
         return None
 
     slug = slugify(event_name)

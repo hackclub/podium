@@ -1,10 +1,10 @@
 import datetime
-from typing import Annotated, List, Optional, Type, TypeVar
+from typing import Annotated, Optional, Type, TypeVar
 from pydantic import BaseModel, Field, StringConstraints
 from podium import constants
 
 from podium.db import tables
-from pyairtable.formulas import match, OR, EQ, Field as AirtableField
+from pyairtable.formulas import match
 
 FirstName = Annotated[str, Field(..., min_length=1, max_length=50)]
 LastName = Annotated[str, Field(default="")]

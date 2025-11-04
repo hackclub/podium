@@ -8,9 +8,7 @@ from podium.constants import (
 )
 from podium.generated.review_factory_models import Unified
 from pydantic import BaseModel, Field, StringConstraints, field_validator
-from typing import Annotated, Optional, List, Type, TypeVar
-from pyairtable.formulas import OR, EQ, Field as AirtableField
-from podium.db import tables
+from typing import Annotated, Optional, List
 from fastapi import HTTPException
 
 

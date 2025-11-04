@@ -103,8 +103,16 @@ class Event(EventCreationPayload):
     @computed_field
     @property
     def max_votes_per_user(self) -> int:
-        # Default for public Event (no projects field)
-        return 1
+        from podium.cache.operations import get_one
+        
+        # Fetch as PrivateEvent to get project count
+        # This won't cause recursion because PrivateEvent.max_votes_per_user uses self.projects directly
+        event = get_one("events", self.id, model=PrivateEvent)
+        if not event:
+            return 1
+        
+        # Use the PrivateEvent's implementation (which uses self.projects)
+        return event.max_votes_per_user
 
 
 class PrivateEvent(Event):
@@ -120,6 +128,17 @@ class PrivateEvent(Event):
     referrals: MultiRecordField = []
     # If the frontend has a PrivateEvent object, it means the user has owner access to the event
     owned: Optional[bool] = True
+    
+    @computed_field
+    @property
+    def max_votes_per_user(self) -> int:
+        # Compute from self.projects - no external calls needed
+        if len(self.projects) >= 20:
+            return 3
+        elif len(self.projects) >= 4:
+            return 2
+        else:
+            return 1
 
 
 class InternalEvent(PrivateEvent): ...
