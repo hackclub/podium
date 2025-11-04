@@ -1,7 +1,4 @@
-from fastapi import HTTPException
-from podium import db
 from podium.constants import (
-    AIRTABLE_NOT_FOUND_CODES,
     MultiRecordField,
     SingleRecordField,
     Slug,
@@ -9,12 +6,8 @@ from podium.constants import (
     FeatureFlag,
 )
 from pydantic import BaseModel, StringConstraints, computed_field
-from typing import Annotated, List, Optional, Type, TypeVar
-from functools import cached_property
-from pyairtable.formulas import OR, EQ, Field as AirtableField
-from podium.db import tables
+from typing import Annotated, List, Optional
 
-from requests import HTTPError
 
 
 # https://docs.pydantic.dev/1.10/usage/schema/#field-customization
@@ -108,21 +101,10 @@ class Event(EventCreationPayload):
     ysws_checks_enabled: bool = False
 
     @computed_field
-    @cached_property
+    @property
     def max_votes_per_user(self) -> int:
-        from podium.cache.operations import get_one
-        
-        # Use cache-first lookup to get project count (returns None instead of raising 404)
-        event = get_one("events", self.id, model=InternalEvent)
-        if not event:
-            return 1
-
-        if len(event.projects) >= 20:
-            return 3
-        elif len(event.projects) >= 4:
-            return 2
-        else:
-            return 1
+        # Default for public Event (no projects field)
+        return 1
 
 
 class PrivateEvent(Event):
