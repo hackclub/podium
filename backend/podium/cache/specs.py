@@ -90,7 +90,7 @@ ENTITIES: Dict[str, EntitySpec] = {
         cache_model=EventCache,
         cache_pydantic=PrivateEvent,  # Cache the richest model
         default_read_model=Event,  # Default to public view
-        index_to_airtable={"slug": "slug", "owner": "owner"},
+        index_to_airtable={"slug": "slug", "owner": "owner_id"},  # Airtable uses flattened lookup
         normalize_before_cache=_normalize_event,
     ),
     "users": EntitySpec(
