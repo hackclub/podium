@@ -422,10 +422,10 @@ def get_user(user_id: str, model: Type[U] = UserPrivate) -> Optional[U]:
     return get_one("users", user_id, model=model)
 
 
-def get_user_by_email(email: str) -> Optional[UserPrivate]:
+def get_user_by_email(email: str, model: Type[U] = UserPrivate) -> Optional[U]:
     """Get user by email from cache or Airtable."""
     normalized_email = email.lower().strip()
-    items = get_by_index("users", {"email": normalized_email}, model=UserPrivate)
+    items = get_by_index("users", {"email": normalized_email}, model=model)
     return items[0] if items else None
 
 
