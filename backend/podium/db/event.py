@@ -102,21 +102,18 @@ class Event(EventCreationPayload):
     ysws_checks_enabled: bool = False
 
     @computed_field
-    @cached_property
+    @property
     def max_votes_per_user(self) -> int:
         from podium.cache.operations import get_one
         
-        # Use cache-first lookup to get project count (returns None instead of raising 404)
-        event = get_one("events", self.id, model=InternalEvent)
+        # Fetch as PrivateEvent to get project count
+        # This won't recurse because PrivateEvent.max_votes_per_user uses self.projects directly
+        event = get_one("events", self.id, model=PrivateEvent)
         if not event:
             return 1
-
-        if len(event.projects) >= 20:
-            return 3
-        elif len(event.projects) >= 4:
-            return 2
-        else:
-            return 1
+        
+        # PrivateEvent has its own implementation that uses self.projects
+        return event.max_votes_per_user
 
 
 class PrivateEvent(Event):
@@ -132,6 +129,17 @@ class PrivateEvent(Event):
     referrals: MultiRecordField = []
     # If the frontend has a PrivateEvent object, it means the user has owner access to the event
     owned: Optional[bool] = True
+    
+    @computed_field
+    @property
+    def max_votes_per_user(self) -> int:
+        # Compute from self.projects - no recursion
+        if len(self.projects) >= 20:
+            return 3
+        elif len(self.projects) >= 4:
+            return 2
+        else:
+            return 1
 
 
 class InternalEvent(PrivateEvent): ...
