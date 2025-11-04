@@ -275,11 +275,13 @@ def get_by_index(
                     break
             if items:
                 return items
+        # Empty result or cast failure - mark as miss
+        _mark_cache("MISS")
     except Exception:
+        # Exception in cache query - don't mark
         pass
 
-    # Cache miss - fetch from Airtable
-    _mark_cache("MISS")
+    # Fetch from Airtable
     fetched = _fetch_airtable_by_index(spec, where)
     items = []
     for f in fetched:
