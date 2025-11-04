@@ -5,7 +5,7 @@ from podium.constants import BAD_ACCESS
 from podium.db.event import PrivateEvent
 from podium.routers.auth import get_current_user
 from podium.db.user import UserAttendee, UserInternal
-from podium.cache.operations import get_user, get_projects_for_event, get_event, get_votes_for_event, get_referrals_for_event
+from podium.cache.operations import get_user, get_projects_for_event, get_event, get_votes_for_event, get_referrals_for_event, invalidate_event
 from podium.db.project import AdminProject
 from podium.db.vote import Vote
 from podium.db.referral import Referral
@@ -41,7 +41,9 @@ def get_event_attendees(
 
     # Fetch attendees from cache
     event = get_event(event_id, model=PrivateEvent)
-    attendee_ids = event.attendees if event else []
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    attendee_ids = event.attendees or []
     attendees = [get_user(user_id, model=UserAttendee) for user_id in attendee_ids]
     return [a for a in attendees if a is not None]
 
@@ -64,6 +66,8 @@ def remove_attendee(
             ]
         },
     )
+    # Invalidate cache so next read sees updated attendees
+    invalidate_event(event_id)
     return {"message": "Attendee removed"}
 
 

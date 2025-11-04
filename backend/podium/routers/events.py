@@ -25,6 +25,8 @@ from podium.cache.operations import (
     get_events_by_owner,
     get_projects_for_event,
     get_project,
+    invalidate_event,
+    upsert_event,
 )
 
 router = APIRouter(prefix="/events", tags=["events"])
@@ -105,11 +107,14 @@ def create_event(
         slug=slug,
         id="",  # Placeholder to prevent an unnecessary class
     )
-    db.events.create(
+    created = db.events.create(
         full_event.model_dump(
             exclude={"id", "max_votes_per_user", "owned", "feature_flags_list"}
         )
-    )["fields"]
+    )
+    # Upsert to cache for immediate availability
+    created_event = PrivateEvent.model_validate({**created["fields"], "id": created["id"]})
+    upsert_event(created_event)
 
 
 @router.post("/attend")
@@ -138,6 +143,8 @@ def attend_event(
         event.id,
         {"attendees": event.attendees + [user.id]},
     )
+    # Invalidate cache so next read sees updated attendees
+    invalidate_event(event.id)
     # Create a referral record if the referral is not empty
     if referral:
         db.referrals.create(
@@ -163,7 +170,9 @@ def update_event(
         # This also ensures the event exists since it has to exist to be in the user's owned events
         raise BAD_ACCESS
 
-    db.events.update(event_id, event.model_dump())["fields"]
+    db.events.update(event_id, event.model_dump())
+    # Invalidate cache so next read sees updated event
+    invalidate_event(event_id)
 
 
 @router.delete("/{event_id}")
@@ -176,6 +185,8 @@ def delete_event(
         raise BAD_ACCESS
 
     db.events.delete(event_id)
+    # Invalidate cache after deletion
+    invalidate_event(event_id)
 
 
 # Voting! The client should POST to /events/{event_id}/vote with their top 3 favorite projects, in no particular order. If there are less than 20 projects in the event, only accept the top 2

@@ -17,7 +17,7 @@ from podium.db.project import (
 from podium.db.event import PrivateEvent
 from podium.generated.review_factory_models import CheckStatus
 from podium.constants import BAD_AUTH, BAD_ACCESS, EmptyModel
-from podium.cache.operations import get_project, get_event
+from podium.cache.operations import get_project, get_event, invalidate_project, upsert_project
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -78,9 +78,12 @@ def create_project(
         owner=owner,
         id="",  # Placeholder to prevent an unnecessary class
     )
-    db.projects.create(
+    created = db.projects.create(
         full_project.model_dump(exclude={"id", "points", "cached_auto_quality", "collaborator_display_names", "owner_display_name"})
-    )["fields"]
+    )
+    # Upsert to cache for immediate availability
+    created_project = Project.model_validate({**created["fields"], "id": created["id"]})
+    upsert_project(created_project)
 
 
 @router.post("/join")
@@ -113,6 +116,8 @@ def join_project(
         raise BAD_ACCESS
 
     db.projects.update(project.id, {"collaborators": project.collaborators + [user.id]})
+    # Invalidate cache so next read sees updated collaborators
+    invalidate_project(project.id)
 
 
 # Update project
@@ -138,7 +143,10 @@ def update_project(
     # Validate demo field based on event's demo_links_optional setting
     validate_demo_field(project, event)
 
-    return db.projects.update(project_id, project.model_dump())["fields"]
+    result = db.projects.update(project_id, project.model_dump())["fields"]
+    # Invalidate cache so next read sees updated project
+    invalidate_project(project_id)
+    return result
 
 
 # Delete project
@@ -152,7 +160,10 @@ def delete_project(
     if user is None or not p or user.id not in p.owner:
         raise BAD_ACCESS
 
-    return db.projects.delete(project_id)
+    result = db.projects.delete(project_id)
+    # Invalidate cache after deletion
+    invalidate_project(project_id)
+    return result
 
 
 @router.get("/{project_id}")
