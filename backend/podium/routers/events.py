@@ -130,10 +130,10 @@ def attend_event(
         raise BAD_AUTH
 
     # Get the first (and presumably only) event with the given join code
-    event = db.events.first(formula=match({"join_code": join_code.upper()}))
-    if event is None:
+    event_rec = db.events.first(formula=match({"join_code": join_code.upper()}))
+    if event_rec is None:
         raise HTTPException(status_code=404, detail="Event not found")
-    event = PrivateEvent.model_validate(event["fields"])
+    event = PrivateEvent.model_validate({**event_rec["fields"], "id": event_rec["id"]})
 
     # If the event is found, add the current user to the attendees list
     # But first, ensure that the user is not already in the list

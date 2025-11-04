@@ -110,15 +110,12 @@ class Event(EventCreationPayload):
     @computed_field
     @cached_property
     def max_votes_per_user(self) -> int:
-        try:
-            event = db.events.get(self.id)
-        except HTTPError as e:
-            raise (
-                HTTPException(status_code=404, detail="Event not found")
-                if e.response.status_code in AIRTABLE_NOT_FOUND_CODES
-                else e
-            )
-        event = InternalEvent.model_validate(event["fields"])
+        from podium.cache.operations import get_one
+        
+        # Use cache-first lookup to get project count (returns None instead of raising 404)
+        event = get_one("events", self.id, model=InternalEvent)
+        if not event:
+            return 1
 
         if len(event.projects) >= 20:
             return 3
