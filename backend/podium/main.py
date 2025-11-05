@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from podium.config import settings
 
 # Initialize Sentry ASAP
-if not settings.is_development:
+if settings.current_env != "development":
     sentry_sdk.init(
         dsn=settings.sentry_dsn,
         traces_sample_rate=0.1,
