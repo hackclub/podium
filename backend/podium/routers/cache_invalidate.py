@@ -7,18 +7,13 @@ import logging
 import hmac
 
 from podium.config import settings
+from podium import cache
+from podium.cache.operations import Entity
 from podium.db.project import Project
 from podium.db.event import Event, PrivateEvent
 from podium.db.user import UserPrivate
 from podium.db.vote import Vote
 from podium.db.referral import Referral
-from podium.cache.operations import (
-    upsert_project,
-    upsert_event,
-    upsert_user,
-    upsert_vote,
-    upsert_referral,
-)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
@@ -63,7 +58,7 @@ async def airtable_webhook(
         # Route to appropriate cache upsert function based on table
         if table_name == "Projects":
             project = Project.model_validate(record_data)
-            upsert_project(project)
+            cache.upsert_entity(Entity.PROJECTS, project)
             logger.info(f"Updated cache for project {project.id}")
             
         elif table_name == "Events":
@@ -73,22 +68,22 @@ async def airtable_webhook(
             except Exception:
                 # Fall back to regular Event
                 event = Event.model_validate(record_data)
-            upsert_event(event)
+            cache.upsert_entity(Entity.EVENTS, event)
             logger.info(f"Updated cache for event {event.id}")
             
         elif table_name == "Users":
             user = UserPrivate.model_validate(record_data)
-            upsert_user(user)
+            cache.upsert_entity(Entity.USERS, user)
             logger.info(f"Updated cache for user {user.id}")
             
         elif table_name == "Votes":
             vote = Vote.model_validate(record_data)
-            upsert_vote(vote)
+            cache.upsert_entity(Entity.VOTES, vote)
             logger.info(f"Updated cache for vote {vote.id}")
             
         elif table_name == "Referrals":
             referral = Referral.model_validate(record_data)
-            upsert_referral(referral)
+            cache.upsert_entity(Entity.REFERRALS, referral)
             logger.info(f"Updated cache for referral {referral.id}")
             
         else:

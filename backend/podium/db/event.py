@@ -7,7 +7,6 @@ from podium.constants import (
 )
 from pydantic import BaseModel, Field, StringConstraints, computed_field
 from typing import Annotated, List, Optional
-from functools import cached_property
 
 
 

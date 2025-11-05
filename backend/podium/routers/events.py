@@ -6,7 +6,8 @@ from pyairtable.formulas import match
 from slugify import slugify
 from podium.routers.auth import get_current_user
 from podium.db.user import UserInternal
-from podium import db
+from podium import db, cache
+from podium.cache.operations import Entity
 from podium.db import (
     EventCreationPayload,
     EventUpdate,
@@ -18,16 +19,6 @@ from podium.db.event import PrivateEvent
 from podium.db.vote import CreateVotes, VoteCreate
 from podium.db.project import Project
 from podium.constants import BAD_AUTH, BAD_ACCESS, Slug
-from podium.cache.operations import (
-    get_event,
-    get_event_by_slug,
-    get_events_by_ids,
-    get_events_by_owner,
-    get_projects_for_event,
-    get_project,
-    invalidate_event,
-    upsert_event,
-)
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -40,7 +31,7 @@ def get_event_endpoint(
     Get a public event by its ID. For admin features, use the admin endpoints.
     """
     # Use cache-first lookup
-    event = get_event(event_id, model=Event)
+    event = cache.get_one(Entity.EVENTS, event_id, Event)
     
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -61,13 +52,10 @@ def get_attending_events(
 
     # Eventually it might be better to return a user object. Otherwise, the client that the event owner is using would need to fetch the user. Since user emails probably shouldn't be public with just a record ID as a parameter, we would need to check if the person calling GET /users?user=ID has an event wherein that user ID is present. To avoid all this, the user object could be returned.
 
-    # Batch fetch owned events - try indexed query first, fall back to batch-by-IDs
-    owned_events = get_events_by_owner(user.id, model=PrivateEvent)
-    if not owned_events and user.owned_events:
-        owned_events = get_events_by_ids(user.owned_events, model=PrivateEvent)
-    
-    # Batch fetch attending events - single Airtable query for all missing IDs
-    attending_events = get_events_by_ids(user.attending_events, model=Event)
+    # Batch fetch owned and attending events by IDs from cached user object
+    # This avoids redis-om index queries which have schema issues with flattened fields
+    owned_events = cache.get_many_by_ids(Entity.EVENTS, user.owned_events, PrivateEvent)
+    attending_events = cache.get_many_by_ids(Entity.EVENTS, user.attending_events, Event)
 
     return UserEvents(owned_events=owned_events, attending_events=attending_events)
 
@@ -114,7 +102,7 @@ def create_event(
     )
     # Upsert to cache for immediate availability
     created_event = PrivateEvent.model_validate({**created["fields"], "id": created["id"]})
-    upsert_event(created_event)
+    cache.upsert_entity(Entity.EVENTS, created_event)
 
 
 @router.post("/attend")
@@ -144,7 +132,7 @@ def attend_event(
         {"attendees": event.attendees + [user.id]},
     )
     # Invalidate cache so next read sees updated attendees
-    invalidate_event(event.id)
+    cache.invalidate_entity(Entity.EVENTS, event.id)
     # Create a referral record if the referral is not empty
     if referral:
         db.referrals.create(
@@ -172,7 +160,7 @@ def update_event(
 
     db.events.update(event_id, event.model_dump())
     # Invalidate cache so next read sees updated event
-    invalidate_event(event_id)
+    cache.invalidate_entity(Entity.EVENTS, event_id)
 
 
 @router.delete("/{event_id}")
@@ -186,7 +174,7 @@ def delete_event(
 
     db.events.delete(event_id)
     # Invalidate cache after deletion
-    invalidate_event(event_id)
+    cache.invalidate_entity(Entity.EVENTS, event_id)
 
 
 # Voting! The client should POST to /events/{event_id}/vote with their top 3 favorite projects, in no particular order. If there are less than 20 projects in the event, only accept the top 2
@@ -196,7 +184,7 @@ def vote(votes: CreateVotes, user: Annotated[UserInternal, Depends(get_current_u
     Vote for the top 3 projects in an event. The client must provide the event ID and a list of the top 3 projects. If there are less than 20 projects in the event, only the top 2 projects are required.
     """
 
-    event = get_event(votes.event, model=PrivateEvent)
+    event = cache.get_one(Entity.EVENTS, votes.event, PrivateEvent)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
@@ -210,7 +198,7 @@ def vote(votes: CreateVotes, user: Annotated[UserInternal, Depends(get_current_u
             event=[event.id],
             voter=[user.id],
         )
-        project = get_project(project_id)
+        project = cache.get_one(Entity.PROJECTS, project_id, Project)
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
 
@@ -271,18 +259,20 @@ async def get_event_projects(
     # Use cache-first lookup for projects
     if leaderboard:
         # Verify event exists and has leaderboard enabled
-        event = get_event(event_id, model=PrivateEvent)
+        event = cache.get_one(Entity.EVENTS, event_id, PrivateEvent)
         if not event:
             raise HTTPException(status_code=404, detail="Event not found")
         if not event.leaderboard_enabled:
             raise HTTPException(
                 status_code=403, detail="Leaderboard is not enabled for this event"
             )
-        # Return sorted by points (cache handles sorting)
-        return get_projects_for_event(event_id, sort_by_points=True)
+        # Return sorted by points
+        projects = cache.get_many_by_formula(Entity.PROJECTS, {"event_id": event_id}, Project)
+        projects.sort(key=lambda p: p.points, reverse=True)
+        return projects
     else:
         # Return in random order
-        projects = get_projects_for_event(event_id, sort_by_points=False)
+        projects = cache.get_many_by_formula(Entity.PROJECTS, {"event_id": event_id}, Project)
         random.shuffle(projects)
         return projects
 
@@ -296,7 +286,7 @@ async def get_at_id(
     Get an event's Airtable ID by its slug.
     """
     # Use cache-first slug lookup
-    event = get_event_by_slug(slug, model=Event)
+    event = cache.get_by_formula(Entity.EVENTS, {"slug": slug}, Event)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 

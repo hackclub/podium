@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Body, Depends, HTTPException, Path
 from typing import Annotated, List
-from podium import db
+from podium import db, cache
+from podium.cache.operations import Entity
 from podium.constants import BAD_ACCESS
 from podium.db.event import PrivateEvent
 from podium.routers.auth import get_current_user
 from podium.db.user import UserAttendee, UserInternal
-from podium.cache.operations import get_user, get_projects_for_event, get_event, get_votes_for_event, get_referrals_for_event, invalidate_event
 from podium.db.project import AdminProject
 from podium.db.vote import Vote
 from podium.db.referral import Referral
@@ -24,7 +24,7 @@ def get_event_admin(
 ) -> PrivateEvent:
     if not is_user_event_owner(user, event_id):
         raise BAD_ACCESS
-    event = get_event(event_id, model=PrivateEvent)
+    event = cache.get_one(Entity.EVENTS, event_id, PrivateEvent)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     return event
@@ -40,11 +40,11 @@ def get_event_attendees(
         raise BAD_ACCESS
 
     # Fetch attendees from cache
-    event = get_event(event_id, model=PrivateEvent)
+    event = cache.get_one(Entity.EVENTS, event_id, PrivateEvent)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     attendee_ids = event.attendees or []
-    attendees = [get_user(user_id, model=UserAttendee) for user_id in attendee_ids]
+    attendees = [cache.get_one(Entity.USERS, user_id, UserAttendee) for user_id in attendee_ids]
     return [a for a in attendees if a is not None]
 
 
@@ -67,7 +67,7 @@ def remove_attendee(
         },
     )
     # Invalidate cache so next read sees updated attendees
-    invalidate_event(event_id)
+    cache.invalidate_entity(Entity.EVENTS, event_id)
     return {"message": "Attendee removed"}
 
 
@@ -82,12 +82,14 @@ def get_event_leaderboard(
     if not is_user_event_owner(user, event_id):
         raise BAD_ACCESS
 
-    event = get_event(event_id, model=PrivateEvent)
+    event = cache.get_one(Entity.EVENTS, event_id, PrivateEvent)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
     # Get projects sorted by points (leaderboard order) with AdminProject model
-    return get_projects_for_event(event_id, sort_by_points=True, model=AdminProject)
+    projects = cache.get_many_by_formula(Entity.PROJECTS, {"event_id": event_id}, AdminProject)
+    projects.sort(key=lambda p: p.points, reverse=True)
+    return projects
 
 
 @router.get("/{event_id}/votes")
@@ -99,12 +101,12 @@ def get_event_votes(
     if not is_user_event_owner(user, event_id):
         raise BAD_ACCESS
 
-    event = get_event(event_id, model=PrivateEvent)
+    event = cache.get_one(Entity.EVENTS, event_id, PrivateEvent)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
     # Get all votes for this event
-    votes = get_votes_for_event(event_id)
+    votes = cache.get_many_by_formula(Entity.VOTES, {"event_id": event_id}, Vote)
     return votes
 
 
@@ -117,10 +119,10 @@ def get_event_referrals(
     if not is_user_event_owner(user, event_id):
         raise BAD_ACCESS
 
-    event = get_event(event_id, model=PrivateEvent)
+    event = cache.get_one(Entity.EVENTS, event_id, PrivateEvent)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
     # Get all referrals for this event
-    referrals = get_referrals_for_event(event_id)
+    referrals = cache.get_many_by_formula(Entity.REFERRALS, {"event_id": event_id}, Referral)
     return referrals

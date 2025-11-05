@@ -27,7 +27,7 @@ class UserPublic(UserBase): ...
 class _UserPrivilegedFields(UserPublic):
     """This is the same as UserAttendee but without the id field so we can reduce field duplication in the signup payload. Should not be used directly, you probably want UserAttendee"""
 
-    email: EmailStrippedLower
+    email: Annotated[EmailStrippedLower, Field(json_schema_extra={"indexed": True})]
     first_name: FirstName
     last_name: LastName
 

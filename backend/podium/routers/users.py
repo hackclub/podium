@@ -1,6 +1,7 @@
 from typing import Annotated
 from pydantic import BaseModel, EmailStr
-from podium import db
+from podium import db, cache
+from podium.cache.operations import Entity
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from podium.db.user import (
     UserSignupPayload,
@@ -11,7 +12,6 @@ from podium.db.user import (
 )
 from podium.routers.auth import get_current_user
 from podium.constants import BAD_AUTH
-from podium.cache.operations import get_user, get_user_by_email as get_user_by_email_cached
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -24,7 +24,7 @@ class UserExistsResponse(BaseModel):
 def user_exists(email: Annotated[EmailStr, Query(...)]) -> UserExistsResponse:
     email = email.strip().lower()
     # Use cache-first lookup
-    exists = True if get_user_by_email_cached(email) else False
+    exists = True if cache.get_by_formula(Entity.USERS, {"email": email}, UserInternal) else False
     return UserExistsResponse(exists=exists)
 
 
@@ -69,7 +69,7 @@ async def get_user_public(
     user_id: Annotated[str, Path(title="User Airtable ID")],
 ) -> UserPublic:
     # Use cache-first lookup
-    user = get_user(user_id, model=UserPublic)
+    user = cache.get_one(Entity.USERS, user_id, UserPublic)
     
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -81,7 +81,7 @@ async def get_user_public(
 @router.post("/")
 def create_user(user: UserSignupPayload):
     # Check if the user already exists
-    existing_user = get_user_by_email_cached(user.email)
+    existing_user = cache.get_by_formula(Entity.USERS, {"email": user.email.lower().strip()}, UserInternal)
     if existing_user:
         raise HTTPException(status_code=400, detail="User already exists")
     db.users.create(user.model_dump())

@@ -1,59 +1,50 @@
 """
-Valkey/Redis caching layer for Podium.
+Simplified caching layer for Podium.
 
-Provides cache-aside pattern with automatic invalidation via Airtable webhooks.
+Zero-touch: adding/changing models requires NO cache code changes.
 
-IMPORTANT: All deletes must go through delete_* functions (not direct Airtable access).
-This ensures cache invalidation and tombstone marking.
+Usage:
+    from podium import cache
+    from podium.cache.operations import Entity
+
+    # Get by ID (use Entity enum for type safety)
+    event = cache.get_one(Entity.EVENTS, id, Event)
+    user = cache.get_one(Entity.USERS, id, UserPrivate)
+
+    # Get by field (uses Airtable query, caches result)
+    user = cache.get_by_formula(Entity.USERS, {"email": "user@example.com"}, UserPrivate)
+    event = cache.get_by_formula(Entity.EVENTS, {"slug": "my-event"}, Event)
+
+    # Get multiple
+    events = cache.get_many_by_ids(Entity.EVENTS, [id1, id2], Event)
+    projects = cache.get_many_by_formula(Entity.PROJECTS, {"event_id": event_id}, Project)
+
+    # Add new entity (zero cache changes needed)
+    comment = cache.get_one(Entity.COMMENTS, id, Comment)  # Add COMMENTS to Entity enum
 """
 
 from podium.cache.client import get_redis_client
-from podium.cache.operations import _cache_status
 from podium.cache.operations import (
-    # Read operations
-    get_project,
-    get_projects_for_event,
-    get_event,
-    get_event_by_slug,
-    get_events_by_ids,
-    get_events_by_owner,
-    get_user,
-    get_user_by_email,
-    get_vote,
-    # Delete operations (use these instead of db.*.delete())
-    delete_event,
-    delete_project,
-    delete_user,
-    delete_vote,
-    delete_referral,
-    # Manual invalidation (for special cases)
-    invalidate_project,
-    invalidate_event,
-    invalidate_user,
-    invalidate_vote,
+    Entity,
+    delete_entity,
+    get_by_formula,
+    get_many_by_formula,
+    get_many_by_ids,
+    get_one,
+    invalidate_entity,
+    upsert_entity,
 )
 
 __all__ = [
     "get_redis_client",
-    # Reads
-    "get_project",
-    "get_projects_for_event",
-    "get_event",
-    "get_event_by_slug",
-    "get_events_by_ids",
-    "get_events_by_owner",
-    "get_user",
-    "get_user_by_email",
-    "get_vote",
-    # Deletes (ALWAYS use these)
-    "delete_event",
-    "delete_project",
-    "delete_user",
-    "delete_vote",
-    "delete_referral",
-    # Manual invalidation
-    "invalidate_project",
-    "invalidate_event",
-    "invalidate_user",
-    "invalidate_vote",
+    # Entity enum
+    "Entity",
+    # Core API
+    "get_one",
+    "get_many_by_ids",
+    "get_by_formula",
+    "get_many_by_formula",
+    "upsert_entity",
+    "invalidate_entity",
+    "delete_entity",
 ]

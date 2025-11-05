@@ -2,7 +2,8 @@ from secrets import token_urlsafe
 from typing import Annotated
 from datetime import datetime
 import httpx
-from podium import settings, db
+from podium import settings, db, cache
+from podium.cache.operations import Entity
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pyairtable.formulas import match
 from podium.routers.auth import get_current_user
@@ -17,7 +18,6 @@ from podium.db.project import (
 from podium.db.event import PrivateEvent
 from podium.generated.review_factory_models import CheckStatus
 from podium.constants import BAD_AUTH, BAD_ACCESS, EmptyModel
-from podium.cache.operations import get_project, get_event, invalidate_project, upsert_project
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -37,7 +37,7 @@ def get_projects(
     # Combine owned and collaborated project IDs
     all_project_ids = user.projects + user.collaborations
     # Fetch projects from cache using PrivateProject model for join_code
-    projects = [get_project(project_id, model=PrivateProject) for project_id in all_project_ids]
+    projects = [cache.get_one(Entity.PROJECTS, project_id, PrivateProject) for project_id in all_project_ids]
     return [p for p in projects if p is not None]
 
 
@@ -55,7 +55,7 @@ def create_project(
     owner = [user.id]
 
     # Fetch the event to validate demo field and check attendees (cache-first)
-    event = get_event(project.event[0], model=PrivateEvent)
+    event = cache.get_one(Entity.EVENTS, project.event[0], PrivateEvent)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
@@ -83,7 +83,7 @@ def create_project(
     )
     # Upsert to cache for immediate availability
     created_project = Project.model_validate({**created["fields"], "id": created["id"]})
-    upsert_project(created_project)
+    cache.upsert_entity(Entity.PROJECTS, created_project)
 
 
 @router.post("/join")
@@ -110,14 +110,14 @@ def join_project(
         )
 
     # Ensure the user is part of the event that the project is associated with
-    event = get_event(project.event[0], model=PrivateEvent)
+    event = cache.get_one(Entity.EVENTS, project.event[0], PrivateEvent)
     event_attendees = event.attendees if event else []
     if user.id not in event_attendees:
         raise BAD_ACCESS
 
     db.projects.update(project.id, {"collaborators": project.collaborators + [user.id]})
     # Invalidate cache so next read sees updated collaborators
-    invalidate_project(project.id)
+    cache.invalidate_entity(Entity.PROJECTS, project.id)
 
 
 # Update project
@@ -131,12 +131,12 @@ def update_project(
     Update a project by replacing it
     """
     # Check if the user is an owner of the project or if they even exist
-    p = get_project(project_id)
+    p = cache.get_one(Entity.PROJECTS, project_id, Project)
     if user is None or not p or user.id not in p.owner:
         raise BAD_ACCESS
 
     # Fetch the event to validate demo field
-    event = get_event(project.event[0], model=PrivateEvent)
+    event = cache.get_one(Entity.EVENTS, project.event[0], PrivateEvent)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
@@ -145,7 +145,7 @@ def update_project(
 
     result = db.projects.update(project_id, project.model_dump())["fields"]
     # Invalidate cache so next read sees updated project
-    invalidate_project(project_id)
+    cache.invalidate_entity(Entity.PROJECTS, project_id)
     return result
 
 
@@ -156,13 +156,13 @@ def delete_project(
     user: Annotated[UserInternal, Depends(get_current_user)],
 ):
     # Check if the user is an owner of the project or if they even exist
-    p = get_project(project_id)
+    p = cache.get_one(Entity.PROJECTS, project_id, Project)
     if user is None or not p or user.id not in p.owner:
         raise BAD_ACCESS
 
     result = db.projects.delete(project_id)
     # Invalidate cache after deletion
-    invalidate_project(project_id)
+    cache.invalidate_entity(Entity.PROJECTS, project_id)
     return result
 
 
@@ -170,7 +170,7 @@ def delete_project(
 # The regex here is to ensure that the path parameter starts with "rec" and is followed by any number of alphanumeric characters
 def get_project_endpoint(project_id: Annotated[str, Path(pattern=r"^rec\w*$")]):
     # Use cache-first lookup
-    project = get_project(project_id)
+    project = cache.get_one(Entity.PROJECTS, project_id, Project)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     return project
@@ -184,7 +184,7 @@ async def start_project_check(project: Project) -> CheckStatus:
             status_code=500, detail="Review Factory token not set on backend"
         )
 
-    project = get_project(project.id, model=InternalProject)
+    project = cache.get_one(Entity.PROJECTS, project.id, InternalProject)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
