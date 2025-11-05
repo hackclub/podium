@@ -132,6 +132,31 @@ def _cache_delete(entity: str, record_id: str) -> None:
         pass
 
 
+def _cache_secondary_get(entity: str, field: str, value: str) -> Optional[str]:
+    """Get record ID from secondary index (field -> record_id mapping)."""
+    try:
+        from podium.cache.client import get_redis_client
+        
+        client = get_redis_client()
+        key = f"{CACHE_SCHEMA_VERSION}:idx:{entity}:{field}:{value}"
+        record_id = client.get(key)
+        return record_id.decode() if record_id else None
+    except Exception:
+        return None
+
+
+def _cache_secondary_save(entity: str, field: str, value: str, record_id: str) -> None:
+    """Save secondary index mapping (field -> record_id) with TTL."""
+    try:
+        from podium.cache.client import get_redis_client
+        
+        client = get_redis_client()
+        key = f"{CACHE_SCHEMA_VERSION}:idx:{entity}:{field}:{value}"
+        client.setex(key, _get_ttl(), record_id)
+    except Exception:
+        pass
+
+
 def _to_model(model: Type[TModel], data: dict) -> TModel:
     """Convert dict to Pydantic model (ignoring extra fields for cache compatibility)."""
     # Filter to only fields the model expects (handles removed fields gracefully)
@@ -231,6 +256,7 @@ def get_by_formula(
         user = get_by_formula(Entity.USERS, {"email": "test@example.com"}, UserPrivate)
         event = get_by_formula(Entity.EVENTS, {"slug": "my-event"}, Event)
     """
+    _mark_cache("MISS")
     try:
         records = tables[entity].all(formula=match(formula_dict))
         if not records:
@@ -316,3 +342,52 @@ def delete_entity(entity: str, record_id: str) -> None:
     tables[entity].delete(record_id)
     invalidate_entity(entity, record_id)
     _set_tombstone(entity, record_id)
+
+
+def get_user_by_email(email: str, model: Type[TModel]) -> Optional[TModel]:
+    """
+    Get user by email using secondary cache for efficient lookups.
+
+    This function implements a three-tier lookup:
+    1. Check secondary cache (email -> user_id mapping)
+    2. Check primary cache (user_id -> user data)
+    3. Query Airtable and cache results
+
+    Args:
+        email: User email address (will be normalized)
+        model: Pydantic model type (UserInternal, UserPrivate, etc.)
+
+    Returns:
+        Validated user model or None if not found
+
+    Example:
+        user = get_user_by_email("test@example.com", UserInternal)
+    """
+    # Normalize email
+    email = email.lower().strip()
+    
+    # Check secondary cache for email -> user_id mapping
+    user_id = _cache_secondary_get(Entity.USERS, "email", email)
+    if user_id:
+        # Try primary cache with the user_id
+        user = get_one(Entity.USERS, user_id, model)
+        if user:
+            return user
+    
+    # Fall back to Airtable query
+    _mark_cache("MISS")
+    try:
+        records = tables[Entity.USERS].all(formula=match({"email": email}))
+        if not records:
+            return None
+        
+        fields = {**records[0]["fields"], "id": records[0]["id"]}
+        validated = _to_model(model, fields)
+        
+        # Cache both primary and secondary
+        _cache_save(Entity.USERS, validated.model_dump())
+        _cache_secondary_save(Entity.USERS, "email", email, validated.id)
+        
+        return validated
+    except Exception:
+        return None

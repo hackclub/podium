@@ -154,8 +154,8 @@ async def get_current_user(
     except PyJWTError:
         # raise credentials_exception
         raise BAD_AUTH
-    # Check if the user exists and get the user data in one request
-    user = cache.get_by_formula("users", {"email": email.lower().strip()}, UserInternal)
+    # Check if the user exists and get the user data using secondary cache
+    user = cache.get_user_by_email(email, UserInternal)
     if user is None:
         raise BAD_AUTH
 

@@ -31,6 +31,7 @@ from podium.cache.operations import (
     get_many_by_formula,
     get_many_by_ids,
     get_one,
+    get_user_by_email,
     invalidate_entity,
     upsert_entity,
 )
@@ -44,6 +45,7 @@ __all__ = [
     "get_many_by_ids",
     "get_by_formula",
     "get_many_by_formula",
+    "get_user_by_email",
     "upsert_entity",
     "invalidate_entity",
     "delete_entity",
