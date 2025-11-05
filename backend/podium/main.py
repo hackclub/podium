@@ -1,19 +1,18 @@
+import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import AsyncIterator
 
 import sentry_sdk
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from podium.config import settings
 
-# Initialize Sentry ASAP
-if settings.current_env != "development":
-    sentry_sdk.init(
-        dsn=settings.sentry_dsn,
-        traces_sample_rate=0.1,
-        profiles_sample_rate=0.1,
-        send_default_pii=True,
-    )
+sentry_sdk.init(
+    dsn=""
+    if os.getenv("ENV_FOR_DYNACONF") == "development"
+    else "https://489f4a109d07aeadfd13387bcd3197ab@o4508979744210944.ingest.de.sentry.io/4508979747553360",
+    send_default_pii=True,
+)
 
 
 @asynccontextmanager
