@@ -19,10 +19,13 @@ try:
     from .auth_utils import simulate_auth_flow_via_api
     from .reporting import (
         generate_response_time_report,
-        create_response_time_graph,
-        create_endpoint_comparison_graph,
         print_summary_report,
         save_report_to_file
+    )
+    from .regenerate_graphs import (
+        create_improved_response_time_graph,
+        create_improved_endpoint_comparison_graph,
+        create_endpoint_heatmap
     )
 except ImportError:
     # Fallback to absolute imports when running as script
@@ -38,10 +41,13 @@ except ImportError:
     from auth_utils import simulate_auth_flow_via_api
     from reporting import (
         generate_response_time_report,
-        create_response_time_graph,
-        create_endpoint_comparison_graph,
         print_summary_report,
         save_report_to_file
+    )
+    from regenerate_graphs import (
+        create_improved_response_time_graph,
+        create_improved_endpoint_comparison_graph,
+        create_endpoint_heatmap
     )
 
 
@@ -477,21 +483,40 @@ async def run_comprehensive_stress_test(
     # Print summary
     print_summary_report(report)
     
-    # Generate graphs
+    # Generate improved graphs
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     try:
         total_users = num_events * users_per_event
         title_suffix = f" ({num_events} events, {total_users} users)"
         
-        graph1 = create_response_time_graph(all_response_times, "response_times.png", title_suffix)
+        graph1 = create_improved_response_time_graph(
+            all_response_times, 
+            os.path.join(script_dir, "response_times_improved.png"), 
+            title_suffix
+        )
         print(f"\n{graph1}")
         
-        graph2 = create_endpoint_comparison_graph(all_response_times, "endpoint_comparison.png", title_suffix)
+        graph2 = create_improved_endpoint_comparison_graph(
+            all_response_times, 
+            os.path.join(script_dir, "endpoint_comparison_improved.png"), 
+            title_suffix
+        )
         print(f"{graph2}")
+        
+        graph3 = create_endpoint_heatmap(
+            all_response_times, 
+            os.path.join(script_dir, "endpoint_heatmap.png"), 
+            title_suffix
+        )
+        print(f"{graph3}")
     except Exception as e:
-        print(f"\nGraph generation info: {e}")
+        print(f"\nGraph generation error: {e}")
+        import traceback
+        traceback.print_exc()
     
-    # Save report
-    report_file = save_report_to_file(report, "stress_test_report.json")
+    # Save report to the test/stress directory
+    report_path = os.path.join(script_dir, "stress_test_report.json")
+    report_file = save_report_to_file(report, report_path)
     print(f"\n{report_file}")
     
     return report

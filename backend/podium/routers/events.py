@@ -103,6 +103,9 @@ def create_event(
     # Upsert to cache for immediate availability
     created_event = PrivateEvent.model_validate({**created["fields"], "id": created["id"]})
     cache.upsert_entity(Entity.EVENTS, created_event)
+    # Invalidate user cache since owned_events will be updated by Airtable
+    # This ensures immediate consistency without waiting for webhook
+    cache.invalidate_entity(Entity.USERS, user.id)
 
 
 @router.post("/attend")
@@ -133,6 +136,9 @@ def attend_event(
     )
     # Invalidate cache so next read sees updated attendees
     cache.invalidate_entity(Entity.EVENTS, event.id)
+    # Invalidate user cache since attending_events will be updated by Airtable
+    # This ensures immediate consistency without waiting for webhook
+    cache.invalidate_entity(Entity.USERS, user.id)
     # Create a referral record if the referral is not empty
     if referral:
         db.referrals.create(

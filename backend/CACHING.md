@@ -83,8 +83,21 @@ Cache is invalidated by:
 2. **Delete operations** via `cache.delete_entity()`
 3. **TTL expiration** (8 hours)
 4. **Schema version bump** in `cache/operations.py` (invalidates all cached data)
+5. **Manual invalidation** for user relationship changes (below)
 
 **Note:** Secondary indexes share the same TTL as primary cache, so they expire together. Webhook invalidation clears primary cache; secondary indexes will miss and get repopulated on next lookup.
+
+### Manual User Cache Invalidation
+
+User relationship changes create a race condition between API operations and webhook cache updates.
+
+Manually invalidate user cache after:
+- `POST /events/` (updates `owned_events`)
+- `POST /events/attend` (updates `attending_events`)  
+- `POST /projects/` (updates `projects`)
+- `POST /projects/join` (updates `collaborations`)
+
+Ensures immediate consistency for `get_current_user()` calls.
 
 ## Response Headers
 

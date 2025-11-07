@@ -75,3 +75,21 @@ python main.py 3 8       # 3 events, 8 users each
 - `stress_test_report.json` - detailed results and statistics
 - `response_times.png` - response time graphs (with event/user counts)
 - `endpoint_comparison.png` - endpoint comparison charts
+
+## Cleanup
+
+If tests are interrupted or cleanup fails, use the cleanup script to remove all stress test data:
+
+```bash
+cd backend
+uv run python test/stress/cleanup.py
+```
+
+This will delete:
+- All users with emails matching `*@stress-test.example.com`
+- All events with "Stress Test Event" in the name
+- All projects with "stress-test" in the repo URL
+- All referrals with "stress_test" content
+- Votes are skipped (will be cleaned by daily sweep)
+
+**Note:** The cleanup script uses direct Airtable deletes (not cache.delete_entity) since it's a standalone utility for test data cleanup.

@@ -84,6 +84,9 @@ def create_project(
     # Upsert to cache for immediate availability
     created_project = Project.model_validate({**created["fields"], "id": created["id"]})
     cache.upsert_entity(Entity.PROJECTS, created_project)
+    # Invalidate user cache since projects will be updated by Airtable
+    # This ensures immediate consistency without waiting for webhook
+    cache.invalidate_entity(Entity.USERS, user.id)
 
 
 @router.post("/join")
@@ -118,6 +121,9 @@ def join_project(
     db.projects.update(project.id, {"collaborators": project.collaborators + [user.id]})
     # Invalidate cache so next read sees updated collaborators
     cache.invalidate_entity(Entity.PROJECTS, project.id)
+    # Invalidate user cache since collaborations will be updated by Airtable
+    # This ensures immediate consistency without waiting for webhook
+    cache.invalidate_entity(Entity.USERS, user.id)
 
 
 # Update project
