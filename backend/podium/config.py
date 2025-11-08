@@ -5,7 +5,7 @@ from dynaconf import Dynaconf, Validator
 
 print(f"Using environment: {os.getenv('ENV_FOR_DYNACONF', '')}")
 settings = Dynaconf(
-    envvar_prefix="PODIUM",
+    envvar_prefix="",
     load_dotenv=True,
     settings_files=["settings.toml", ".secrets.toml"],
     merge_enabled=True,
