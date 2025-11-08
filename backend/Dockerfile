@@ -3,11 +3,12 @@ FROM python:3.13
 ENV UV_LINK_MODE=copy
 
 RUN apt-get update && apt-get install -y \
-    wget
+wget
 ADD . /app
 WORKDIR /app
 
 # Install Doppler CLI
+# ENV DOPPLER_ENV=1
 RUN apt-get update && apt-get install -y apt-transport-https ca-certificates curl gnupg && \
     curl -sLf --retry 3 --tlsv1.2 --proto "=https" 'https://packages.doppler.com/public/cli/gpg.DE2A7741A397C129.key' | gpg --dearmor -o /usr/share/keyrings/doppler-archive-keyring.gpg && \
     echo "deb [signed-by=/usr/share/keyrings/doppler-archive-keyring.gpg] https://packages.doppler.com/public/cli/deb/debian any-version main" | tee /etc/apt/sources.list.d/doppler-cli.list && \
@@ -22,9 +23,7 @@ ENV PATH="/app/.venv/bin:$PATH"
 RUN ["uv", "run", "--", "playwright", "install"]
 
 # Use Doppler to inject runtime secrets at container start. Ensure DOPPLER_TOKEN or an agent is available at runtime.
-# (commented since we install doppler-env and that loads the env vars if DOPPLER_TOKEN is set)
-# ENTRYPOINT ["doppler", "run", "--"]
-ENV DOPPLER_ENV=1
+ENTRYPOINT ["doppler", "run", "--"]
 CMD ["uv", "run", "python", "-m", "uvicorn", "podium.main:app", "--host", "0.0.0.0", "--port", "8000"]
 EXPOSE 8000
 
