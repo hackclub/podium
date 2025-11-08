@@ -24,6 +24,7 @@ RUN ["uv", "run", "--", "playwright", "install"]
 # Use Doppler to inject runtime secrets at container start. Ensure DOPPLER_TOKEN or an agent is available at runtime.
 # (commented since we install doppler-env and that loads the env vars if DOPPLER_TOKEN is set)
 # ENTRYPOINT ["doppler", "run", "--"]
+ENV DOPPLER_ENV=1
 CMD ["uv", "run", "python", "-m", "uvicorn", "podium.main:app", "--host", "0.0.0.0", "--port", "8000"]
 EXPOSE 8000
 
