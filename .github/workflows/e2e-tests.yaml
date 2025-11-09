@@ -1,0 +1,104 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  # Doppler will provide JWT_SECRET and other secrets from 'dev' config
+  DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v3
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Cache backend dependencies
+        uses: actions/cache@v4
+        with:
+          path: backend/.venv
+          key: ${{ runner.os }}-uv-${{ hashFiles('backend/pyproject.toml') }}
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          uv sync
+
+      - name: Cache frontend dependencies
+        uses: actions/cache@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-bun-${{ hashFiles('frontend/bun.lock') }}
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          bun install
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('frontend/package.json') }}
+
+      - name: Install Playwright browsers
+        run: |
+          cd frontend
+          bunx playwright install chromium --with-deps
+
+      - name: Check ports are available
+        run: |
+          # Ensure ports 8000 (backend) and 4173 (frontend) are free
+          if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null 2>&1; then
+            echo "❌ Port 8000 already in use"
+            exit 1
+          fi
+          if lsof -Pi :4173 -sTCP:LISTEN -t >/dev/null 2>&1; then
+            echo "❌ Port 4173 already in use"
+            exit 1
+          fi
+          echo "✅ Ports 8000 and 4173 are available"
+
+      - name: Run E2E tests with Doppler secrets
+        run: |
+          cd frontend
+          doppler run --config dev -- bash -c './run-e2e-tests.sh'
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 30
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results
+          path: frontend/test-results/
+          retention-days: 7
