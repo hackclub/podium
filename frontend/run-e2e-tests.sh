@@ -50,35 +50,14 @@ if [ ! -d "node_modules" ]; then
     exit 1
 fi
 
-# Try multiple methods to find and run Playwright
-# Method 1: Use node to run node_modules/.bin/playwright (most reliable)
-if [ -f "node_modules/.bin/playwright" ]; then
-    PLAYWRIGHT_CMD="node node_modules/.bin/playwright"
-    echo "Using: node node_modules/.bin/playwright"
-# Method 2: Try node require.resolve to find CLI directly
-elif PLAYWRIGHT_CLI=$(node -e "console.log(require.resolve('@playwright/test/cli.js'))" 2>/dev/null); then
-    if [ -n "$PLAYWRIGHT_CLI" ] && [ -f "$PLAYWRIGHT_CLI" ]; then
-        PLAYWRIGHT_CMD="node $PLAYWRIGHT_CLI"
-        echo "Using: node $PLAYWRIGHT_CLI"
-    fi
+# Use bunx to run playwright - Bun will automatically use the locally installed version
+# This matches the working pattern from other projects
+if ! command -v bunx >/dev/null 2>&1; then
+    echo -e "${RED}Error: bunx not found. Bun is required to run tests.${NC}"
+    exit 1
 fi
 
-# Fallback methods if local installation not found
-if [ -z "$PLAYWRIGHT_CMD" ]; then
-    # Method 3: Try using bunx (Bun's package runner)
-    if command -v bunx >/dev/null 2>&1; then
-        PLAYWRIGHT_CMD="bunx playwright"
-        echo "Using: bunx playwright (fallback)"
-    # Method 4: Try using npx as last resort
-    elif command -v npx >/dev/null 2>&1; then
-        PLAYWRIGHT_CMD="npx playwright"
-        echo "Using: npx playwright (fallback)"
-    else
-        echo -e "${RED}Error: Could not find Playwright. Run 'bun install' first.${NC}"
-        echo "Current directory: $(pwd)"
-        exit 1
-    fi
-fi
+PLAYWRIGHT_CMD="bunx playwright"
 
 # Run each test file
 for test_file in "${TEST_FILES[@]}"; do
