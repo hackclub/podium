@@ -40,13 +40,45 @@ PASSED_TESTS=0
 FAILED_TESTS=0
 FAILED_FILES=()
 
+# Ensure we're in the frontend directory (where the script is located)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# Verify node_modules exists
+if [ ! -d "node_modules" ]; then
+    echo -e "${RED}Error: node_modules not found in $(pwd). Run 'bun install' first.${NC}"
+    exit 1
+fi
+
+# Try multiple methods to find and run Playwright
+# Method 1: Try node_modules/.bin/playwright (standard location)
+if [ -f "node_modules/.bin/playwright" ]; then
+    PLAYWRIGHT_CMD="node_modules/.bin/playwright"
+# Method 2: Try using bunx (Bun's package runner)
+elif command -v bunx >/dev/null 2>&1; then
+    PLAYWRIGHT_CMD="bunx --bun playwright"
+# Method 3: Try using npx with explicit local package
+elif command -v npx >/dev/null 2>&1; then
+    PLAYWRIGHT_CMD="npx --yes playwright"
+# Method 4: Try node require.resolve as fallback
+else
+    PLAYWRIGHT_CLI=$(node -e "console.log(require.resolve('@playwright/test/cli.js'))" 2>/dev/null || echo "")
+    if [ -n "$PLAYWRIGHT_CLI" ] && [ -f "$PLAYWRIGHT_CLI" ]; then
+        PLAYWRIGHT_CMD="node $PLAYWRIGHT_CLI"
+    else
+        echo -e "${RED}Error: Could not find Playwright. Run 'bun install' first.${NC}"
+        echo "Current directory: $(pwd)"
+        exit 1
+    fi
+fi
+
 # Run each test file
 for test_file in "${TEST_FILES[@]}"; do
     echo ""
     echo -e "${YELLOW}Running: $test_file${NC}"
     echo "----------------------------------------"
     
-    if bunx playwright test "$test_file" --reporter=list; then
+    if $PLAYWRIGHT_CMD test "$test_file" --reporter=list; then
         echo -e "${GREEN}✓ $test_file passed${NC}"
     else
         echo -e "${RED}✗ $test_file failed${NC}"
