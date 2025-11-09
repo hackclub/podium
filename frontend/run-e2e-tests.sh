@@ -51,20 +51,28 @@ if [ ! -d "node_modules" ]; then
 fi
 
 # Try multiple methods to find and run Playwright
-# Method 1: Try node_modules/.bin/playwright (standard location)
+# Method 1: Use node to run node_modules/.bin/playwright (most reliable)
 if [ -f "node_modules/.bin/playwright" ]; then
-    PLAYWRIGHT_CMD="node_modules/.bin/playwright"
-# Method 2: Try using bunx (Bun's package runner)
-elif command -v bunx >/dev/null 2>&1; then
-    PLAYWRIGHT_CMD="bunx --bun playwright"
-# Method 3: Try using npx with explicit local package
-elif command -v npx >/dev/null 2>&1; then
-    PLAYWRIGHT_CMD="npx --yes playwright"
-# Method 4: Try node require.resolve as fallback
-else
-    PLAYWRIGHT_CLI=$(node -e "console.log(require.resolve('@playwright/test/cli.js'))" 2>/dev/null || echo "")
+    PLAYWRIGHT_CMD="node node_modules/.bin/playwright"
+    echo "Using: node node_modules/.bin/playwright"
+# Method 2: Try node require.resolve to find CLI directly
+elif PLAYWRIGHT_CLI=$(node -e "console.log(require.resolve('@playwright/test/cli.js'))" 2>/dev/null); then
     if [ -n "$PLAYWRIGHT_CLI" ] && [ -f "$PLAYWRIGHT_CLI" ]; then
         PLAYWRIGHT_CMD="node $PLAYWRIGHT_CLI"
+        echo "Using: node $PLAYWRIGHT_CLI"
+    fi
+fi
+
+# Fallback methods if local installation not found
+if [ -z "$PLAYWRIGHT_CMD" ]; then
+    # Method 3: Try using bunx (Bun's package runner)
+    if command -v bunx >/dev/null 2>&1; then
+        PLAYWRIGHT_CMD="bunx playwright"
+        echo "Using: bunx playwright (fallback)"
+    # Method 4: Try using npx as last resort
+    elif command -v npx >/dev/null 2>&1; then
+        PLAYWRIGHT_CMD="npx playwright"
+        echo "Using: npx playwright (fallback)"
     else
         echo -e "${RED}Error: Could not find Playwright. Run 'bun install' first.${NC}"
         echo "Current directory: $(pwd)"
