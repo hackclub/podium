@@ -52,7 +52,7 @@ if ! command -v npx >/dev/null 2>&1; then
     exit 1
 fi
 
-PLAYWRIGHT_CMD="npx playwright"
+PLAYWRIGHT_CMD="doppler run --config dev -- npx playwright"
 
 # Run each test file
 for test_file in "${TEST_FILES[@]}"; do
