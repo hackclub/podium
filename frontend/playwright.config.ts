@@ -53,7 +53,10 @@ export default defineConfig({
 			command: 'bun dev --port 4173',
 			port: 4173,
 			timeout: 120000,
-			reuseExistingServer: true
+			reuseExistingServer: true,
+			env: {
+				PUBLIC_API_URL: 'http://127.0.0.1:8000'
+			}
 		}
 	],
 
