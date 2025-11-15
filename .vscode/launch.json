@@ -1,22 +1,22 @@
 {
   "version": "0.2.0",
   "inputs": [
-    {
-      "id": "environment",
-      "description": "Select environment",
-      "type": "pickString",
-      "options": [
-        {
-          "label": "Development",
-          "value": "development"
-        },
-        {
-          "label": "Production",
-          "value": "production"
-        }
-      ],
-      "default": "development"
-    }
+    // {
+    //   "id": "environment",
+    //   "description": "Select environment",
+    //   "type": "pickString",
+    //   "options": [
+    //     {
+    //       "label": "Development",
+    //       "value": "development"
+    //     },
+    //     {
+    //       "label": "Production",
+    //       "value": "production"
+    //     }
+    //   ],
+    //   "default": "development"
+    // }
   ],
   "configurations": [
     {
@@ -45,7 +45,9 @@
       "args": ["podium.main:app", "--reload"],
       // "args": ["podium.main:app"],
       "env": {
-        "ENV_FOR_DYNACONF": "${input:environment}"
+        // "ENV_FOR_DYNACONF": "${input:environment}"
+        "ENV_FOR_DYNACONF": "development",
+        "DOPPLER_ENV": "1"
       },
       "cwd": "${workspaceFolder}/backend",
       "justMyCode": true

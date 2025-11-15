@@ -37,11 +37,11 @@ export default defineConfig({
 	webServer: isExternal ? undefined : [
 		{
 			// Backend runs with Doppler for secrets management
-			command: 'cd ../backend && doppler run --config dev -- uv run podium --log-level warning',
+			command: 'cd ../backend && doppler run --project podium --config dev -- uv run podium --log-level warning',
 			port: 8000,
 			timeout: 120000,
 			reuseExistingServer: true,
-			stdout: 'ignore',
+			stdout: 'pipe',
 			stderr: 'pipe',
 			env: {
 				PYTHONIOENCODING: 'utf-8',

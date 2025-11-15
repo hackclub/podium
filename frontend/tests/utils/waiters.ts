@@ -6,17 +6,21 @@ export async function waitForApiOk(
 	method?: string,
 	timeout = 15000
 ): Promise<void> {
-	await page.waitForResponse(
+	const res = await page.waitForResponse(
 		(res) => {
 			const url = res.url();
 			const meth = res.request().method();
 			const urlMatch =
 				typeof urlPartOrRegex === 'string' ? url.includes(urlPartOrRegex) : urlPartOrRegex.test(url);
 			const methodMatch = method ? meth === method : true;
-			return urlMatch && methodMatch && res.ok();
+			return urlMatch && methodMatch;
 		},
 		{ timeout }
 	);
+	if (!res.ok()) {
+		const body = await res.text().catch(() => '');
+		throw new Error(`API ${method ?? 'ANY'} ${res.url()} returned ${res.status()}: ${body.slice(0, 400)}`);
+	}
 }
 
 export async function clickAndWaitForApi(
