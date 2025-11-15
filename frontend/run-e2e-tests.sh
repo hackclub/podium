@@ -20,13 +20,9 @@ echo "=========================================="
 # Test files to run
 TEST_FILES=(
     "tests/auth.spec.ts"
-    "tests/events.organizer.spec.ts"
-    "tests/events.attendee.spec.ts"
-    "tests/projects.spec.ts"
-    "tests/voting.spec.ts"
-    "tests/admin.spec.ts"
+    "tests/core.spec.ts"
+    "tests/wizard.spec.ts"
     "tests/permissions.spec.ts"
-    "tests/voting-integrity.spec.ts"
 )
 
 # Track results
