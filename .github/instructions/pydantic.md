@@ -1,3 +1,9 @@
+---
+name: Pydantic Documentation
+description: Links to Pydantic documentation, including concepts, API, and internals.
+applyTo: "**/*.py"
+---
+
 # Pydantic
 
 > Data validation using Python type hints

@@ -27,6 +27,7 @@
     "**/.venv/*": true,
     "**/.vscode/*.md": true,
     ".ruff_cache/*": true,
-    "**/__pycache__/*": true,
-  }
+    "**/__pycache__/*": true
+  },
+  "files.eol": "\n"
   }

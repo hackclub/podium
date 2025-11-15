@@ -50,14 +50,14 @@ if [ ! -d "node_modules" ]; then
     exit 1
 fi
 
-# Use bunx to run playwright - Bun will automatically use the locally installed version
-# This matches the working pattern from other projects
-if ! command -v bunx >/dev/null 2>&1; then
-    echo -e "${RED}Error: bunx not found. Bun is required to run tests.${NC}"
+# Use bun to run playwright from local node_modules
+# Use npx to run playwright from local node_modules
+if ! command -v npx >/dev/null 2>&1; then
+    echo -e "${RED}Error: npx not found. Node.js is required to run tests.${NC}"
     exit 1
 fi
 
-PLAYWRIGHT_CMD="bunx playwright"
+PLAYWRIGHT_CMD="npx playwright"
 
 # Run each test file
 for test_file in "${TEST_FILES[@]}"; do

@@ -1,3 +1,9 @@
+---
+name: daisyUI Documentation
+description: Daisy UI is a Tailwind CSS component library that provides class names for common UI components. This file contains usage instructions and links to the documentation for daisyUI 5.
+applyTo: "**/*.html, **/*.svelte, **/*.jsx, **/*.tsx"
+---
+
 # daisyUI 5
 daisyUI 5 is a CSS library for Tailwind CSS 4
 daisyUI 5 provides class names for common UI components

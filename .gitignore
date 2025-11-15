@@ -4,3 +4,5 @@ quality_check_results/
 sample_projects.csv
 logs/
 backend/podium/cache/generated/
+# for `act`
+.secrets 

@@ -67,7 +67,7 @@ jobs:
       - name: Install Playwright browsers
         run: |
           cd frontend
-          bunx playwright install chromium --with-deps
+          npx playwright install chromium --with-deps
 
       - name: Check ports are available
         run: |
@@ -85,7 +85,7 @@ jobs:
       - name: Run E2E tests with Doppler secrets
         run: |
           cd frontend
-          doppler run --config dev -- bash -c './run-e2e-tests.sh'
+          doppler run --config dev -- bash run-e2e-tests.sh
 
       - name: Upload test results
         uses: actions/upload-artifact@v4

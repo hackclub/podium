@@ -12,6 +12,7 @@
   },
   "devDependencies": {
     "@hey-api/openapi-ts": "^0.60.1",
+    "@playwright/test": "^1.54.0",
     "@sveltejs/adapter-auto": "^3.0.0",
     "@sveltejs/adapter-static": "^3.0.8",
     "@sveltejs/adapter-vercel": "^5.5.2",
@@ -19,7 +20,9 @@
     "@sveltejs/vite-plugin-svelte": "^4.0.0",
     "@tailwindcss/postcss": "^4.1.4",
     "@tailwindcss/typography": "^0.5.15",
+    "@types/jsonwebtoken": "^9.0.7",
     "daisyui": "^5.0.28",
+    "jsonwebtoken": "^9.0.2",
     "prettier": "3.4.2",
     "prettier-plugin-svelte": "^3.3.2",
     "svelte": "^5.0.0",
