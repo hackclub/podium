@@ -7,14 +7,14 @@ export default defineConfig({
 	testDir: './tests',
 	fullyParallel: true,
 	forbidOnly: !!process.env.CI,
-	retries: process.env.CI ? 1 : 0,
+	retries: process.env.CI ? 2 : 1,
 	workers: 4,
 	reporter: [
-		['list'],
-		['html', { outputFolder: 'playwright-report', open: 'never' }],
-		['json', { outputFile: 'test-results.json' }]
+		['list', { printSteps: false }],
+		['html', { outputFolder: 'playwright-report', open: 'never' }]
 	],
 	timeout: 60000,
+	quiet: true,
 
 	use: {
 		baseURL: externalBaseURL ?? 'http://127.0.0.1:4173',
@@ -36,12 +36,20 @@ export default defineConfig({
 
 	webServer: isExternal ? undefined : [
 		{
-			command: 'cd ../backend && uv run podium',
+			// Backend runs with Doppler for secrets management
+			command: 'cd ../backend && doppler run --config dev -- uv run podium --log-level warning',
 			port: 8000,
 			timeout: 120000,
-			reuseExistingServer: true
+			reuseExistingServer: true,
+			stdout: 'ignore',
+			stderr: 'pipe',
+			env: {
+				PYTHONIOENCODING: 'utf-8',
+				PYTHONWARNINGS: 'ignore'
+			}
 		},
 		{
+			// Use dev server (preview has CORS issues with client auth headers)
 			command: 'bun dev --port 4173',
 			port: 4173,
 			timeout: 120000,

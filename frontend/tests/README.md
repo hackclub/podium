@@ -12,16 +12,18 @@ pkill -f podium; pkill -f "vite|bun.*dev"
 **Run all tests:**
 ```bash
 cd frontend
-doppler run -- bun run test:e2e
+doppler run --config dev -- bun run test:e2e
 ```
 
 ## Commands
 
 ```bash
-doppler run -- bun run test:e2e        # All tests (~1-2 min)
-doppler run -- bun run test:e2e:ui     # UI mode
-bunx playwright test tests/auth.spec.ts  # Specific file
+doppler run --config dev -- bun run test:e2e                        # All tests (~1-2 min)
+doppler run --config dev -- bun run test:e2e:ui                     # UI mode
+doppler run --config dev -- bunx playwright test tests/auth.spec.ts  # Specific file
 ```
+
+**Note:** Doppler provides JWT secret to tests AND backend (backend runs with nested `doppler run`)
 
 ## Performance
 
@@ -31,7 +33,7 @@ bunx playwright test tests/auth.spec.ts  # Specific file
 
 ## Setup
 
-**Local:** Doppler `dev` config must have `PODIUM_JWT_SECRET` and Airtable dev credentials
+**Local:** Doppler CLI must be logged in (`doppler login`) and configured for the project (`doppler setup`)
 
 **CI/CD:** Add `DOPPLER_TOKEN` to GitHub repository secrets
 

@@ -2,7 +2,7 @@
 
 Run before committing:
 ```bash
-cd backend && uv run ruff check --fix && cd ../frontend && bun run check && bun run build
+cd backend && uv run ruff check --fix && cd ../frontend && bun run svelte-check
 ```
 
 Test backend:
@@ -10,14 +10,143 @@ Test backend:
 cd backend && uv run pytest
 ```
 
+Test frontend (E2E):
+```bash
+cd frontend && doppler run --config dev -- bunx playwright test
+```
+
+Note: Tests use worker-scoped authentication and run in parallel (4 workers)
+
 Run locally:
 ```bash
 # Backend (from backend/)
-uv run podium
+doppler run --config dev -- uv run podium
 
 # Frontend (from frontend/)  
 bun dev
 ```
+
+# E2E Test Architecture
+
+## Overview
+
+The Playwright test suite covers core authenticated UI flows using client-side auth (localStorage). Tests run in parallel with 4 workers and worker-scoped authentication for speed and isolation.
+
+## Running Tests
+
+```bash
+cd frontend && doppler run --config dev -- bunx playwright test
+
+# Run specific test file
+bunx playwright test core.spec.ts
+
+# Run with UI mode
+bunx playwright test --ui
+
+# Run in headed mode (see browser)
+bunx playwright test --headed
+```
+
+## Architecture
+
+### Authentication (Worker-Scoped)
+- Each worker gets a unique user: `test+pw{workerIndex}@example.com`
+- JWT token obtained via backend API (`/verify` endpoint with magic link)
+- Token injected into `localStorage` via Playwright `storageState`
+- Token reused across all tests in the worker (fast!)
+
+### Test Structure
+```typescript
+import { test, expect } from './fixtures/auth';
+import { unique } from './utils/data';
+import { clickAndWaitForApi } from './utils/waiters';
+
+test('my test', async ({ authedPage, api }, testInfo) => {
+  const name = unique('Entity', testInfo);
+  // authedPage is pre-authenticated
+  // api is APIRequestContext for backend calls
+});
+```
+
+### Utilities
+
+**`tests/fixtures/auth.ts`**
+- `test` - Extended Playwright test with auth fixtures
+- `authedPage` - Pre-authenticated page (token in localStorage)
+- `api` - APIRequestContext for backend API calls
+- `token` - JWT access token (available via `(authedPage as any)._authToken`)
+
+**`tests/utils/waiters.ts`**
+- `waitForApiOk(page, urlPart, method)` - Wait for API response
+- `clickAndWaitForApi(page, locator, urlPart, method)` - Click + wait pattern
+
+**`tests/utils/data.ts`**
+- `unique(name, testInfo)` - Generate unique names: `{name}-{timestamp}-w{worker}-r{retry}`
+
+**`tests/utils/api.ts`**
+- `getEventBySlug(api, token, slug)` - Fetch event data via API
+- `slugify(name)` - Convert name to URL slug
+
+## Writing Tests
+
+### Best Practices
+1. **Use `unique()` for all entity names** to avoid collisions
+2. **Wait for API responses** with `clickAndWaitForApi()` or `waitForResponse()`
+3. **Prefer `getByRole()` or data-testid** over brittle text selectors
+4. **Add `.first()`** to ambiguous selectors to avoid strict mode violations
+5. **Wait for list refreshes** after creation: `await page.waitForResponse(...GET /events...)`
+
+### Example Test
+```typescript
+test('should create event', async ({ authedPage }, testInfo) => {
+  const name = unique('My Event', testInfo);
+  
+  await authedPage.goto('/events/create');
+  await authedPage.locator('#event_name').fill(name);
+  await authedPage.locator('#event_description').fill('Description');
+  
+  await clickAndWaitForApi(
+    authedPage, 
+    authedPage.getByRole('button', { name: /create/i }), 
+    '/events', 
+    'POST'
+  );
+  
+  await expect(authedPage.getByText('Event created successfully')).toBeVisible();
+});
+```
+
+## Known Limitations
+
+### SSR + localStorage Auth Mismatch
+**Issue:** Protected SSR routes (like `/events/attend`) cannot access `localStorage` on initial server render. Tests that `goto()` these routes directly will see an unauthenticated page.
+
+**Impact:** The following flows are currently untested:
+- Event attendance (requires protected `/events/attend` route)
+- Project creation (requires event attendance first)
+- Complex multi-step flows involving SSR-protected pages
+
+**Workarounds:**
+1. Use client-side navigation where possible (click links vs `goto()`)
+2. Test these flows manually or via backend API tests
+3. Consider adding data-testid attributes for more reliable selectors
+
+**Future Fix:** Implement cookie-based session auth that SSR can read, then tests can use `goto()` for any route.
+
+## Test Files
+
+- `core.spec.ts` - Core event creation and listing
+- `auth.spec.ts` - Authentication and signup flows
+- `wizard.spec.ts` - Onboarding wizard
+- `permissions.spec.ts` - Permission checks
+
+## Configuration
+
+**Parallel Execution:** 4 workers, fully parallel
+**Retries:** 1 retry locally, 2 in CI
+**Logs:** Quiet mode, backend stdout suppressed
+**Screenshots:** On failure only
+**Traces:** On first retry
 
 # Cache System (Zero-Touch Configuration)
 

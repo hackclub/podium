@@ -11,13 +11,8 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Configuration
-# PODIUM_JWT_SECRET should be set via environment variables or Doppler
-if [ -z "$PODIUM_JWT_SECRET" ]; then
-    echo -e "${RED}Error: PODIUM_JWT_SECRET not set. Please use Doppler or set environment variables.${NC}"
-    echo -e "${YELLOW}Run with: doppler run -- bun run test:e2e${NC}"
-    exit 1
-fi
+# Note: Backend runs with 'doppler run --config dev' automatically
+# This is handled by Playwright config webServer
 
 echo -e "${YELLOW}Starting Playwright E2E Tests for Podium${NC}"
 echo "=========================================="

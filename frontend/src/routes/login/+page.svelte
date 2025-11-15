@@ -88,6 +88,7 @@
       // Clear field
       userInfo.email = "";
     } else {
+      isLoading = false;
       toast.error("You don't exist (yet)! Let's change that.");
       expandedDueTo = userInfo.email;
       showSignupFields = true;
@@ -111,18 +112,33 @@
         : "";
       userInfo.display_name = `${first} ${lastInitial}`.trim();
     }
-    const { error: err } = await UsersService.createUserUsersPost({
+    const signupEmail = userInfo.email;
+    const { error: signupErr } = await UsersService.createUserUsersPost({
       body: userInfo,
       throwOnError: false,
     });
-    isLoading = false;
-    if (err) {
-      handleError(err);
+    if (signupErr) {
+      isLoading = false;
+      handleError(signupErr);
       return;
     }
-    await login();
-    // toast(`Signed up! Check your email for a magic link!`);
-    // Clear values
+
+    // Request magic link immediately after signup without re-checking existence
+    const { error: loginErr } = await AuthService.requestLoginRequestLoginPost({
+      body: { email: signupEmail },
+      query: { redirect: redirectUrl ?? "" },
+      throwOnError: false,
+    });
+    isLoading = false;
+    if (loginErr) {
+      handleError(loginErr);
+      return;
+    }
+
+    showSignupFields = false;
+    expandedDueTo = "";
+    toast.success(`Magic link sent to ${signupEmail}`);
+    // Reset values for the next signup attempt
     userInfo = {
       ...defaultUser,
     };
@@ -149,11 +165,8 @@
         toast("Login successful");
 
         // Redirect to the original URL if present
-        if (redirectUrl) {
-          goto(redirectUrl);
-        } else {
-          goto("/");
-        }
+        const target = redirectUrl && redirectUrl.trim() !== "" ? redirectUrl : "/";
+        await goto(target);
       }
     } finally {
       isLoading = false;
