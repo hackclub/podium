@@ -176,6 +176,7 @@ def get_bearer_token(email: str, client) -> str:
 class BasePodiumUser(HttpUser):
     """Base user with common functionality."""
     wait_time = between(0.5, 2.0)
+    abstract = True
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -216,6 +217,15 @@ class BasePodiumUser(HttpUser):
                 else:
                     print(f"Failed to attend event {self.event_id}: {response.status_code}")
         
+        if attended:
+            with self.get(f"/events/{self.event_id}", name="/events/:id") as response:
+                if response.status_code == 200:
+                    try:
+                        event_data = response.json()
+                        self.max_votes = event_data.get("max_votes_per_user", self.max_votes)
+                    except Exception:
+                        pass
+
         self.initialized = attended  # Only initialize if successfully attended
     
     def _make_request(self, method, path, name=None, params=None, json=None):
@@ -238,15 +248,31 @@ class BasePodiumUser(HttpUser):
         """Make POST request."""
         return self._make_request("POST", path, name, json=json)
     
-    def fetch_event_projects(self):
-        """Fetch all projects for the user's event."""
-        with self.get(f"/events/{self.event_id}/projects?leaderboard=false", name="/events/:id/projects") as response:
-            if response.status_code == 200:
+    def _browse_projects(self, *, leaderboard=False, update_cache=None, label=None):
+        """Fetch event projects with optional leaderboard view and caching."""
+        if not self.initialized:
+            return False
+
+        query = "true" if leaderboard else "false"
+        request_name = label or ("/events/:id/projects (leaderboard)" if leaderboard else "/events/:id/projects")
+        should_update_cache = update_cache if update_cache is not None else not leaderboard
+
+        with self.get(
+            f"/events/{self.event_id}/projects?leaderboard={query}",
+            name=request_name
+        ) as response:
+            if response.status_code == 200 and should_update_cache:
                 try:
                     data = response.json()
-                    self.all_event_projects = data if isinstance(data, list) else []
-                except:
-                    self.all_event_projects = []
+                    if isinstance(data, list):
+                        self.all_event_projects = data
+                except Exception:
+                    pass
+            return response.status_code == 200
+
+    def fetch_event_projects(self):
+        """Fetch all projects for the user's event."""
+        self._browse_projects()
     
     def get_random_project_id(self) -> Optional[str]:
         """Get a random project ID from the event."""
@@ -261,9 +287,7 @@ class BasePodiumUser(HttpUser):
     
     def check_leaderboard(self):
         """Check event leaderboard (sorted projects)."""
-        if not self.initialized:
-            return
-        self.get(f"/events/{self.event_id}/projects?leaderboard=true", name="/events/:id/projects (leaderboard)")
+        self._browse_projects(leaderboard=True, update_cache=False)
 
 
 class Attendee(BasePodiumUser):
@@ -279,16 +303,7 @@ class Attendee(BasePodiumUser):
     @task(5)
     def browse_projects(self):
         """Browse event projects."""
-        if not self.initialized:
-            return
-        
-        with self.get(f"/events/{self.event_id}/projects?leaderboard=false", name="/events/:id/projects") as response:
-            if response.status_code == 200:
-                try:
-                    data = response.json()
-                    self.all_event_projects = data if isinstance(data, list) else []
-                except:
-                    pass
+        self._browse_projects()
     
     @task(3)
     def view_project_detail(self):
@@ -325,7 +340,7 @@ class Attendee(BasePodiumUser):
                     project_id = response.json().get("id")
                     if project_id:
                         self.own_projects.add(project_id)
-                except:
+                except Exception:
                     pass
     
     @task(8)
@@ -377,16 +392,7 @@ class Lurker(BasePodiumUser):
     @task(6)
     def browse_projects(self):
         """Browse event projects."""
-        if not self.initialized:
-            return
-        
-        with self.get(f"/events/{self.event_id}/projects?leaderboard=false", name="/events/:id/projects") as response:
-            if response.status_code == 200:
-                try:
-                    data = response.json()
-                    self.all_event_projects = data if isinstance(data, list) else []
-                except:
-                    pass
+        self._browse_projects()
     
     @task(4)
     def view_project_detail(self):
@@ -401,10 +407,7 @@ class Lurker(BasePodiumUser):
     @task(3)
     def browse_more_projects(self):
         """Browse projects more frequently."""
-        if not self.initialized:
-            return
-        
-        self.get(f"/events/{self.event_id}/projects?leaderboard=false", name="/events/:id/projects")
+        self._browse_projects()
 
 
 class Organizer(BasePodiumUser):
@@ -419,22 +422,16 @@ class Organizer(BasePodiumUser):
     @task(8)
     def browse_projects_during_voting(self):
         """Browse projects frequently, especially during voting."""
-        if not self.initialized:
-            return
-        
         # Especially during vote window - use leaderboard=true to simulate organizer checking results
         if in_vote_window():
-            self.get(f"/events/{self.event_id}/projects?leaderboard=true", name="/events/:id/projects (leaderboard)")
+            self._browse_projects(leaderboard=True, update_cache=False, label="/events/:id/projects (leaderboard)")
         else:
-            self.get(f"/events/{self.event_id}/projects?leaderboard=false", name="/events/:id/projects")
+            self._browse_projects(label="/events/:id/projects")
     
     @task(2)
     def browse_projects(self):
         """Occasionally browse projects."""
-        if not self.initialized:
-            return
-        
-        self.get(f"/events/{self.event_id}/projects?leaderboard=false", name="/events/:id/projects")
+        self._browse_projects()
     
     @task(1)
     def check_admin_stats(self):

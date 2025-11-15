@@ -9,7 +9,7 @@ from contextvars import ContextVar
 from enum import Enum
 from typing import Iterable, List, Optional, Type, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pyairtable.formulas import match
 from redis_om import JsonModel, get_redis_connection
 
@@ -64,7 +64,7 @@ _redis_conn = get_redis_connection(url=settings.redis_url, decode_responses=Fals
 class GenericCache(JsonModel):
     """Single generic cache model storing raw dicts."""
 
-    pk: str  # Format: "{entity}:{record_id}"
+    primary_key: str = Field(alias="pk")  # Format: "{entity}:{record_id}"
     entity: str
     data: dict
 
