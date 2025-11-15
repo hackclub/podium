@@ -17,6 +17,21 @@ cd frontend && doppler run --config dev -- bunx playwright test
 
 Note: Tests use worker-scoped authentication and run in parallel (4 workers)
 
+Stress test (performance/load testing):
+```bash
+# Already installed with uv
+cd backend && uv run locust -f loadtest/locustfile.py --headless -u 200 -r 50 -t 5m --host http://localhost:8000
+```
+
+**Ephemeral & self-cleaning** - Creates test data, runs load test, cleans up automatically.  
+See `backend/loadtest/README.md` for detailed documentation.
+
+## Security Notes
+
+Test endpoints (`/test-token`, `/test/bootstrap`, `/test/cleanup`) require **both**:
+1. Environment ≠ production (normalized check for "production" or "prod")
+2. `enable_test_endpoints = true` in settings (defaults to `false`)
+
 Run locally:
 ```bash
 # Backend (from backend/)

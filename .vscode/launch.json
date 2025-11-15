@@ -44,6 +44,7 @@
       // --reload seems to cause issues with browser-use
       "args": ["podium.main:app", "--reload"],
       // "args": ["podium.main:app"],
+      //  doppler run --config dev -- uv run uvicorn podium.main:app
       "env": {
         // "ENV_FOR_DYNACONF": "${input:environment}"
         "ENV_FOR_DYNACONF": "development",

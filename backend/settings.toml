@@ -7,6 +7,7 @@ airtable_referrals_table_id = "tblHPIrWpu4IYrIm0"
 airtable_votes_table_id = "tbl0OfcZu5TWs2j19"
 production_url = "https://podium.hackclub.com"
 loops_transactional_id = "cmg1hjhed4xyi0r0ijvfyyqa1"
+enable_test_endpoints = false  # SECURITY: Must be explicitly set to true for /test-token endpoint
 
 [development]
 airtable_base_id = "appec7U14eWSv08R4"
@@ -17,3 +18,4 @@ airtable_referrals_table_id = "tblU0VGfBD7vy2kUK"
 airtable_votes_table_id = "tblWcPEiD9cxaeN8O"
 production_url = "http://localhost:5173"
 review_factory_url = "http://localhost:8001"
+enable_test_endpoints = true  # Enable for local development and stress testing

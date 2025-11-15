@@ -62,6 +62,7 @@ dev = [
     "matplotlib>=3.7.0",
     "numpy>=1.24.0",
     "ty>=0.0.1a25",
+    "locust>=2.42.3",
 ]
 
 [tool.pytest.ini_options]
