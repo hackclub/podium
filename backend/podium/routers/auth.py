@@ -117,8 +117,17 @@ async def verify_token(token: Annotated[str, Query()]) -> AuthenticatedUser:
             raise HTTPException(status_code=400, detail="Invalid token")
     except PyJWTError:
         raise HTTPException(status_code=400, detail="Invalid token")
-    # Check if the user exists and get the user data in one request
-    user = db.user.get_user_by_email(email, UserPrivate)
+    # Check cache first, then fall back to Airtable for newly created users
+    user = await cache.get_user_by_email(email, UserPrivate)
+    if user is None:
+        # Fall back to direct Airtable lookup for users just created (not yet in cache)
+        user = db.user.get_user_by_email(email, UserPrivate)
+        if user:
+            # Warm cache to avoid 401 on next request
+            try:
+                await cache.put_user_in_cache(user)
+            except Exception:
+                pass
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     access_token = create_access_token(
@@ -157,7 +166,16 @@ async def get_current_user(
     # Check if the user exists and get the user data using secondary cache
     user = await cache.get_user_by_email(email, UserInternal)
     if user is None:
-        raise BAD_AUTH
+        # Fallback to Airtable for newly created users not yet in cache
+        user = db.user.get_user_by_email(email, UserInternal)
+        if user:
+            # Warm cache to avoid repeated Airtable hits
+            try:
+                await cache.put_user_in_cache(user)
+            except Exception:
+                pass
+        else:
+            raise BAD_AUTH
 
     return user
 

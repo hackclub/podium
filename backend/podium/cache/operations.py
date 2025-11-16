@@ -410,6 +410,18 @@ async def delete_entity(entity: str, record_id: str) -> None:
     await _set_tombstone(entity, record_id)
 
 
+async def put_user_in_cache(user: BaseModel) -> None:
+    """
+    Explicitly cache a user and their email index.
+    Used to warm cache on creation/login before webhook fires.
+    """
+    await _cache_save(Entity.USERS, user.model_dump())
+    email = getattr(user, "email", None)
+    uid = getattr(user, "id", None)
+    if email and uid:
+        await _cache_secondary_save(Entity.USERS, "email", email.lower().strip(), uid)
+
+
 async def get_user_by_email(email: str, model: Type[TModel]) -> Optional[TModel]:
     """
     Get user by email using secondary cache for efficient lookups.
