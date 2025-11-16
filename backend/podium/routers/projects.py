@@ -24,7 +24,7 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 
 # Get the current user's projects
 @router.get("/mine")
-def get_projects(
+async def get_projects(
     user: Annotated[UserInternal, Depends(get_current_user)],
 ) -> list[PrivateProject]:
     """
@@ -37,13 +37,14 @@ def get_projects(
     # Combine owned and collaborated project IDs
     all_project_ids = user.projects + user.collaborations
     # Fetch projects from cache using PrivateProject model for join_code
-    projects = [cache.get_one(Entity.PROJECTS, project_id, PrivateProject) for project_id in all_project_ids]
+    import asyncio
+    projects = await asyncio.gather(*[cache.get_one(Entity.PROJECTS, project_id, PrivateProject) for project_id in all_project_ids])
     return [p for p in projects if p is not None]
 
 
 # It's up to the client to provide the event record ID
 @router.post("/")
-def create_project(
+async def create_project(
     project: ProjectCreationPayload,
     user: Annotated[UserInternal, Depends(get_current_user)],
 ):
@@ -55,16 +56,24 @@ def create_project(
     owner = [user.id]
 
     # Fetch the event to validate demo field and check attendees (cache-first)
-    event = cache.get_one(Entity.EVENTS, project.event[0], PrivateEvent)
+    event = await cache.get_one(Entity.EVENTS, project.event[0], PrivateEvent)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
     # Validate demo field based on event's demo_links_optional setting
     validate_demo_field(project, event)
 
-    # If the owner is not part of the event that the project is going to be associated with, raise a 403
-    if not any(i in event.attendees for i in owner):
-        raise HTTPException(status_code=403, detail="Owner not part of event")
+    # Ensure owner is in attendees (tolerate eventual consistency with retries)
+    if user.id not in event.attendees:
+        import asyncio
+        for _ in range(10):
+            await asyncio.sleep(0.1)
+            refreshed = await cache.get_one(Entity.EVENTS, project.event[0], PrivateEvent)
+            if refreshed and user.id in refreshed.attendees:
+                event = refreshed
+                break
+        else:
+            raise HTTPException(status_code=403, detail="Owner not part of event")
 
     while True:
         join_code = token_urlsafe(3).upper()
@@ -83,14 +92,14 @@ def create_project(
     )
     # Upsert to cache for immediate availability
     created_project = Project.model_validate({**created["fields"], "id": created["id"]})
-    cache.upsert_entity(Entity.PROJECTS, created_project)
+    await cache.upsert_entity(Entity.PROJECTS, created_project)
     # Invalidate user cache since projects will be updated by Airtable
     # This ensures immediate consistency without waiting for webhook
-    cache.invalidate_entity(Entity.USERS, user.id)
+    await cache.invalidate_entity(Entity.USERS, user.id)
 
 
 @router.post("/join")
-def join_project(
+async def join_project(
     join_code: Annotated[
         str, Query(description="A unique code used to join a project as a collaborator")
     ],
@@ -99,11 +108,11 @@ def join_project(
     if user is None:
         raise BAD_AUTH
 
-    project = db.projects.first(formula=match({"join_code": join_code.upper()}))
-    if project is None:
+    project_rec = db.projects.first(formula=match({"join_code": join_code.upper()}))
+    if project_rec is None:
         raise HTTPException(status_code=404, detail="No project found")
 
-    project = Project.model_validate(project["fields"])
+    project = Project.model_validate({**project_rec["fields"], "id": project_rec["id"]})
 
     # Ensure the user isn't already a collaborator
     if user.id in project.collaborators or user.id in project.owner:
@@ -113,22 +122,24 @@ def join_project(
         )
 
     # Ensure the user is part of the event that the project is associated with
-    event = cache.get_one(Entity.EVENTS, project.event[0], PrivateEvent)
+    event = await cache.get_one(Entity.EVENTS, project.event[0], PrivateEvent)
     event_attendees = event.attendees if event else []
     if user.id not in event_attendees:
         raise BAD_ACCESS
 
-    db.projects.update(project.id, {"collaborators": project.collaborators + [user.id]})
-    # Invalidate cache so next read sees updated collaborators
-    cache.invalidate_entity(Entity.PROJECTS, project.id)
+    updated_collaborators = project.collaborators + [user.id]
+    db.projects.update(project.id, {"collaborators": updated_collaborators})
+    # Optimistically upsert updated project to cache to avoid stale reads
+    updated_project = Project.model_validate({**project.model_dump(), "collaborators": updated_collaborators})
+    await cache.upsert_entity(Entity.PROJECTS, updated_project)
     # Invalidate user cache since collaborations will be updated by Airtable
     # This ensures immediate consistency without waiting for webhook
-    cache.invalidate_entity(Entity.USERS, user.id)
+    await cache.invalidate_entity(Entity.USERS, user.id)
 
 
 # Update project
 @router.put("/{project_id}")
-def update_project(
+async def update_project(
     project_id: Annotated[str, Path(pattern=r"^rec\w*$")],
     project: db.ProjectUpdate,
     user: Annotated[UserInternal, Depends(get_current_user)],
@@ -137,12 +148,12 @@ def update_project(
     Update a project by replacing it
     """
     # Check if the user is an owner of the project or if they even exist
-    p = cache.get_one(Entity.PROJECTS, project_id, Project)
+    p = await cache.get_one(Entity.PROJECTS, project_id, Project)
     if user is None or not p or user.id not in p.owner:
         raise BAD_ACCESS
 
     # Fetch the event to validate demo field
-    event = cache.get_one(Entity.EVENTS, project.event[0], PrivateEvent)
+    event = await cache.get_one(Entity.EVENTS, project.event[0], PrivateEvent)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
@@ -150,33 +161,34 @@ def update_project(
     validate_demo_field(project, event)
 
     result = db.projects.update(project_id, project.model_dump())["fields"]
-    # Invalidate cache so next read sees updated project
-    cache.invalidate_entity(Entity.PROJECTS, project_id)
+    # Upsert to cache for immediate consistency
+    updated = Project.model_validate({**result, "id": project_id})
+    await cache.upsert_entity(Entity.PROJECTS, updated)
     return result
 
 
 # Delete project
 @router.delete("/{project_id}")
-def delete_project(
+async def delete_project(
     project_id: Annotated[str, Path(pattern=r"^rec\w*$")],
     user: Annotated[UserInternal, Depends(get_current_user)],
 ):
     # Check if the user is an owner of the project or if they even exist
-    p = cache.get_one(Entity.PROJECTS, project_id, Project)
+    p = await cache.get_one(Entity.PROJECTS, project_id, Project)
     if user is None or not p or user.id not in p.owner:
         raise BAD_ACCESS
 
     result = db.projects.delete(project_id)
     # Invalidate cache after deletion
-    cache.invalidate_entity(Entity.PROJECTS, project_id)
+    await cache.invalidate_entity(Entity.PROJECTS, project_id)
     return result
 
 
 @router.get("/{project_id}")
 # The regex here is to ensure that the path parameter starts with "rec" and is followed by any number of alphanumeric characters
-def get_project_endpoint(project_id: Annotated[str, Path(pattern=r"^rec\w*$")]):
+async def get_project_endpoint(project_id: Annotated[str, Path(pattern=r"^rec\w*$")]):
     # Use cache-first lookup
-    project = cache.get_one(Entity.PROJECTS, project_id, Project)
+    project = await cache.get_one(Entity.PROJECTS, project_id, Project)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     return project
@@ -190,7 +202,7 @@ async def start_project_check(project: Project) -> CheckStatus:
             status_code=500, detail="Review Factory token not set on backend"
         )
 
-    project = cache.get_one(Entity.PROJECTS, project.id, InternalProject)
+    project = await cache.get_one(Entity.PROJECTS, project.id, InternalProject)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 

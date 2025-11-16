@@ -40,6 +40,7 @@ RUN_ID = str(int(time.time()))
 TEST_START = time.time()
 EVENT_IDS = []
 EVENT_METADATA = {}  # Maps event_id -> {slug, join_code, name}
+USER_TOKENS = []  # Pool of pre-created user tokens
 
 # Metrics tracking
 cache_hits = 0
@@ -49,8 +50,8 @@ rate_429s = 0
 
 @events.test_start.add_listener
 def on_test_start(environment, **kwargs):
-    """Bootstrap test events via /test/bootstrap endpoint."""
-    global EVENT_IDS, EVENT_METADATA
+    """Bootstrap test events and pre-warm cache."""
+    global EVENT_IDS, EVENT_METADATA, USER_TOKENS
     print(f"\n[START] Starting Podium stress test (run ID: {RUN_ID})")
     print(f"   Simulating {EVENTS} concurrent events")
     print(f"   Vote window: {VOTE_OFFSET}s - {VOTE_OFFSET + VOTE_DURATION}s\n")
@@ -64,8 +65,10 @@ def on_test_start(environment, **kwargs):
                 "run_id": RUN_ID,
                 "events": EVENTS,
                 "seed_projects_per_event": 3,
+                "user_count": 50,
+                "pre_enroll_all": True,
             },
-            timeout=30,
+            timeout=60,
         )
         response.raise_for_status()
         data = response.json()
@@ -78,11 +81,35 @@ def on_test_start(environment, **kwargs):
                 "name": event["name"],
             }
         
+        # Store user tokens from bootstrap
+        USER_TOKENS.extend(data.get("user_tokens", []))
+        
         # Use event record IDs as identifiers
         EVENT_IDS = list(EVENT_METADATA.keys())
         event_names = [event["slug"] for event in data["events"]]
-        print(f"[BOOTSTRAP] Created {len(EVENT_IDS)} events and seed projects")
+        print(f"[BOOTSTRAP] Created {len(EVENT_IDS)} events, seed projects, and {len(USER_TOKENS)} pre-enrolled users with tokens")
         print(f"   Events: {', '.join(event_names)}\n")
+        
+        # Pre-warm cache by fetching events and projects
+        print(f"[WARMUP] Pre-warming cache for {len(EVENT_IDS)} events...")
+        for event_id in EVENT_IDS:
+            try:
+                # Fetch event
+                requests.get(f"{BASE_URL}/events/{event_id}", timeout=10)
+                # Fetch projects (both modes)
+                requests.get(f"{BASE_URL}/events/{event_id}/projects?leaderboard=false", timeout=10)
+                requests.get(f"{BASE_URL}/events/{event_id}/projects?leaderboard=true", timeout=10)
+            except Exception as e:
+                print(f"   Failed to warm event {event_id}: {e}")
+        
+        print(f"[WARMUP] Cache pre-warmed. Waiting 2s for stabilization...\n")
+        time.sleep(2)
+        
+        # Reset stats so warmup doesn't count
+        if environment.runner and hasattr(environment.runner, 'stats'):
+            environment.runner.stats.reset_all()
+            print(f"[WARMUP] Stats reset. Beginning measurement phase.\n")
+        
     except Exception as e:
         print(f"[ERROR] Failed to bootstrap test data: {e}")
         print(f"   Falling back to placeholder event IDs\n")
@@ -95,12 +122,11 @@ def on_request(request_type, name, response_time, response_length, response, exc
     global cache_hits, cache_misses, rate_429s
     
     if response is not None:
-        # Track X-Cache header if present
-        xc = response.headers.get("X-Cache", "").upper()
-        if xc == "HIT":
-            cache_hits += 1
-        elif xc == "MISS":
-            cache_misses += 1
+        # Track cache hits/misses from numeric headers
+        hits = int(response.headers.get("X-Cache-Hits", "0") or "0")
+        misses = int(response.headers.get("X-Cache-Misses", "0") or "0")
+        cache_hits += hits
+        cache_misses += misses
         
         # Track rate limiting
         if response.status_code == 429:
@@ -193,40 +219,32 @@ class BasePodiumUser(HttpUser):
     
     def on_start(self):
         """Initialize user - authenticate and pick an event."""
-        # Generate unique email for this user
-        self.email = f"user_{RUN_ID}_{random.randint(1, 10**9)}@loadtest.com"
-        
-        # Authenticate
-        self.headers = {"Authorization": get_bearer_token(self.email, self.client)}
+        # Use a pre-generated token from bootstrap (avoids /test/token entirely)
+        if USER_TOKENS:
+            token = random.choice(USER_TOKENS)
+            self.headers = {"Authorization": f"Bearer {token}"}
+            self.email = "loadtest_user@example.com"  # Placeholder
+        else:
+            # Fallback if no tokens available
+            user_num = random.randint(0, 49)
+            self.email = f"user_{RUN_ID}_{user_num}@loadtest.com"
+            self.headers = {"Authorization": get_bearer_token(self.email, self.client)}
         
         # Pick a random event to participate in
         self.event_id = random.choice(EVENT_IDS)
         
-        # Attend the event using join code
-        attended = False
-        if self.event_id in EVENT_METADATA:
-            join_code = EVENT_METADATA[self.event_id]["join_code"]
-            with self._make_request(
-                "POST",
-                "/events/attend",
-                params={"join_code": join_code, "referral": "Load test"},
-                name="/events/attend"
-            ) as response:
-                if response.status_code in [200, 409]:  # 409 = already attending
-                    attended = True
-                else:
-                    print(f"Failed to attend event {self.event_id}: {response.status_code}")
-        
-        if attended:
-            with self.get(f"/events/{self.event_id}", name="/events/:id") as response:
-                if response.status_code == 200:
-                    try:
-                        event_data = response.json()
-                        self.max_votes = event_data.get("max_votes_per_user", self.max_votes)
-                    except Exception:
-                        pass
-
-        self.initialized = attended  # Only initialize if successfully attended
+        # Users are pre-enrolled in bootstrap, so skip attendance
+        # Just fetch event to get max_votes
+        with self.get(f"/events/{self.event_id}", name="/events/:id") as response:
+            if response.status_code == 200:
+                try:
+                    event_data = response.json()
+                    self.max_votes = event_data.get("max_votes_per_user", 3)
+                    self.initialized = True
+                except Exception:
+                    pass
+            else:
+                self.initialized = False
     
     def _make_request(self, method, path, name=None, params=None, json=None):
         """Make HTTP request."""

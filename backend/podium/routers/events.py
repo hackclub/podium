@@ -24,14 +24,14 @@ router = APIRouter(prefix="/events", tags=["events"])
 
 
 @router.get("/{event_id}")
-def get_event_endpoint(
+async def get_event_endpoint(
     event_id: Annotated[str, Path(title="Event Airtable ID")],
 ) -> Event:
     """
     Get a public event by its ID. For admin features, use the admin endpoints.
     """
     # Use cache-first lookup
-    event = cache.get_one(Entity.EVENTS, event_id, Event)
+    event = await cache.get_one(Entity.EVENTS, event_id, Event)
     
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -41,7 +41,7 @@ def get_event_endpoint(
 
 # Used to be /attending
 @router.get("/")
-def get_attending_events(
+async def get_attending_events(
     user: Annotated[UserInternal, Depends(get_current_user)],
 ) -> UserEvents:
     """
@@ -54,14 +54,14 @@ def get_attending_events(
 
     # Batch fetch owned and attending events by IDs from cached user object
     # This avoids redis-om index queries which have schema issues with flattened fields
-    owned_events = cache.get_many_by_ids(Entity.EVENTS, user.owned_events, PrivateEvent)
-    attending_events = cache.get_many_by_ids(Entity.EVENTS, user.attending_events, Event)
+    owned_events = await cache.get_many_by_ids(Entity.EVENTS, user.owned_events, PrivateEvent)
+    attending_events = await cache.get_many_by_ids(Entity.EVENTS, user.attending_events, Event)
 
     return UserEvents(owned_events=owned_events, attending_events=attending_events)
 
 
 @router.post("/")
-def create_event(
+async def create_event(
     event: EventCreationPayload,
     user: Annotated[UserInternal, Depends(get_current_user)],
 ):
@@ -102,14 +102,14 @@ def create_event(
     )
     # Upsert to cache for immediate availability
     created_event = PrivateEvent.model_validate({**created["fields"], "id": created["id"]})
-    cache.upsert_entity(Entity.EVENTS, created_event)
+    await cache.upsert_entity(Entity.EVENTS, created_event)
     # Invalidate user cache since owned_events will be updated by Airtable
     # This ensures immediate consistency without waiting for webhook
-    cache.invalidate_entity(Entity.USERS, user.id)
+    await cache.invalidate_entity(Entity.USERS, user.id)
 
 
 @router.post("/attend")
-def attend_event(
+async def attend_event(
     join_code: Annotated[str, Query(description="A unique code used to join an event")],
     referral: Annotated[str, Query(description="How did you hear about this event?")],
     user: Annotated[UserInternal, Depends(get_current_user)],
@@ -130,15 +130,14 @@ def attend_event(
     # But first, ensure that the user is not already in the list
     if user.id in event.attendees:
         raise HTTPException(status_code=400, detail="User already attending event")
-    db.events.update(
-        event.id,
-        {"attendees": event.attendees + [user.id]},
-    )
-    # Invalidate cache so next read sees updated attendees
-    cache.invalidate_entity(Entity.EVENTS, event.id)
+    updated_attendees = event.attendees + [user.id]
+    db.events.update(event.id, {"attendees": updated_attendees})
+    # Optimistically upsert the updated event to cache to avoid eventual-consistency races
+    updated_event = event.model_copy(update={"attendees": updated_attendees})
+    await cache.upsert_entity(Entity.EVENTS, updated_event)
     # Invalidate user cache since attending_events will be updated by Airtable
     # This ensures immediate consistency without waiting for webhook
-    cache.invalidate_entity(Entity.USERS, user.id)
+    await cache.invalidate_entity(Entity.USERS, user.id)
     # Create a referral record if the referral is not empty
     if referral:
         db.referrals.create(
@@ -151,7 +150,7 @@ def attend_event(
 
 
 @router.put("/{event_id}")
-def update_event(
+async def update_event(
     event_id: Annotated[str, Path(title="Event ID")],
     event: EventUpdate,
     user: Annotated[UserInternal, Depends(get_current_user)],
@@ -166,11 +165,11 @@ def update_event(
 
     db.events.update(event_id, event.model_dump())
     # Invalidate cache so next read sees updated event
-    cache.invalidate_entity(Entity.EVENTS, event_id)
+    await cache.invalidate_entity(Entity.EVENTS, event_id)
 
 
 @router.delete("/{event_id}")
-def delete_event(
+async def delete_event(
     event_id: Annotated[str, Path(title="Event ID")],
     user: Annotated[UserInternal, Depends(get_current_user)],
 ):
@@ -180,17 +179,17 @@ def delete_event(
 
     db.events.delete(event_id)
     # Invalidate cache after deletion
-    cache.invalidate_entity(Entity.EVENTS, event_id)
+    await cache.invalidate_entity(Entity.EVENTS, event_id)
 
 
 # Voting! The client should POST to /events/{event_id}/vote with their top 3 favorite projects, in no particular order. If there are less than 20 projects in the event, only accept the top 2
 @router.post("/vote")
-def vote(votes: CreateVotes, user: Annotated[UserInternal, Depends(get_current_user)]):
+async def vote(votes: CreateVotes, user: Annotated[UserInternal, Depends(get_current_user)]):
     """
     Vote for the top 3 projects in an event. The client must provide the event ID and a list of the top 3 projects. If there are less than 20 projects in the event, only the top 2 projects are required.
     """
 
-    event = cache.get_one(Entity.EVENTS, votes.event, PrivateEvent)
+    event = await cache.get_one(Entity.EVENTS, votes.event, PrivateEvent)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
@@ -204,7 +203,7 @@ def vote(votes: CreateVotes, user: Annotated[UserInternal, Depends(get_current_u
             event=[event.id],
             voter=[user.id],
         )
-        project = cache.get_one(Entity.PROJECTS, project_id, Project)
+        project = await cache.get_one(Entity.PROJECTS, project_id, Project)
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
 
@@ -262,25 +261,26 @@ async def get_event_projects(
     """
     Get the projects for a specific event
     """
-    # Use cache-first lookup for projects
+    # Always fetch event to get project IDs and validate leaderboard access
+    event = await cache.get_one(Entity.EVENTS, event_id, PrivateEvent)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    # Batch fetch all projects by IDs from event.projects
+    projects = await cache.get_many_by_ids(Entity.PROJECTS, event.projects, Project)
+    
     if leaderboard:
-        # Verify event exists and has leaderboard enabled
-        event = cache.get_one(Entity.EVENTS, event_id, PrivateEvent)
-        if not event:
-            raise HTTPException(status_code=404, detail="Event not found")
         if not event.leaderboard_enabled:
             raise HTTPException(
                 status_code=403, detail="Leaderboard is not enabled for this event"
             )
         # Return sorted by points
-        projects = cache.get_many_by_formula(Entity.PROJECTS, {"event_id": event_id}, Project)
         projects.sort(key=lambda p: p.points, reverse=True)
-        return projects
     else:
         # Return in random order
-        projects = cache.get_many_by_formula(Entity.PROJECTS, {"event_id": event_id}, Project)
         random.shuffle(projects)
-        return projects
+    
+    return projects
 
 
 # The reason we're specifying response_model here is because of https://github.com/long2ice/fastapi-cache/issues/384
@@ -292,7 +292,7 @@ async def get_at_id(
     Get an event's Airtable ID by its slug.
     """
     # Use cache-first slug lookup
-    event = cache.get_by_formula(Entity.EVENTS, {"slug": slug}, Event)
+    event = await cache.get_by_formula(Entity.EVENTS, {"slug": slug}, Event)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 

@@ -155,7 +155,7 @@ async def get_current_user(
         # raise credentials_exception
         raise BAD_AUTH
     # Check if the user exists and get the user data using secondary cache
-    user = cache.get_user_by_email(email, UserInternal)
+    user = await cache.get_user_by_email(email, UserInternal)
     if user is None:
         raise BAD_AUTH
 

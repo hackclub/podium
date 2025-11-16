@@ -21,15 +21,15 @@ class UserExistsResponse(BaseModel):
 
 
 @router.get("/exists")
-def user_exists(email: Annotated[EmailStr, Query(...)]) -> UserExistsResponse:
+async def user_exists(email: Annotated[EmailStr, Query(...)]) -> UserExistsResponse:
     email = email.strip().lower()
     # Use cache-first lookup
-    exists = True if cache.get_by_formula(Entity.USERS, {"email": email}, UserInternal) else False
+    exists = True if await cache.get_by_formula(Entity.USERS, {"email": email}, UserInternal) else False
     return UserExistsResponse(exists=exists)
 
 
 @router.get("/current")
-def get_current_user_info(
+async def get_current_user_info(
     current_user: Annotated[UserInternal, Depends(get_current_user)],
 ) -> UserPrivate:
     if current_user:
@@ -69,7 +69,7 @@ async def get_user_public(
     user_id: Annotated[str, Path(title="User Airtable ID")],
 ) -> UserPublic:
     # Use cache-first lookup
-    user = cache.get_one(Entity.USERS, user_id, UserPublic)
+    user = await cache.get_one(Entity.USERS, user_id, UserPublic)
     
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -79,9 +79,9 @@ async def get_user_public(
 
 # Eventually, this should probably be rate-limited
 @router.post("/")
-def create_user(user: UserSignupPayload):
+async def create_user(user: UserSignupPayload):
     # Check if the user already exists
-    existing_user = cache.get_by_formula(Entity.USERS, {"email": user.email.lower().strip()}, UserInternal)
+    existing_user = await cache.get_by_formula(Entity.USERS, {"email": user.email.lower().strip()}, UserInternal)
     if existing_user:
         raise HTTPException(status_code=400, detail="User already exists")
     db.users.create(user.model_dump())

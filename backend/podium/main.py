@@ -6,6 +6,7 @@ from typing import AsyncIterator
 import sentry_sdk
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from podium.middleware import CacheInstrumentationMiddleware
 
 sentry_sdk.init(
     dsn=""
@@ -22,7 +23,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     
     try:
         client = get_redis_client()
-        client.ping()
+        await client.ping()
         print("✓ Redis/Valkey connection established")
     except Exception as e:
         print(f"⚠ Redis/Valkey connection failed: {e}")
@@ -31,7 +32,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     yield
     
     # Cleanup on shutdown
-    close_redis_client()
+    await close_redis_client()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -44,8 +45,11 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-Airtable-Hits", "X-Cache"],
+    expose_headers=["X-Airtable-Hits", "X-Cache", "X-Cache-Hits", "X-Cache-Misses", "X-Airtable-Calls"],
 )
+
+# Add cache instrumentation middleware
+app.add_middleware(CacheInstrumentationMiddleware)
 
 
 @app.middleware("http")

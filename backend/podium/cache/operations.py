@@ -1,20 +1,28 @@
-"""Simplified cache operations using a single generic Redis-OM model.
+"""Async cache operations using plain Redis.
 
 Zero-touch: adding/changing models requires NO cache code changes.
-Just use get_one(Entity.EVENTS, id, Event) for any entity.
+Just use await get_one(Entity.EVENTS, id, Event) for any entity.
 """
 
+import json
 import random
 from contextvars import ContextVar
 from enum import Enum
 from typing import Iterable, List, Optional, Type, TypeVar
+import asyncio
 
 from pydantic import BaseModel, Field
 from pyairtable.formulas import match
-from redis_om import JsonModel, get_redis_connection
 
 from podium.config import settings
 from podium.db import tables
+
+# Import middleware cache stats
+try:
+    from podium.middleware import cache_stats
+except ImportError:
+    # Fallback if middleware not loaded
+    cache_stats: ContextVar[dict] = ContextVar("cache_stats", default={"hits": 0, "misses": 0, "airtable_calls": 0})
 
 TModel = TypeVar("TModel", bound=BaseModel)
 
@@ -29,7 +37,7 @@ class Entity(str, Enum):
 
 
 # Cache schema version - bump this to invalidate all cached data
-CACHE_SCHEMA_VERSION = "v1"
+CACHE_SCHEMA_VERSION = "v2"
 
 # Cache TTL: 8 hours with ±5% jitter
 CACHE_TTL_SECONDS = 8 * 60 * 60
@@ -56,45 +64,29 @@ def _get_ttl() -> int:
     return int(CACHE_TTL_SECONDS * random.uniform(0.95, 1.05))
 
 
-# ===== GENERIC CACHE MODEL =====
-
-_redis_conn = get_redis_connection(url=settings.redis_url, decode_responses=False)
-
-
-class GenericCache(JsonModel):
-    """Single generic cache model storing raw dicts."""
-
-    primary_key: str = Field(alias="pk")  # Format: "{entity}:{record_id}"
-    entity: str
-    data: dict
-
-    class Meta:
-        database = _redis_conn
-
-
 # ===== TOMBSTONES =====
 
 
-def _set_tombstone(entity: str, record_id: str):
+async def _set_tombstone(entity: str, record_id: str):
     """Set a tombstone marker for a deleted/missing record."""
     try:
         from podium.cache.client import get_redis_client
 
         client = get_redis_client()
         tombstone_key = f"tomb:{entity}:{record_id}"
-        client.setex(tombstone_key, TOMBSTONE_TTL_SECONDS, "1")
+        await client.setex(tombstone_key, TOMBSTONE_TTL_SECONDS, "1")
     except Exception:
         pass
 
 
-def _check_tombstone(entity: str, record_id: str) -> bool:
+async def _check_tombstone(entity: str, record_id: str) -> bool:
     """Check if a tombstone exists for this record."""
     try:
         from podium.cache.client import get_redis_client
 
         client = get_redis_client()
         tombstone_key = f"tomb:{entity}:{record_id}"
-        return client.exists(tombstone_key) > 0
+        return await client.exists(tombstone_key) > 0
     except Exception:
         return False
 
@@ -102,57 +94,77 @@ def _check_tombstone(entity: str, record_id: str) -> bool:
 # ===== CACHE HELPERS =====
 
 
-def _cache_get(entity: str, record_id: str) -> Optional[dict]:
+async def _cache_get(entity: str, record_id: str) -> Optional[dict]:
     """Get from cache, return None if not found."""
     try:
-        pk = f"{CACHE_SCHEMA_VERSION}:{entity}:{record_id}"
-        inst = GenericCache.get(pk)
-        return inst.data if inst else None
+        from podium.cache.client import get_redis_client
+        client = get_redis_client()
+        key = f"{CACHE_SCHEMA_VERSION}:{entity}:{record_id}"
+        raw = await client.get(key)
+        if not raw:
+            return None
+        if isinstance(raw, bytes):
+            raw = raw.decode("utf-8")
+        
+        # Track cache hit
+        try:
+            stats = cache_stats.get()
+            stats["hits"] = stats.get("hits", 0) + 1
+            cache_stats.set(stats)
+        except Exception:
+            pass
+        
+        return json.loads(raw)
     except Exception:
         return None
 
 
-def _cache_save(entity: str, data: dict) -> None:
+async def _cache_save(entity: str, data: dict) -> None:
     """Save to cache with TTL."""
     try:
-        pk = f"{CACHE_SCHEMA_VERSION}:{entity}:{data['id']}"
-        inst = GenericCache(pk=pk, entity=entity, data=data)
-        inst.save()
-        inst.expire(_get_ttl())
+        from podium.cache.client import get_redis_client
+        client = get_redis_client()
+        key = f"{CACHE_SCHEMA_VERSION}:{entity}:{data['id']}"
+        payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+        await client.setex(key, _get_ttl(), payload)
     except Exception:
         pass
 
 
-def _cache_delete(entity: str, record_id: str) -> None:
+async def _cache_delete(entity: str, record_id: str) -> None:
     """Delete from cache."""
     try:
-        pk = f"{CACHE_SCHEMA_VERSION}:{entity}:{record_id}"
-        GenericCache.delete(pk)
+        from podium.cache.client import get_redis_client
+        client = get_redis_client()
+        key = f"{CACHE_SCHEMA_VERSION}:{entity}:{record_id}"
+        await client.delete(key)
     except Exception:
         pass
 
 
-def _cache_secondary_get(entity: str, field: str, value: str) -> Optional[str]:
+async def _cache_secondary_get(entity: str, field: str, value: str) -> Optional[str]:
     """Get record ID from secondary index (field -> record_id mapping)."""
     try:
         from podium.cache.client import get_redis_client
         
         client = get_redis_client()
         key = f"{CACHE_SCHEMA_VERSION}:idx:{entity}:{field}:{value}"
-        record_id = client.get(key)
-        return record_id.decode() if record_id else None
+        record_id = await client.get(key)
+        if record_id:
+            return record_id.decode() if isinstance(record_id, bytes) else record_id
+        return None
     except Exception:
         return None
 
 
-def _cache_secondary_save(entity: str, field: str, value: str, record_id: str) -> None:
+async def _cache_secondary_save(entity: str, field: str, value: str, record_id: str) -> None:
     """Save secondary index mapping (field -> record_id) with TTL."""
     try:
         from podium.cache.client import get_redis_client
         
         client = get_redis_client()
         key = f"{CACHE_SCHEMA_VERSION}:idx:{entity}:{field}:{value}"
-        client.setex(key, _get_ttl(), record_id)
+        await client.setex(key, _get_ttl(), record_id)
     except Exception:
         pass
 
@@ -168,7 +180,7 @@ def _to_model(model: Type[TModel], data: dict) -> TModel:
 # ===== CORE API (USE THESE FOR ALL ENTITIES) =====
 
 
-def get_one(entity: str, record_id: str, model: Type[TModel]) -> Optional[TModel]:
+async def get_one(entity: str, record_id: str, model: Type[TModel]) -> Optional[TModel]:
     """
     Get single entity by ID from cache or Airtable.
 
@@ -181,16 +193,16 @@ def get_one(entity: str, record_id: str, model: Type[TModel]) -> Optional[TModel
         Validated model instance or None if not found
 
     Example:
-        event = get_one("events", "rec123", Event)
-        user = get_one("users", "rec456", UserPrivate)
+        event = await get_one("events", "rec123", Event)
+        user = await get_one("users", "rec456", UserPrivate)
     """
     # Check tombstone
-    if _check_tombstone(entity, record_id):
+    if await _check_tombstone(entity, record_id):
         _mark_cache("HIT")
         return None
 
     # Try cache
-    cached = _cache_get(entity, record_id)
+    cached = await _cache_get(entity, record_id)
     if cached:
         _mark_cache("HIT")
         try:
@@ -199,25 +211,27 @@ def get_one(entity: str, record_id: str, model: Type[TModel]) -> Optional[TModel
             # Validation failed - fall through to refetch
             pass
 
-    # Cache miss - fetch from Airtable
+    # Cache miss - fetch from Airtable (run in thread pool to avoid blocking)
     _mark_cache("MISS")
     try:
-        record = tables[entity].get(record_id)
+        loop = asyncio.get_event_loop()
+        record = await loop.run_in_executor(None, tables[entity].get, record_id)
         fields = {**record["fields"], "id": record["id"]}
         validated = _to_model(model, fields)
-        _cache_save(entity, validated.model_dump())
+        await _cache_save(entity, validated.model_dump())
         return validated
     except Exception as e:
         if "404" in str(e) or "not found" in str(e).lower():
-            _set_tombstone(entity, record_id)
+            await _set_tombstone(entity, record_id)
         return None
 
 
-def get_many_by_ids(
+async def get_many_by_ids(
     entity: str, ids: Iterable[str], model: Type[TModel]
 ) -> List[TModel]:
     """
-    Get multiple entities by IDs from cache or Airtable.
+    Get multiple entities by IDs from cache; batch-fetch all misses from Airtable.
+    Preserves input order and drops missing.
 
     Args:
         entity: Entity name
@@ -228,17 +242,64 @@ def get_many_by_ids(
         List of validated model instances (in same order as input IDs)
 
     Example:
-        events = get_many_by_ids("events", ["rec1", "rec2"], Event)
+        events = await get_many_by_ids("events", ["rec1", "rec2"], Event)
     """
     out: List[TModel] = []
-    for rid in ids:
-        item = get_one(entity, rid, model=model)
+    ids_list = list(ids)
+    if not ids_list:
+        return out
+
+    results_map: dict[str, TModel] = {}
+    misses: List[str] = []
+
+    # First try cache (and skip tombstoned) - run all checks concurrently
+    tombstone_checks = await asyncio.gather(*[_check_tombstone(entity, rid) for rid in ids_list])
+    cache_gets = await asyncio.gather(*[_cache_get(entity, rid) for rid in ids_list])
+    
+    for i, rid in enumerate(ids_list):
+        if tombstone_checks[i]:
+            continue
+        cached = cache_gets[i]
+        if cached:
+            try:
+                results_map[rid] = _to_model(model, cached)
+            except Exception:
+                misses.append(rid)
+        else:
+            misses.append(rid)
+
+    # Batch fetch misses via OR(RECORD_ID()='...') in safe chunks
+    if misses:
+        def chunks(seq: List[str], size: int):
+            for i in range(0, len(seq), size):
+                yield seq[i : i + size]
+
+        loop = asyncio.get_event_loop()
+        for chunk in chunks(misses, 50):
+            formula = "OR(" + ",".join([f"RECORD_ID()='{rid}'" for rid in chunk]) + ")"
+            try:
+                records = await loop.run_in_executor(None, tables[entity].all, formula)
+                # Cache all results concurrently
+                save_tasks = []
+                for r in records:
+                    fields = {**r["fields"], "id": r["id"]}
+                    validated = _to_model(model, fields)
+                    save_tasks.append(_cache_save(entity, validated.model_dump()))
+                    results_map[validated.id] = validated
+                await asyncio.gather(*save_tasks)
+            except Exception:
+                # Ignore chunk errors; missing ones will just be skipped
+                pass
+
+    # Preserve input order; drop missing
+    for rid in ids_list:
+        item = results_map.get(rid)
         if item is not None:
             out.append(item)
     return out
 
 
-def get_by_formula(
+async def get_by_formula(
     entity: str, formula_dict: dict, model: Type[TModel]
 ) -> Optional[TModel]:
     """
@@ -253,23 +314,24 @@ def get_by_formula(
         First matching record or None
 
     Example:
-        user = get_by_formula(Entity.USERS, {"email": "test@example.com"}, UserPrivate)
-        event = get_by_formula(Entity.EVENTS, {"slug": "my-event"}, Event)
+        user = await get_by_formula(Entity.USERS, {"email": "test@example.com"}, UserPrivate)
+        event = await get_by_formula(Entity.EVENTS, {"slug": "my-event"}, Event)
     """
     _mark_cache("MISS")
     try:
-        records = tables[entity].all(formula=match(formula_dict))
+        loop = asyncio.get_event_loop()
+        records = await loop.run_in_executor(None, tables[entity].all, match(formula_dict))
         if not records:
             return None
         fields = {**records[0]["fields"], "id": records[0]["id"]}
         validated = _to_model(model, fields)
-        _cache_save(entity, validated.model_dump())
+        await _cache_save(entity, validated.model_dump())
         return validated
     except Exception:
         return None
 
 
-def get_many_by_formula(
+async def get_many_by_formula(
     entity: str, formula_dict: dict, model: Type[TModel]
 ) -> List[TModel]:
     """
@@ -284,23 +346,26 @@ def get_many_by_formula(
         List of matching records
 
     Example:
-        projects = get_many_by_formula(Entity.PROJECTS, {"event_id": "rec123"}, Project)
-        votes = get_many_by_formula(Entity.VOTES, {"event_id": "rec123"}, Vote)
+        projects = await get_many_by_formula(Entity.PROJECTS, {"event_id": "rec123"}, Project)
+        votes = await get_many_by_formula(Entity.VOTES, {"event_id": "rec123"}, Vote)
     """
     try:
-        records = tables[entity].all(formula=match(formula_dict))
+        loop = asyncio.get_event_loop()
+        records = await loop.run_in_executor(None, tables[entity].all, match(formula_dict))
         out: List[TModel] = []
+        save_tasks = []
         for r in records:
             fields = {**r["fields"], "id": r["id"]}
             validated = _to_model(model, fields)
-            _cache_save(entity, validated.model_dump())
+            save_tasks.append(_cache_save(entity, validated.model_dump()))
             out.append(validated)
+        await asyncio.gather(*save_tasks)
         return out
     except Exception:
         return []
 
 
-def upsert_entity(entity: str, obj: BaseModel) -> None:
+async def upsert_entity(entity: str, obj: BaseModel) -> None:
     """
     Update or insert entity in cache (called by webhook).
 
@@ -309,12 +374,12 @@ def upsert_entity(entity: str, obj: BaseModel) -> None:
         obj: Pydantic model instance
 
     Example:
-        upsert_entity("events", event)
+        await upsert_entity("events", event)
     """
-    _cache_save(entity, obj.model_dump())
+    await _cache_save(entity, obj.model_dump())
 
 
-def invalidate_entity(entity: str, record_id: str) -> None:
+async def invalidate_entity(entity: str, record_id: str) -> None:
     """
     Remove entity from cache (called by webhook or delete).
 
@@ -323,12 +388,12 @@ def invalidate_entity(entity: str, record_id: str) -> None:
         record_id: Airtable record ID
 
     Example:
-        invalidate_entity("events", "rec123")
+        await invalidate_entity("events", "rec123")
     """
-    _cache_delete(entity, record_id)
+    await _cache_delete(entity, record_id)
 
 
-def delete_entity(entity: str, record_id: str) -> None:
+async def delete_entity(entity: str, record_id: str) -> None:
     """
     Delete entity from Airtable and invalidate cache.
 
@@ -337,14 +402,15 @@ def delete_entity(entity: str, record_id: str) -> None:
         record_id: Airtable record ID
 
     Example:
-        delete_entity("events", "rec123")
+        await delete_entity("events", "rec123")
     """
-    tables[entity].delete(record_id)
-    invalidate_entity(entity, record_id)
-    _set_tombstone(entity, record_id)
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, tables[entity].delete, record_id)
+    await invalidate_entity(entity, record_id)
+    await _set_tombstone(entity, record_id)
 
 
-def get_user_by_email(email: str, model: Type[TModel]) -> Optional[TModel]:
+async def get_user_by_email(email: str, model: Type[TModel]) -> Optional[TModel]:
     """
     Get user by email using secondary cache for efficient lookups.
 
@@ -361,23 +427,24 @@ def get_user_by_email(email: str, model: Type[TModel]) -> Optional[TModel]:
         Validated user model or None if not found
 
     Example:
-        user = get_user_by_email("test@example.com", UserInternal)
+        user = await get_user_by_email("test@example.com", UserInternal)
     """
     # Normalize email
     email = email.lower().strip()
     
     # Check secondary cache for email -> user_id mapping
-    user_id = _cache_secondary_get(Entity.USERS, "email", email)
+    user_id = await _cache_secondary_get(Entity.USERS, "email", email)
     if user_id:
         # Try primary cache with the user_id
-        user = get_one(Entity.USERS, user_id, model)
+        user = await get_one(Entity.USERS, user_id, model)
         if user:
             return user
     
     # Fall back to Airtable query
     _mark_cache("MISS")
     try:
-        records = tables[Entity.USERS].all(formula=match({"email": email}))
+        loop = asyncio.get_event_loop()
+        records = await loop.run_in_executor(None, tables[Entity.USERS].all, match({"email": email}))
         if not records:
             return None
         
@@ -385,8 +452,8 @@ def get_user_by_email(email: str, model: Type[TModel]) -> Optional[TModel]:
         validated = _to_model(model, fields)
         
         # Cache both primary and secondary
-        _cache_save(Entity.USERS, validated.model_dump())
-        _cache_secondary_save(Entity.USERS, "email", email, validated.id)
+        await _cache_save(Entity.USERS, validated.model_dump())
+        await _cache_secondary_save(Entity.USERS, "email", email, validated.id)
         
         return validated
     except Exception:

@@ -100,20 +100,6 @@ class Event(EventCreationPayload):
     # Should the user see their project as valid or invalid depending on the automatic checks?
     ysws_checks_enabled: bool = False
 
-    @computed_field
-    @property
-    def max_votes_per_user(self) -> int:
-        from podium.cache.operations import get_one
-        
-        # Fetch as PrivateEvent to get project count
-        # This won't recurse because PrivateEvent.max_votes_per_user uses self.projects directly
-        event = get_one("events", self.id, model=PrivateEvent)
-        if not event:
-            return 1
-        
-        # PrivateEvent has its own implementation that uses self.projects
-        return event.max_votes_per_user
-
 
 class PrivateEvent(Event):
     """

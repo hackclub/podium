@@ -21,6 +21,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from podium import db, settings, cache
+from podium.cache.operations import Entity
 from pyairtable.formulas import FIND
 from podium.db.user import UserInternal
 from datetime import timedelta
@@ -61,7 +62,7 @@ async def test_token(email: str):
     # Try to get existing user (avoid duplicate creation)
     user = None
     try:
-        user = cache.get_user_by_email(email, UserInternal)
+        user = await cache.get_user_by_email(email, UserInternal)
     except (KeyError, AttributeError):
         pass
     
@@ -76,6 +77,10 @@ async def test_token(email: str):
         }
         record = db.tables["users"].create(user_data)
         user = UserInternal.model_validate({"id": record["id"], **record["fields"]})
+        # Immediately cache the new user
+        await cache.upsert_entity(Entity.USERS, user)
+        from podium.cache.operations import _cache_secondary_save
+        await _cache_secondary_save(Entity.USERS, "email", email, user.id)
     
     # Generate standard access token
     token = create_access_token(
@@ -90,11 +95,14 @@ class BootstrapRequest(BaseModel):
     run_id: Optional[str] = None
     events: int = 5
     seed_projects_per_event: int = 3
+    user_count: int = 50
+    pre_enroll_all: bool = True
 
 
 class BootstrapResponse(BaseModel):
     run_id: str
     events: list[dict]
+    user_tokens: list[str] = []
 
 
 class CleanupRequest(BaseModel):
@@ -178,9 +186,85 @@ async def bootstrap_test_data(req: BootstrapRequest):
             "join_code": event_data["join_code"],
         })
     
+    # Batch-create test users and pre-enroll them
+    if req.user_count > 0:
+        email_prefix = f"user_{run_id}_"
+        users_table = db.tables["users"]
+        
+        # Check for existing users (idempotent)
+        existing = users_table.all(formula=FIND(email_prefix, "{email}"))
+        existing_emails = {u["fields"].get("email") for u in existing}
+        
+        # Prepare users to create
+        to_create = []
+        for i in range(req.user_count):
+            email = f"{email_prefix}{i}@loadtest.com"
+            if email not in existing_emails:
+                to_create.append({
+                    "email": email,
+                    "display_name": f"Load User {i}",
+                    "first_name": "Load",
+                    "last_name": "LoadTest",
+                })
+        
+        # Batch create in chunks of 10
+        created = []
+        for i in range(0, len(to_create), 10):
+            chunk = to_create[i:i+10]
+            created.extend(users_table.batch_create(chunk))
+            time.sleep(0.15)  # Gentle rate limiting
+        
+        # Combine existing + created
+        user_records = existing + created
+        user_ids = [u["id"] for u in user_records]
+        
+        # Warm user cache by email and id, generate tokens
+        user_tokens = []
+        from podium.routers.auth import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
+        from podium.cache.operations import _cache_secondary_save
+        import asyncio
+        
+        # Batch cache all users concurrently
+        cache_tasks = []
+        for rec in user_records:
+            user = UserInternal.model_validate({"id": rec["id"], **rec["fields"]})
+            cache_tasks.append(cache.upsert_entity(Entity.USERS, user))
+            email = rec["fields"].get("email")
+            if email:
+                cache_tasks.append(_cache_secondary_save(Entity.USERS, "email", email, user.id))
+        await asyncio.gather(*cache_tasks)
+        
+        # Generate tokens after caching
+        for rec in user_records:
+            email = rec["fields"].get("email")
+            if email:
+                token = create_access_token(
+                    {"sub": email},
+                    expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+                    token_type="access",
+                )
+                user_tokens.append(token)
+        
+        # Pre-enroll all users into each event
+        if req.pre_enroll_all:
+            invalidate_tasks = []
+            for ev in events_created:
+                eid = ev["id"]
+                try:
+                    # Get existing attendees and add user_ids (de-dup with set)
+                    current = db.tables["events"].get(eid)["fields"].get("attendees", [])
+                    attendees = list({*current, *user_ids})
+                    db.tables["events"].update(eid, {"attendees": attendees})
+                    # Invalidate cache so next read sees enrolled users
+                    invalidate_tasks.append(cache.invalidate_entity(Entity.EVENTS, eid))
+                except Exception as e:
+                    pass  # Skip errors; best-effort enrollment
+            await asyncio.gather(*invalidate_tasks)
+    
     return BootstrapResponse(
         run_id=run_id,
-        events=events_created
+        events=events_created,
+        user_tokens=user_tokens if req.user_count > 0 else []
     )
 
 
