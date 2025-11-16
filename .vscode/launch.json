@@ -1,58 +1,47 @@
 {
   "version": "0.2.0",
   "inputs": [
-    // {
-    //   "id": "environment",
-    //   "description": "Select environment",
-    //   "type": "pickString",
-    //   "options": [
-    //     {
-    //       "label": "Development",
-    //       "value": "development"
-    //     },
-    //     {
-    //       "label": "Production",
-    //       "value": "production"
-    //     }
-    //   ],
-    //   "default": "development"
-    // }
+    {
+      "id": "doppler_environment",
+      // To manaully run a command with doppler (backend): doppler run --config prd -- uv run ...
+      "description": "Select Doppler environment",
+      "type": "pickString",
+      "options": [
+        {
+          "label": "Development",
+          "value": "dev"
+        },
+        {
+          "label": "Production",
+          "value": "prd"
+        }
+      ],
+      "default": "dev"
+    }
   ],
   "configurations": [
     {
-      // Not making a seperate config entry since it's not needed much, but to run bun dev in prod mode:
+      // To run bun dev in prod mode:
       // MacOS/Linux: NODE_ENV=production bun run dev
       // Windows (powershell): $env:NODE_ENV="production"; bun run dev; $env:NODE_ENV=""
-      "command": "bun run dev",
       "name": "frontend",
-      "request": "launch",
       "type": "node-terminal",
+      "request": "launch",
+      "command": "bun run dev",
       "cwd": "${workspaceFolder}/frontend"
     },
-    // {
-    //     "command": "npm run build",
-    //     "name": "Run build",
-    //     "request": "launch",
-    //     "type": "node-terminal",
-    //     "cwd": "${workspaceFolder}/frontend"
-    // },
     {
       "name": "FastAPI",
       "type": "debugpy",
       "request": "launch",
       "module": "uvicorn",
-      // --reload seems to cause issues with browser-use
       "args": ["podium.main:app", "--reload"],
-      // "args": ["podium.main:app"],
-      //  doppler run --config dev -- uv run uvicorn podium.main:app
+      // Alternative: doppler run --config ${input:doppler_environment} -- uv run uvicorn podium.main:app
       "env": {
-        // "ENV_FOR_DYNACONF": "${input:environment}"
-        "ENV_FOR_DYNACONF": "development",
-        "DOPPLER_ENV": "1"
+        "DOPPLER_ENV": "${input:doppler_environment}"
       },
       "cwd": "${workspaceFolder}/backend",
       "justMyCode": true
-      // "jinja": true
     }
   ],
   "compounds": [

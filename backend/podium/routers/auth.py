@@ -175,9 +175,9 @@ if __name__ == "__main__":
         token_type="magic_link",
     )
     # print the access token on one line and on the next line the magic link
-    # print(
-    #     f"Access token for {DEBUG_EMAIL}: {debug_access}\nMagic link: http://localhost:5173/login?token={debug_verify}"
-    # )
+    print(
+        f"Access token for {DEBUG_EMAIL}: {debug_access}\nMagic link: http://localhost:5173/login?token={debug_verify}"
+    )
 
 
 def magic_link_email_content(magic_link: str) -> dict:
