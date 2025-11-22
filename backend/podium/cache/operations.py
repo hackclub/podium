@@ -449,24 +449,25 @@ async def get_user_by_email(email: str, model: Type[TModel]) -> Optional[TModel]
     if user_id:
         # Try primary cache with the user_id
         user = await get_one(Entity.USERS, user_id, model)
-        if user:
+        if user and getattr(user, "email", "").lower().strip() == email:
             return user
     
     # Fall back to Airtable query
     _mark_cache("MISS")
-    try:
-        loop = asyncio.get_event_loop()
-        records = await loop.run_in_executor(None, tables[Entity.USERS].all, match({"email": email}))
-        if not records:
-            return None
-        
-        fields = {**records[0]["fields"], "id": records[0]["id"]}
-        validated = _to_model(model, fields)
-        
-        # Cache both primary and secondary
-        await _cache_save(Entity.USERS, validated.model_dump())
-        await _cache_secondary_save(Entity.USERS, "email", email, validated.id)
-        
-        return validated
-    except Exception:
+    loop = asyncio.get_event_loop()
+
+    def _fetch_by_email():
+        return tables[Entity.USERS].all(formula=match({"email": email}))
+
+    records = await loop.run_in_executor(None, _fetch_by_email)
+    if not records:
         return None
+    
+    fields = {**records[0]["fields"], "id": records[0]["id"]}
+    validated = _to_model(model, fields)
+    
+    # Cache both primary and secondary
+    await _cache_save(Entity.USERS, validated.model_dump())
+    await _cache_secondary_save(Entity.USERS, "email", email, validated.id)
+    
+    return validated

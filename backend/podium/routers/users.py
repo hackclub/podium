@@ -23,8 +23,8 @@ class UserExistsResponse(BaseModel):
 @router.get("/exists")
 async def user_exists(email: Annotated[EmailStr, Query(...)]) -> UserExistsResponse:
     email = email.strip().lower()
-    # Use cache-first lookup
-    exists = True if await cache.get_by_formula(Entity.USERS, {"email": email}, UserInternal) else False
+    # Use cache-first lookup with Airtable fallback (no tombstone check needed - we want to know if user exists)
+    exists = True if await cache.get_user_by_email(email, UserInternal) else False
     return UserExistsResponse(exists=exists)
 
 
