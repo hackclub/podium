@@ -3,7 +3,8 @@ version: '3.8'
 services:
   podium:
     container_name: podium
-    build: .
+    # build: .
+    image: ghcr.io/hackclub/podium-backend:latest
     # ports:
       # - "8000:8000"
     healthcheck:
