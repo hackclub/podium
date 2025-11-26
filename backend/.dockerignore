@@ -7,7 +7,7 @@ __pycache__/
 venv/
 .venv/
 
-<!-- settings.toml -->
+# settings.toml
 # Ignore local secrets
 .secrets.toml
 .env

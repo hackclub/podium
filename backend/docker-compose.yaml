@@ -1,5 +1,5 @@
-version: '3.8'
-
+# export DOPPLER_TOKEN="dp.pt.xxxxxxxx"
+# docker compose -f backend/docker-compose.yaml up
 services:
   podium:
     container_name: podium
@@ -13,8 +13,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 5s
-    volumes:
-      - ./settings.toml:/app/settings.toml:ro
-      - ./.secrets.toml:/app/.secrets.toml:ro
+    # volumes:
+      # - ./settings.toml:/app/settings.toml:ro
+    environment:
+      - DOPPLER_TOKEN
 
 # docker run --rm -it -v "$(pwd)/settings.toml:/app/settings.toml:ro" -v "$(pwd)/.secrets.toml:/app/.secrets.toml:ro" -p 8000:8000 podium
