@@ -77,9 +77,6 @@ def main():
     server, created = Server.objects.get_or_create(
         host=podium_host,
         port=podium_port,
-        defaults={
-            "sslmode": "prefer",
-        }
     )
     if created:
         print(f"✓ Created server: {podium_host}:{podium_port}")

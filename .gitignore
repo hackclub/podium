@@ -6,3 +6,4 @@ logs/
 backend/podium/cache/generated/
 # for `act`
 .secrets mathesar/.env
+mathesar/.env
