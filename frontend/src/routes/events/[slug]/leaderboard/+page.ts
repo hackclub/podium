@@ -1,7 +1,7 @@
 import { error } from "@sveltejs/kit";
 import type { PageLoad } from "./$types";
 import { client, EventsService } from "$lib/client/sdk.gen";
-import type { Project } from "$lib/client/types.gen";
+import type { ProjectPublic } from "$lib/client/types.gen";
 
 export const load: PageLoad = async ({ params, fetch, parent }) => {
   client.setConfig({ fetch });
@@ -28,6 +28,6 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
   return {
     // If this isn't a list of projects, return an empty list
     // ?. is used to check if projectsResp.data is null/undefined
-    projects: (data as Project[]) ?? [],
+    projects: (data as ProjectPublic[]) ?? [],
   };
 };

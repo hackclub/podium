@@ -1,12 +1,12 @@
 <script lang="ts">
-  import type { UserAttendee, Event } from "$lib/client/types.gen";
+  import type { UserAttendee, EventPublic } from "$lib/client/types.gen";
   import ConfirmationModal from "$lib/components/ConfirmationModal.svelte";
   import { getAuthenticatedUser } from "$lib/user.svelte";
 
   interface Props {
     attendees: UserAttendee[];
     onRemoveAttendee: (userId: string) => Promise<void>;
-    event: Event & { owned: boolean; partOfEvent: boolean; join_code?: string };
+    event: EventPublic & { owned: boolean; partOfEvent: boolean; join_code?: string };
   }
 
   let { attendees, onRemoveAttendee, event }: Props = $props();

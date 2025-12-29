@@ -1,12 +1,12 @@
 <script lang="ts">
   import { UsersService } from "$lib/client/sdk.gen";
-  import type { UserPrivate } from "$lib/client";
+  import type { UserUpdate } from "$lib/client";
   import { toast } from "svelte-sonner";
   import { handleError, invalidateUser } from "$lib/misc";
   import { fade } from "svelte/transition";
   import Modal from "$lib/components/Modal.svelte";
 
-  let { user }: { user: UserPrivate } = $props();
+  let { user }: { user: UserUpdate } = $props();
 
   let updateModal: Modal = $state() as Modal;
 

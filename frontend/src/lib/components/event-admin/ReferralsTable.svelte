@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { Referral } from "$lib/client/types.gen";
+  import type { ReferralResponse } from "$lib/client/types.gen";
 
   interface Props {
-    referrals: Referral[];
+    referrals: ReferralResponse[];
     userLookup: Map<string, string>;
   }
 
@@ -29,10 +29,10 @@
               <tr>
                 <td>
                   <div class="font-medium">
-                    {userLookup.get(referral.user[0]) || "Unknown User"}
+                    {userLookup.get(referral.user_id) || "Unknown User"}
                   </div>
                   <div class="text-xs text-base-content/70 font-mono">
-                    {referral.user[0]}
+                    {referral.user_id}
                   </div>
                 </td>
                 <td>

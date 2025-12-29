@@ -71,7 +71,8 @@
     >
       {#each data.projects as project}
         <!-- First conditional checks if the user is the owner or a collaborator of the project, in which case they cannot vote for it. Second conditional checks if the user has already voted for this project, in which case they also cannot vote for it. -->
-        {#if !(project.owner && project.owner.includes(userId)) && !(project.collaborators && project.collaborators.includes(userId)) && !(project.votes ?? []).some( (vote) => (getAuthenticatedUser().user.votes ?? []).includes(vote), )}
+        {@const p = project as any}
+        {#if !(p.owner && p.owner.includes(userId)) && !(p.collaborators && p.collaborators.includes(userId)) && !(p.votes ?? []).some( (vote: string) => ((getAuthenticatedUser().user as any).votes ?? []).includes(vote), )}
           <ProjectCard
             {project}
             isSelected={selectedProjects.includes(project.id)}

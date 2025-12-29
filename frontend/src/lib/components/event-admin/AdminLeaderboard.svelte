@@ -1,18 +1,18 @@
 <script lang="ts">
-  import type { Project, PrivateEvent } from "$lib/client/types.gen";
+  import type { ProjectPublic, EventPrivate } from "$lib/client/types.gen";
   import ProjectCard from "$lib/components/ProjectCard.svelte";
   import { getActiveFeatures } from "$lib/event-features/registry";
 
   interface Props {
-    projects: Project[];
-    event?: PrivateEvent;
+    projects: ProjectPublic[];
+    event?: EventPrivate;
   }
 
   let { projects, event }: Props = $props();
 
   // Get active event features for this event
   const activeFeatures = $derived(
-    event ? getActiveFeatures(event.feature_flags_list) : [],
+    event ? getActiveFeatures((event as any).feature_flags_list) : [],
   );
 </script>
 
@@ -34,7 +34,7 @@
                 class="bg-base-100/90 backdrop-blur-sm rounded-lg p-2 text-xs"
               >
                 <div class="font-medium">Points: {project.points || 0}</div>
-                <div>Votes: {project.votes?.length || 0}</div>
+                <div>Votes: {(project as any).votes?.length || 0}</div>
               </div>
             </div>
 

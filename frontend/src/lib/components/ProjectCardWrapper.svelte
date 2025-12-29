@@ -2,12 +2,12 @@
   import ProjectCard from "./ProjectCard.svelte";
   import UpdateProjectModal from "./UpdateProjectModal.svelte";
   import Modal from "./Modal.svelte";
-  import type { PrivateProject, Event, Unified } from "$lib/client/types.gen";
+  import type { ProjectPrivate, EventPrivate, Unified } from "$lib/client/types.gen";
   import DOMPurify from "dompurify";
 
   interface Props {
-    project: PrivateProject;
-    events: Event[];
+    project: ProjectPrivate;
+    events: EventPrivate[];
     projectQualityResults: Record<string, Unified>;
     projectModalState: Record<string, Modal>;
     formatReasons: (reasons: string) => string;
@@ -32,7 +32,7 @@
       <div class="text-center mb-3">
         <span class="text-xs text-base-content/70 mb-1 block">Event</span>
         {#each events as event}
-          {#if event.id === project.event[0]}
+          {#if event.id === project.event_id}
             <a
               href={`/events/${event.slug}`}
               class="link link-primary text-sm font-medium"
@@ -57,7 +57,7 @@
         <div class="flex flex-col items-center">
           <span class="text-xs text-base-content/70 mb-1">Status</span>
           {#each events as event}
-            {#if event.id === project.event[0]}
+            {#if event.id === project.event_id}
               {#if event.ysws_checks_enabled === false}
                 <span
                   class="tooltip tooltip-bottom underline cursor-help badge badge-neutral text-sm px-3 py-1"

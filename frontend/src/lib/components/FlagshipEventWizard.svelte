@@ -11,7 +11,7 @@
    */
 
   import JoinProject from "./JoinProject.svelte";
-  import type { PrivateProject, PrivateEvent } from "$lib/client";
+  import type { ProjectPrivate, EventPrivate } from "$lib/client";
   import { getEventFeature } from "$lib/event-features/registry";
   import CreateProject from "./CreateProject.svelte";
   import UpdateProjectModal from "./UpdateProjectModal.svelte";
@@ -19,9 +19,9 @@
 
   interface Props {
     /** The flagship event(s) the user is attending */
-    flagshipEvents: PrivateEvent[];
+    flagshipEvents: EventPrivate[];
     /** User's existing projects */
-    projects: PrivateProject[];
+    projects: ProjectPrivate[];
     /** Custom welcome message (optional) */
     welcomeMessage?: string;
   }
@@ -42,20 +42,20 @@
 
   // Get the event feature for validation if available
   const eventFeature = $derived(
-    currentEvent?.feature_flags_list?.[0]
-      ? getEventFeature(currentEvent.feature_flags_list[0])
+    (currentEvent as any)?.feature_flags_list?.[0]
+      ? getEventFeature((currentEvent as any).feature_flags_list[0])
       : undefined,
   );
 
   // Check if user already has a project for this event
   const hasExistingProject = $derived(() => {
     if (!currentEvent || !projects.length) return false;
-    return projects.some((project) => project.event[0] === currentEvent.id);
+    return projects.some((project) => project.event_id === currentEvent.id);
   });
 
   // Get user's project for the current event (prioritize owned projects)
   const eventProjects = $derived(() => {
-    return projects.filter((p) => p.event[0] === currentEvent.id);
+    return projects.filter((p) => p.event_id === currentEvent.id);
   });
 
   const userProject = $derived(() => {

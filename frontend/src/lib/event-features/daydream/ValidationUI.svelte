@@ -1,10 +1,10 @@
 <script lang="ts">
   import type { ValidationResult } from "../types";
-  import type { Project } from "$lib/client/types.gen";
+  import type { ProjectPublic } from "$lib/client/types.gen";
 
   interface Props {
     validation: ValidationResult;
-    project: Project;
+    project: ProjectPublic;
   }
 
   let { validation, project }: Props = $props();

@@ -1,17 +1,21 @@
 from typing import Annotated
+from uuid import UUID
+
 from pydantic import BaseModel, EmailStr
-from podium import db, cache
-from podium.cache.operations import Entity
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
-from podium.db.user import (
-    UserSignupPayload,
-    UserInternal,
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
+
+from podium.db.postgres import (
+    User,
     UserPublic,
     UserPrivate,
+    UserSignup,
     UserUpdate,
+    get_session,
+    scalar_one_or_none,
 )
 from podium.routers.auth import get_current_user
-from podium.constants import BAD_AUTH
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -21,67 +25,70 @@ class UserExistsResponse(BaseModel):
 
 
 @router.get("/exists")
-async def user_exists(email: Annotated[EmailStr, Query(...)]) -> UserExistsResponse:
-    email = email.strip().lower()
-    # Use cache-first lookup with Airtable fallback (no tombstone check needed - we want to know if user exists)
-    exists = True if await cache.get_user_by_email(email, UserInternal) else False
-    return UserExistsResponse(exists=exists)
+async def user_exists(
+    email: Annotated[EmailStr, Query(...)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> UserExistsResponse:
+    email_lower = email.strip().lower()
+    user = await scalar_one_or_none(session, select(User).where(User.email == email_lower))
+    return UserExistsResponse(exists=user is not None)
 
 
 @router.get("/current")
 async def get_current_user_info(
-    current_user: Annotated[UserInternal, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> UserPrivate:
-    if current_user:
-        return current_user
-    raise BAD_AUTH
+    return UserPrivate.model_validate(current_user)
 
 
 @router.put("/current")
 async def update_current_user(
     user_update: UserUpdate,
-    current_user: Annotated[UserInternal, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> UserPrivate:
-    """
-    Update the current user's information
-    """
-    if current_user is None:
-        raise BAD_AUTH
-
-    # Only include non-None values in the update
-    update_data = {k: v for k, v in user_update.model_dump().items() if v is not None}
-
+    """Update the current user's information."""
+    update_data = user_update.model_dump(exclude_unset=True, exclude_none=True)
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
 
-    updated_user = db.users.update(current_user.id, update_data)
+    current_user.sqlmodel_update(update_data)
 
-    # Cache will be invalidated by Airtable webhook
-    return UserPrivate.model_validate(updated_user["fields"])
-
-
-# It's important that this is under /current since otherwise /users/current will be be passed to this and `current` will be interpreted as a user_id
+    await session.commit()
+    await session.refresh(current_user)
+    return UserPrivate.model_validate(current_user)
 
 
-# The reason we're specifying response_model here is because of https://github.com/long2ice/fastapi-cache/issues/384
 @router.get("/{user_id}", response_model=UserPublic)
 async def get_user_public(
-    user_id: Annotated[str, Path(title="User Airtable ID")],
+    user_id: Annotated[UUID, Path(title="User ID")],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> UserPublic:
-    # Use cache-first lookup
-    user = await cache.get_one(Entity.USERS, user_id, UserPublic)
-    
+    user = await session.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
-    return user
+    return UserPublic.model_validate(user)
 
 
-# Eventually, this should probably be rate-limited
 @router.post("/")
-async def create_user(user: UserSignupPayload):
-    # Check if the user already exists
-    existing_user = await cache.get_by_formula(Entity.USERS, {"email": user.email.lower().strip()}, UserInternal)
-    if existing_user:
+async def create_user(
+    user: UserSignup,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    email = user.email.strip().lower()
+    existing = await scalar_one_or_none(session, select(User).where(User.email == email))
+    if existing:
         raise HTTPException(status_code=400, detail="User already exists")
-    db.users.create(user.model_dump())
+
+    # Convert None values to empty strings for optional fields
+    user_data = user.model_dump()
+    for field in ["last_name", "display_name", "phone", "street_1", "street_2", "city", "state", "zip_code", "country"]:
+        if user_data.get(field) is None:
+            user_data[field] = ""
+    user_data["email"] = email
+
+    new_user = User.model_validate(user_data)
+    session.add(new_user)
+    await session.commit()
+    await session.refresh(new_user)
+    return {"id": str(new_user.id)}

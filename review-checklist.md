@@ -1,23 +1,24 @@
 **Checklist of flows to check whenever major changes are made**
+(This is also a target for what our e2e playwright tests should cover)
 
-- [x] Register for a new account
-- [x] Login using magic link
-- [x] Create a new event
-- [x] Create a project via the wizard (twice)
+- [ ] Register for a new account
+- [ ] Login using magic link
+- [ ] Create a new event
+- [ ] Create a project via the wizard (twice)
     <!-- - Join event via wizard the first time using the join code -->
     <!-- - Note: attend endpoint took a while -->
-- [x] Enable voting and leaderboard via admin panel
-- [x] Sign out
+- [ ] Enable voting and leaderboard via admin panel
+- [ ] Sign out
 ---
-- [X] Navigate to join link and create a new account to test callback
-- [X] Create a project
-- [X] Navigate to event ranking page
-- [X] Rank projects
-- [X] View leaderboard
-- [X] Update project
-- [X] Sign out
+- [ ] Navigate to join link and create a new account to test callback
+- [ ] Create a project
+- [ ] Navigate to event ranking page
+- [ ] Rank projects
+- [ ] View leaderboard
+- [ ] Update project
+- [ ] Sign out
 ---
-- [X] Log into the account that owns the event
-- [X] View admin leaderboard
-- [X] Remove the second user
-- [X] Reload 
+- [ ] Log into the account that owns the event
+- [ ] View admin leaderboard
+- [ ] Remove the second user
+- [ ] Reload 

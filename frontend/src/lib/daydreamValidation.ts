@@ -11,7 +11,7 @@ import {
   isDaydreamEvent as _isDaydreamEvent,
   validateDaydreamProject,
 } from "$lib/event-features/daydream";
-import type { Project } from "$lib/client/types.gen";
+import type { ProjectPublic } from "$lib/client/types.gen";
 
 // Re-export regexes
 export const itchioRegex = _itchioRegex;
@@ -39,12 +39,12 @@ export function validateDaydreamURLs(
   repoUrl: string | null | undefined,
 ): URLValidationResult {
   // Create a minimal project object to use the new validator
-  const project: Partial<Project> = {
+  const project: Partial<ProjectPublic> = {
     demo: demoUrl || undefined,
     repo: repoUrl || undefined,
   };
 
-  const result = validateDaydreamProject(project as Project);
+  const result = validateDaydreamProject(project as ProjectPublic);
 
   return {
     isValid: result.isValid,

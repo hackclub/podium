@@ -3,7 +3,7 @@ import { error } from "@sveltejs/kit";
 import type { LayoutLoad } from "./$types";
 import { client } from "$lib/client/sdk.gen";
 import { EventsService } from "$lib/client/sdk.gen";
-import type { Event, PrivateEvent } from "$lib/client";
+import type { EventPublic, EventPrivate } from "$lib/client";
 import { eventSlugAliases } from "$lib/consts";
 
 export const load: LayoutLoad = async ({ params, fetch, parent }) => {
@@ -24,7 +24,7 @@ export const load: LayoutLoad = async ({ params, fetch, parent }) => {
   const ownedEvent = events?.owned_events.find((e) => e.slug === slug);
   const attendingEvent = events?.attending_events.find((e) => e.slug === slug);
 
-  let event: Event | PrivateEvent;
+  let event: EventPublic | EventPrivate;
   let partOfEvent = false;
   let owned = false;
 
@@ -58,7 +58,7 @@ export const load: LayoutLoad = async ({ params, fetch, parent }) => {
       data: publicEvent,
       error: eventErr,
       response: eventResponse,
-    } = await EventsService.getEventEventsEventIdGet({
+    } = await EventsService.getEventEndpointEventsEventIdGet({
       path: { event_id: eventId },
       throwOnError: false,
     });
@@ -83,7 +83,7 @@ export const load: LayoutLoad = async ({ params, fetch, parent }) => {
       ...event,
       owned,
       partOfEvent,
-    } as (Event | PrivateEvent) & { owned: boolean; partOfEvent: boolean },
+    } as (EventPublic | EventPrivate) & { owned: boolean; partOfEvent: boolean },
     title: event.name,
     meta,
   };

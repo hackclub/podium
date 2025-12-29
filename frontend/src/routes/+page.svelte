@@ -8,7 +8,7 @@
 
   import { onMount } from "svelte";
   import { EventsService, ProjectsService } from "$lib/client/sdk.gen";
-  import type { PrivateProject, PrivateEvent } from "$lib/client";
+  import type { ProjectPrivate, EventPrivate } from "$lib/client";
   import { handleError } from "$lib/misc";
   import ProjectCard from "$lib/components/ProjectCard.svelte";
   import { fade } from "svelte/transition";
@@ -19,8 +19,8 @@
     isFlagshipEvent,
   } from "$lib/event-features/flagship-config";
 
-  let projects = $state() as Array<PrivateProject>;
-  let flagshipEvents = $state<PrivateEvent[]>([]);
+  let projects = $state() as Array<ProjectPrivate>;
+  let flagshipEvents = $state<EventPrivate[]>([]);
 
   onMount(async () => {
     try {
@@ -33,10 +33,10 @@
           },
         );
         if (!error && data) {
-          const attending = (data.attending_events ?? []) as PrivateEvent[];
+          const attending = (data.attending_events ?? []) as EventPrivate[];
           // Filter for events matching the active flagship feature flag
           flagshipEvents = attending.filter((e) =>
-            e.feature_flags_list?.includes(activeFlagship.featureFlag),
+            (e as any).feature_flags_list?.includes(activeFlagship.featureFlag),
           );
         }
       }

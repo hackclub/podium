@@ -20,7 +20,7 @@ export async function attendEvent(
 ) {
 	const url = new URL(`${API_URL}/events/attend`);
 	url.searchParams.set('join_code', joinCode);
-	if (referral) url.searchParams.set('referral', referral);
+	url.searchParams.set('referral', referral || 'test');
 
 	const response = await api.post(url.toString());
 	if (!response.ok()) {
@@ -34,9 +34,10 @@ export async function createProject(
 	data: {
 		name: string;
 		description: string;
-		event: string[];
+		event_id: string;
+		repo: string;
+		image_url: string;
 		demo?: string;
-		github_url?: string;
 	}
 ) {
 	const response = await api.post(`${API_URL}/projects/`, { data });
@@ -57,16 +58,14 @@ export async function joinProject(api: APIRequestContext, joinCode: string) {
 	return await response.json();
 }
 
-export async function voteForProject(
+export async function voteForProjects(
 	api: APIRequestContext,
 	eventId: string,
-	projectId: string
+	projectIds: string[]
 ) {
-	const url = new URL(`${API_URL}/events/vote`);
-	url.searchParams.set('event_id', eventId);
-	url.searchParams.set('project_id', projectId);
-
-	const response = await api.post(url.toString());
+	const response = await api.post(`${API_URL}/events/vote`, {
+		data: { event: eventId, projects: projectIds }
+	});
 	if (!response.ok()) {
 		throw new Error(`Failed to vote: ${response.status()} ${await response.text()}`);
 	}

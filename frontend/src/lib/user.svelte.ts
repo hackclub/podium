@@ -3,24 +3,12 @@ import { AuthService } from "$lib/client/sdk.gen";
 import type { AuthenticatedUser, UserPrivate } from "./client";
 
 export const defaultUser: UserPrivate = {
+  id: "",
+  display_name: "",
+  email: "",
   first_name: "",
   last_name: "",
-  email: "",
   phone: "",
-  street_1: null,
-  street_2: null,
-  city: null,
-  state: null,
-  zip_code: null,
-  country: null,
-  dob: null,
-  id: "",
-  votes: [],
-  projects: [],
-  collaborations: [],
-  owned_events: [],
-  attending_events: [],
-  referral: [],
 };
 
 export const defaultAuthenticatedUser: AuthenticatedUser = {

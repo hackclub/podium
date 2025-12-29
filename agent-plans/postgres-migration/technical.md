@@ -1,19 +1,6 @@
 # PostgreSQL Migration: Technical Details
 
-See [overview.md](./overview.md) for context.
-
----
-
-## Draft Files
-
-All code drafts live in the `drafts/` directory:
-
-| File | Purpose |
-|------|---------|
-| [models_ormar.py](./drafts/models_ormar.py) | ormar ORM models (User, Event, Project, etc.) |
-| [migrate_from_airtable.py](./drafts/migrate_from_airtable.py) | One-time backfill script |
-| [alembic_env.py](./drafts/alembic_env.py) | Alembic env.py configuration |
-| [test.yml](./drafts/test.yml) | GitHub Actions CI with Postgres |
+See [overview.md](./overview.md) for status and phases.
 
 ---
 
@@ -21,14 +8,14 @@ All code drafts live in the `drafts/` directory:
 
 ```bash
 # Start local Postgres (one-time)
-docker run --name podium-pg \
+podman run -d --name podium-pg \
   -e POSTGRES_PASSWORD=localpass \
   -e POSTGRES_DB=podium \
   -p 5432:5432 \
-  -d postgres:17
+  postgres:17
 
 # Run migrations
-doppler run --config dev -- alembic upgrade head
+doppler run --config dev -- uv run alembic upgrade head
 
 # Start backend
 doppler run --config dev -- uv run podium
@@ -38,209 +25,282 @@ All secrets come from Doppler. No `.secrets.toml` or `.env` files.
 
 ---
 
-## ormar Models
+## SQLModel Models
 
-**Draft:** [drafts/models_ormar.py](./drafts/models_ormar.py)
+**Location:** `backend/podium/db/postgres/`
 
-**Final structure:** Split per-entity to match current layout:
-- `db/user.py` → User model + queries
-- `db/event.py` → Event model + queries
-- `db/project.py` → Project model + queries
-- `db/vote.py` → Vote model + queries
-- `db/referral.py` → Referral model + queries
+| File | Purpose |
+|------|---------|
+| `__init__.py` | Exports all models, utilities, and typed query helpers |
+| `base.py` | Async engine, session factory, typed query helpers |
+| `links.py` | Junction tables for M2M relationships |
+| `user.py` | User model + API schemas |
+| `event.py` | Event model + API schemas |
+| `project.py` | Project model + API schemas |
+| `vote.py` | Vote model |
+| `referral.py` | Referral model |
 
-All models include `airtable_id` for backfill mapping.
+### Key Patterns
 
-### Models
+**IDs are `None` until saved:**
+```python
+id: UUID | None = Field(default=None, primary_key=True)
+```
 
-| Model | Table | Relationships |
-|-------|-------|---------------|
-| `User` | `users` | - |
-| `Event` | `events` | `owner` → User (FK), `attendees` → User (M2M) |
-| `Project` | `projects` | `owner` → User (FK), `event` → Event (FK), `collaborators` → User (M2M) |
-| `Vote` | `votes` | `voter` → User, `project` → Project, `event` → Event |
-| `Referral` | `referrals` | `user` → User, `event` → Event |
+**M2M requires explicit link tables:**
+```python
+# In links.py
+class EventAttendeeLink(SQLModel, table=True):
+    event_id: UUID = Field(foreign_key="events.id", primary_key=True)
+    user_id: UUID = Field(foreign_key="users.id", primary_key=True)
 
-**Note:** Many-to-many relationships (`attendees`, `collaborators`) use `ormar.ManyToMany()` - ormar auto-creates junction tables. No explicit `EventAttendee` or `ProjectCollaborator` models needed.
+# In event.py
+attendees: list["User"] = Relationship(
+    back_populates="events_attending", link_model=EventAttendeeLink
+)
+```
+
+**`airtable_id` for migration mapping:**
+```python
+airtable_id: str | None = Field(default=None, max_length=32, unique=True, index=True)
+```
 
 ---
 
-## Alembic Setup
-
-### Install
+## Alembic Commands
 
 ```bash
-cd backend
-uv add alembic databases asyncpg psycopg2-binary
-alembic init migrations
-```
+# Generate migration from model changes
+doppler run --config dev -- uv run alembic revision --autogenerate -m "description"
 
-Then copy [drafts/alembic_env.py](./drafts/alembic_env.py) to `backend/migrations/env.py`.
-
-### Commands
-
-```bash
-# Generate migration
-doppler run --config dev -- alembic revision --autogenerate -m "description"
-
-# Apply migrations (local)
-doppler run --config dev -- alembic upgrade head
-
-# Apply migrations (production)
-doppler run --config prod -- alembic upgrade head
+# Apply all migrations
+doppler run --config dev -- uv run alembic upgrade head
 
 # Rollback one migration
-doppler run --config dev -- alembic downgrade -1
+doppler run --config dev -- uv run alembic downgrade -1
+
+# Check if models match database
+doppler run --config dev -- uv run alembic check
 ```
 
 ---
 
-## Backfill Script
+## Query Patterns (SQLModel)
 
-**Draft:** [drafts/migrate_from_airtable.py](./drafts/migrate_from_airtable.py)
+### Typed Query Helpers
 
-**Final location:** `backend/scripts/migrate_from_airtable.py`
-
-**Migration order** (foreign keys must resolve):
-1. Users
-2. Events
-3. Event attendees (M2M via `.add()`)
-4. Projects
-5. Project collaborators (M2M via `.add()`)
-6. Referrals
-7. Votes
-
-### Run
-
-```bash
-# Local (test against local Postgres)
-doppler run --config dev -- python scripts/migrate_from_airtable.py
-
-# Production
-doppler run --config prod -- python scripts/migrate_from_airtable.py
-```
-
----
-
-## Refactoring Routers
-
-Replace Airtable/cache calls with direct ormar queries. No wrapper layer needed.
-
-### Before (Airtable)
+Use the typed helpers in `db/postgres/base.py` for better typing:
 
 ```python
-from podium.db.user import get_user_by_email
-from podium.cache.operations import get_one
+from podium.db.postgres import scalar_one_or_none, scalar_all
 
-user = get_user_by_email(email, UserPrivate)
-event = get_one("events", event_id)
+# Get single result (properly typed)
+event = await scalar_one_or_none(session, select(Event).where(Event.slug == slug))
+
+# Get all results (properly typed)
+projects = await scalar_all(session, select(Project).where(Project.event_id == event_id))
 ```
 
-### After (Postgres)
+### Primary Key Lookups
+
+Use `session.get()` for PK lookups (better typing and performance):
 
 ```python
-from podium.db.user import User  # ormar model
+# ✅ Preferred - uses session.get()
+event = await session.get(Event, event_id)
 
-user = await User.objects.get_or_none(email=email.lower())
-event = await Event.objects.select_related("owner").get_or_none(id=event_id)
+# ❌ Avoid for PK lookups
+result = await session.execute(select(Event).where(Event.id == event_id))
+event = result.scalars().first()
 ```
 
-### Common Query Patterns
+### Creating Models
+
+Use `Model.model_validate()` with `update` parameter:
 
 ```python
-# Get by ID
-user = await User.objects.get_or_none(id=user_id)
+# ✅ Preferred - uses model_validate with update
+new_event = Event.model_validate(
+    event_create,  # EventCreate instance
+    update={
+        "slug": computed_slug,
+        "join_code": join_code,
+        "owner_id": user.id,
+    },
+)
+session.add(new_event)
+await session.commit()
+await session.refresh(new_event)
 
-# Get by field
-event = await Event.objects.get_or_none(slug=slug)
-
-# With relationships
-event = await Event.objects.select_related("owner").get(id=event_id)
-
-# Filter
-projects = await Project.objects.filter(event=event_id).all()
-
-# Create
-vote = await Vote.objects.create(voter=user_id, project=project_id, event=event_id)
-
-# Update
-await user.update(display_name="New Name")
-
-# Delete
-await project.delete()
-
-# Count
-count = await Vote.objects.filter(event=event_id, voter=user_id).count()
+# ❌ Avoid - manual field assignment
+new_event = Event(
+    name=event_create.name,
+    description=event_create.description,
+    slug=computed_slug,
+    join_code=join_code,
+    owner_id=user.id,
+    # ... many more fields
+)
 ```
 
----
+### Updating Models
 
-## Coolify Setup
+Use `sqlmodel_update()` with `model_dump(exclude_unset=True, exclude_none=True)`:
 
-### Production Postgres
+```python
+# ✅ Preferred - uses sqlmodel_update
+update_data = event_update.model_dump(exclude_unset=True, exclude_none=True)
+event.sqlmodel_update(update_data)
+await session.commit()
 
-1. **angad/podium** → **production** environment
-2. **+ Add New Resource** → **Database** → **PostgreSQL**
-3. Configure:
-   - Name: `postgres-prod`
-   - Version: `17`
-   - Database: `podium`
-   - Password: Generate secure password
-4. **Backups** → Configure S3 destination
-5. Add password to Doppler `prod` environment as `DATABASE_PASSWORD`
+# ❌ Avoid - manual loop
+for key, value in event_update.model_dump(exclude_unset=True).items():
+    if value is not None:
+        setattr(event, key, value)
+```
+
+### Eager Loading (avoid N+1)
+
+```python
+from sqlalchemy.orm import selectinload
+
+# Load event with its attendees
+stmt = (
+    select(Event)
+    .where(Event.id == event_id)
+    .options(selectinload(Event.attendees))
+)
+event = await scalar_one_or_none(session, stmt)
+# event.attendees is now loaded, no extra query
+```
+
+### M2M Operations
+
+```python
+# Add attendee to event (no session.add() needed for tracked objects)
+event.attendees.append(user)
+await session.commit()
+
+# Remove attendee
+event.attendees = [a for a in event.attendees if a.id != user_id]
+await session.commit()
+
+# Check membership
+is_attending = user in event.attendees
+```
 
 ---
 
 ## Doppler Configuration
 
-### Environments
-
-| Environment | Purpose |
-|-------------|---------|
-| `dev` | Local development |
-| `prod` | Production |
-
-### Variables
-
 | Variable | `dev` | `prod` |
 |----------|-------|--------|
-| `DATABASE_URL` | `postgresql+asyncpg://postgres:localpass@localhost:5432/podium` | `postgresql+asyncpg://postgres:<pw>@postgres-prod:5432/podium` |
+| `PODIUM_DATABASE_URL` | `postgresql+asyncpg://postgres:localpass@localhost:5432/podium` | `postgresql+asyncpg://...@coolify/podium` |
 | `PODIUM_ENV` | `development` | `production` |
 
-All existing variables (JWT secret, SendGrid, Airtable keys for backfill) remain.
+Dynaconf strips the `PODIUM_` prefix, so use `settings.database_url` in code.
+
+**Required settings:**
+- `database_url` - PostgreSQL connection string
+- `jwt_secret` - JWT signing secret
+- `loops_transactional_id` - Loops email template ID
+
+**Optional settings (for migration only):**
+- `airtable_token`, `airtable_base_id`, etc. - Only needed for `migrate_from_airtable.py`
 
 ---
 
-## GitHub Actions CI
+## Backfill Script ✅
 
-**Draft:** [drafts/test.yml](./drafts/test.yml)
+**Location:** `backend/scripts/migrate_from_airtable.py`
 
-Note: We don't use pytest. Frontend has Playwright E2E tests.
+The script:
+1. Connects to both Airtable (via PyAirtable) and Postgres (via SQLModel)
+2. Iterates through Airtable records in dependency order
+3. Creates Postgres rows, mapping `airtable_id` for idempotency
+4. Handles M2M relationships after base records exist
+
+**Migration order** (foreign keys must resolve):
+1. Users
+2. Events  
+3. Event attendees (M2M)
+4. Projects
+5. Project collaborators (M2M)
+6. Referrals
+7. Votes
+
+---
+
+## Router Patterns ✅
+
+All routers use these patterns:
+
+```python
+from fastapi import Depends
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession  # Use SQLModel's AsyncSession
+from podium.db.postgres import User, Event, get_session, scalar_one_or_none
+
+@router.get("/{event_id}")
+async def get_event(
+    event_id: Annotated[UUID, Path(title="Event ID")],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> EventPublic:
+    # Use session.get() for PK lookups
+    event = await session.get(Event, event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    return EventPublic.model_validate(event)
+
+@router.post("/")
+async def create_event(
+    event: EventCreate,
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    # Use model_validate for creation
+    new_event = Event.model_validate(event, update={"owner_id": user.id, ...})
+    session.add(new_event)
+    await session.commit()
+    await session.refresh(new_event)
+    return {"id": str(new_event.id)}
+
+@router.put("/{event_id}")
+async def update_event(
+    event_id: UUID,
+    event_update: EventUpdate,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    event = await session.get(Event, event_id)
+    # Use sqlmodel_update for updates
+    update_data = event_update.model_dump(exclude_unset=True, exclude_none=True)
+    event.sqlmodel_update(update_data)
+    await session.commit()
+    return {"message": "Event updated"}
+```
 
 ---
 
 ## Cutover Checklist
 
 ### Before Cutover
-- [ ] ormar models finalized and split per-entity
-- [ ] Alembic migrations tested locally
-- [ ] Backfill script tested locally
-- [ ] All routers refactored to Postgres
-- [ ] `postgres-prod` created on Coolify with S3 backups
+- [x] Backfill script tested locally with real Airtable data
+- [x] All routers refactored to use SQLModel
+- [x] Code quality cleanup (typed helpers, model_validate, sqlmodel_update)
+- [ ] E2E tests pass against Postgres
+- [ ] Frontend OpenAPI client regenerated
 
 ### Cutover Day
 1. Export Airtable data (CSV backup)
-2. Schedule 15-30 min maintenance window
-3. Run migrations: `doppler run --config prod -- alembic upgrade head`
-4. Run backfill: `doppler run --config prod -- python scripts/migrate_from_airtable.py`
-5. Verify row counts
-6. Deploy v2 (Postgres-only code)
-7. Smoke test: login, create event, vote, leaderboard
-8. Monitor 24-48 hours
+2. Run migrations on prod
+3. Run backfill script
+4. Deploy v2
+5. Regenerate frontend client: `cd frontend && bun run openapi-ts`
+6. Smoke test core flows
+7. Monitor for 24-48 hours
 
-### Post-Cutover Cleanup
-- [ ] Delete `backend/podium/cache/` directory
-- [ ] Remove Redis from Coolify
+### Post-Cutover
+- [x] Delete cache layer code
+- [ ] Remove Redis/Valkey from Coolify
 - [ ] Remove PyAirtable dependency
-- [ ] Delete old Airtable model files
-- [ ] Remove `airtable_id` fields (optional, can keep for reference)
+- [ ] Delete old Airtable models

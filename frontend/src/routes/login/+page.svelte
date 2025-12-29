@@ -7,7 +7,7 @@
   import { goto } from "$app/navigation";
   import type { HTTPValidationError } from "$lib/client/types.gen";
   import { handleError } from "$lib/misc";
-  import type { UserSignupPayload } from "$lib/client/types.gen";
+  import type { UserSignup } from "$lib/client/types.gen";
   import { countries } from "countries-list";
   // rest is the extra props passed to the component
   let { ...rest } = $props();
@@ -15,7 +15,7 @@
   let isLoading = $state(false);
   let showSignupFields = $state(false);
   let expandedDueTo = "";
-  let userInfo: UserSignupPayload = $state({
+  let userInfo: UserSignup = $state({
     ...defaultUser,
   });
   $inspect(userInfo);

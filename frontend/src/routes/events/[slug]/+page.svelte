@@ -1,15 +1,15 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import AdminPanel from "$lib/components/event-admin/AdminPanel.svelte";
-  import type { PrivateEvent } from "$lib/client/types.gen";
+  import type { EventPrivate } from "$lib/client/types.gen";
 
   let { data }: { data: PageData } = $props();
 
   // Type assertion: owned events are always PrivateEvent
   function getPrivateEvent(
     event: any,
-  ): PrivateEvent & { owned: boolean; partOfEvent: boolean } {
-    return event as PrivateEvent & { owned: boolean; partOfEvent: boolean };
+  ): EventPrivate & { owned: boolean; partOfEvent: boolean } {
+    return event as EventPrivate & { owned: boolean; partOfEvent: boolean };
   }
 </script>
 

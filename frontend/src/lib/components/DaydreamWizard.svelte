@@ -1,20 +1,20 @@
 <script lang="ts">
   import DaydreamCreateProject from "./DaydreamCreateProject.svelte";
   import JoinProject from "./JoinProject.svelte";
-  import type { PrivateProject } from "$lib/client";
+  import type { ProjectPrivate } from "$lib/client";
 
   // Accept list of Daydream events and user's projects from the parent
   let {
     daydreams = [],
     projects = [],
-  }: { daydreams: any[]; projects: PrivateProject[] } = $props();
+  }: { daydreams: any[]; projects: ProjectPrivate[] } = $props();
   let currentDaydream = daydreams[0];
   console.log(currentDaydream);
 
   // Check if user already has a project for the current daydream event
   let hasExistingProject = $derived(() => {
     if (!currentDaydream || !projects.length) return false;
-    return projects.some((project) => project.event[0] === currentDaydream.id);
+    return projects.some((project) => project.event_id === currentDaydream.id);
   });
 
   // Initialize step - will be updated when hasExistingProject is available

@@ -14,7 +14,6 @@ export default defineConfig({
 		['html', { outputFolder: 'playwright-report', open: 'never' }]
 	],
 	timeout: 60000,
-	quiet: true,
 
 	use: {
 		baseURL: externalBaseURL ?? 'http://127.0.0.1:4173',

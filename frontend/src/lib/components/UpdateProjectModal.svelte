@@ -1,9 +1,9 @@
 <script lang="ts">
   import { EventsService, ProjectsService } from "$lib/client/sdk.gen";
-  import type { Event, Project } from "$lib/client";
+  import type { EventPublic, ProjectPublic } from "$lib/client";
   import { toast } from "svelte-sonner";
   import { customInvalidateAll, handleError } from "$lib/misc";
-  import type { PrivateProject, ProjectUpdate } from "$lib/client/types.gen";
+  import type { ProjectPrivate, ProjectUpdate } from "$lib/client/types.gen";
   import { onMount } from "svelte";
   import Modal from "$lib/components/Modal.svelte";
   import ConfirmationModal from "$lib/components/ConfirmationModal.svelte";
@@ -27,7 +27,7 @@
     preselectedProject,
     events,
     modal = $bindable(),
-  }: { preselectedProject: PrivateProject; events: Array<Event>; modal?: Modal } = $props();
+  }: { preselectedProject: ProjectPrivate; events: Array<EventPublic>; modal?: Modal } = $props();
 
   let localModal: Modal = $state() as Modal;
   let deleteConfirmation: ConfirmationModal = $state() as ConfirmationModal;
@@ -41,7 +41,7 @@
 
   // Track the selected event's demo_links_optional setting
   let selectedEvent = $derived(
-    events.find((e) => e.id === preselectedProject.event[0]),
+    events.find((e) => e.id === preselectedProject.event_id),
   );
   let demoLinksOptional = $derived(selectedEvent?.demo_links_optional || false);
 
@@ -51,14 +51,16 @@
     image_url: "",
     demo: "",
     description: "",
-    event: [""],
     hours_spent: 0,
   };
-  const emptyProject: Project = {
-    ...emptyProjectUpdate,
-    owner: [""],
-    event: [""],
+  const emptyProject: ProjectPublic = {
     id: "",
+    name: "",
+    repo: "",
+    image_url: "",
+    demo: "",
+    description: "",
+    points: 0,
   };
   // Derive           project = { ...chosenProject };
   let project: ProjectUpdate = $derived({ ...preselectedProject });
@@ -121,7 +123,7 @@
         <label class="label" for="event">Event</label>
         <select
           id="event"
-          bind:value={preselectedProject.event[0]}
+          bind:value={preselectedProject.event_id}
           class="select select-bordered w-full"
         >
           <option value="" disabled selected>Select an event</option>

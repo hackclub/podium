@@ -1,299 +1,274 @@
 import random
 from secrets import token_urlsafe
-from typing import Annotated, List
+from typing import Annotated
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
-from pyairtable.formulas import match
+from pydantic import BaseModel
 from slugify import slugify
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.orm import selectinload
+
 from podium.routers.auth import get_current_user
-from podium.db.user import UserInternal
-from podium import db, cache
-from podium.cache.operations import Entity
-from podium.db import (
-    EventCreationPayload,
-    EventUpdate,
-    UserEvents,
+from podium.db.postgres import (
+    User,
     Event,
-    ReferralBase,
+    EventPublic,
+    EventPrivate,
+    EventCreate,
+    EventUpdate,
+    Project,
+    ProjectPublic,
+    Vote,
+    Referral,
+    get_session,
+    scalar_one_or_none,
+    scalar_all,
 )
-from podium.db.event import PrivateEvent
-from podium.db.vote import CreateVotes, VoteCreate
-from podium.db.project import Project
 from podium.constants import BAD_AUTH, BAD_ACCESS, Slug
 
 router = APIRouter(prefix="/events", tags=["events"])
 
 
+class UserEvents(BaseModel):
+    owned_events: list[EventPrivate]
+    attending_events: list[EventPublic]
+
+
+class CreateVotes(BaseModel):
+    projects: list[UUID]
+    event: UUID
+
+
 @router.get("/{event_id}")
 async def get_event_endpoint(
-    event_id: Annotated[str, Path(title="Event Airtable ID")],
-) -> Event:
-    """
-    Get a public event by its ID. For admin features, use the admin endpoints.
-    """
-    # Use cache-first lookup
-    event = await cache.get_one(Entity.EVENTS, event_id, Event)
-    
+    event_id: Annotated[UUID, Path(title="Event ID")],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> EventPublic:
+    """Get a public event by its ID."""
+    event = await session.get(Event, event_id)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    
-    return event
+    return EventPublic.model_validate(event)
 
 
-# Used to be /attending
 @router.get("/")
 async def get_attending_events(
-    user: Annotated[UserInternal, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> UserEvents:
-    """
-    Get a list of all events that the current user is attending.
-    """
-    if user is None:
+    """Get events the current user owns and attends."""
+    stmt = (
+        select(User)
+        .where(User.id == user.id)
+        .options(selectinload(User.owned_events), selectinload(User.events_attending))
+    )
+    u = await scalar_one_or_none(session, stmt)
+    if not u:
         raise BAD_AUTH
-
-    # Eventually it might be better to return a user object. Otherwise, the client that the event owner is using would need to fetch the user. Since user emails probably shouldn't be public with just a record ID as a parameter, we would need to check if the person calling GET /users?user=ID has an event wherein that user ID is present. To avoid all this, the user object could be returned.
-
-    # Batch fetch owned and attending events by IDs from cached user object
-    # This avoids redis-om index queries which have schema issues with flattened fields
-    owned_events = await cache.get_many_by_ids(Entity.EVENTS, user.owned_events, PrivateEvent)
-    attending_events = await cache.get_many_by_ids(Entity.EVENTS, user.attending_events, Event)
-
-    return UserEvents(owned_events=owned_events, attending_events=attending_events)
+    return UserEvents(
+        owned_events=[EventPrivate.model_validate(e) for e in u.owned_events],
+        attending_events=[EventPublic.model_validate(e) for e in u.events_attending],
+    )
 
 
 @router.post("/")
 async def create_event(
-    event: EventCreationPayload,
-    user: Annotated[UserInternal, Depends(get_current_user)],
+    event: EventCreate,
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    """
-    Create a new event. The current user is automatically added as an owner of the event.
-    """
-    if user is None:
-        raise BAD_AUTH
-    owner = [user.id]
-
-    # Turn the event name into a slug and check if it already exists. If the slug already exists, raise an error
+    """Create a new event."""
     slug = slugify(event.name, lowercase=True, separator="-")
-    if db.events.first(formula=match({"slug": slug})):
-        raise HTTPException(
-            status_code=400,
-            detail="Event slug already exists. Please choose a different name. If you think this is an error, please contact us.",
-        )
+    existing = await scalar_one_or_none(session, select(Event).where(Event.slug == slug))
+    if existing:
+        raise HTTPException(status_code=400, detail="Event slug already exists")
 
-    # Generate a unique join code by continuously generating a new one until it doesn't match any existing join codes
     while True:
         join_code = token_urlsafe(3).upper()
-        if not db.events.first(formula=match({"join_code": join_code})):
-            join_code = join_code
+        code_exists = await scalar_one_or_none(
+            session, select(Event).where(Event.join_code == join_code)
+        )
+        if not code_exists:
             break
 
-    # https://docs.pydantic.dev/latest/concepts/serialization/#model_copy
-    full_event = PrivateEvent(
-        **event.model_dump(),
-        join_code=join_code,
-        owner=owner,
-        slug=slug,
-        id="",  # Placeholder to prevent an unnecessary class
+    new_event = Event.model_validate(
+        event,
+        update={
+            "slug": slug,
+            "join_code": join_code,
+            "owner_id": user.id,
+        },
     )
-    created = db.events.create(
-        full_event.model_dump(
-            exclude={"id", "max_votes_per_user", "owned", "feature_flags_list"}
-        )
-    )
-    # Upsert to cache for immediate availability
-    created_event = PrivateEvent.model_validate({**created["fields"], "id": created["id"]})
-    await cache.upsert_entity(Entity.EVENTS, created_event)
-    # Invalidate user cache since owned_events will be updated by Airtable
-    # This ensures immediate consistency without waiting for webhook
-    await cache.invalidate_entity(Entity.USERS, user.id)
+    session.add(new_event)
+    await session.commit()
+    await session.refresh(new_event)
+    return {"id": str(new_event.id), "slug": new_event.slug, "join_code": new_event.join_code}
 
 
 @router.post("/attend")
 async def attend_event(
-    join_code: Annotated[str, Query(description="A unique code used to join an event")],
+    join_code: Annotated[str, Query(description="Event join code")],
     referral: Annotated[str, Query(description="How did you hear about this event?")],
-    user: Annotated[UserInternal, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    """
-    Attend an event. The client must supply a join code that matches the event's join code.
-    """
-    if user is None:
-        raise BAD_AUTH
-
-    # Get the first (and presumably only) event with the given join code
-    event_rec = db.events.first(formula=match({"join_code": join_code.upper()}))
-    if event_rec is None:
+    """Attend an event using a join code."""
+    stmt = (
+        select(Event)
+        .where(Event.join_code == join_code.upper())
+        .options(selectinload(Event.attendees))
+    )
+    event = await scalar_one_or_none(session, stmt)
+    if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    event = PrivateEvent.model_validate({**event_rec["fields"], "id": event_rec["id"]})
 
-    # If the event is found, add the current user to the attendees list
-    # But first, ensure that the user is not already in the list
-    if user.id in event.attendees:
+    if user in event.attendees:
         raise HTTPException(status_code=400, detail="User already attending event")
-    updated_attendees = event.attendees + [user.id]
-    db.events.update(event.id, {"attendees": updated_attendees})
-    # Optimistically upsert the updated event to cache to avoid eventual-consistency races
-    updated_event = event.model_copy(update={"attendees": updated_attendees})
-    await cache.upsert_entity(Entity.EVENTS, updated_event)
-    # Invalidate user cache since attending_events will be updated by Airtable
-    # This ensures immediate consistency without waiting for webhook
-    await cache.invalidate_entity(Entity.USERS, user.id)
-    # Create a referral record if the referral is not empty
+
+    event.attendees.append(user)
+
     if referral:
-        db.referrals.create(
-            ReferralBase(
-                content=referral,
-                event=[event.id],
-                user=[user.id],
-            ).model_dump()
-        )
+        session.add(Referral(content=referral, user_id=user.id, event_id=event.id))
+
+    await session.commit()
+    return {"message": "Successfully joined event", "event_id": str(event.id)}
 
 
 @router.put("/{event_id}")
 async def update_event(
-    event_id: Annotated[str, Path(title="Event ID")],
-    event: EventUpdate,
-    user: Annotated[UserInternal, Depends(get_current_user)],
+    event_id: Annotated[UUID, Path(title="Event ID")],
+    event_update: EventUpdate,
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    """
-    Update event's information
-    """
-    # Check if the user is the owner of the event
-    if user is None or event_id not in user.owned_events:
-        # This also ensures the event exists since it has to exist to be in the user's owned events
+    """Update an event."""
+    event = await session.get(Event, event_id)
+    if not event or event.owner_id != user.id:
         raise BAD_ACCESS
 
-    db.events.update(event_id, event.model_dump())
-    # Invalidate cache so next read sees updated event
-    await cache.invalidate_entity(Entity.EVENTS, event_id)
+    update_data = event_update.model_dump(exclude_unset=True, exclude_none=True)
+    event.sqlmodel_update(update_data)
+
+    await session.commit()
+    return {"message": "Event updated"}
 
 
 @router.delete("/{event_id}")
 async def delete_event(
-    event_id: Annotated[str, Path(title="Event ID")],
-    user: Annotated[UserInternal, Depends(get_current_user)],
+    event_id: Annotated[UUID, Path(title="Event ID")],
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    # Check if the user is an owner of the event
-    if user is None or event_id not in user.owned_events:
+    """Delete an event."""
+    event = await session.get(Event, event_id)
+    if not event or event.owner_id != user.id:
         raise BAD_ACCESS
 
-    db.events.delete(event_id)
-    # Invalidate cache after deletion
-    await cache.invalidate_entity(Entity.EVENTS, event_id)
+    await session.delete(event)
+    await session.commit()
+    return {"message": "Event deleted"}
 
 
-# Voting! The client should POST to /events/{event_id}/vote with their top 3 favorite projects, in no particular order. If there are less than 20 projects in the event, only accept the top 2
 @router.post("/vote")
-async def vote(votes: CreateVotes, user: Annotated[UserInternal, Depends(get_current_user)]):
-    """
-    Vote for the top 3 projects in an event. The client must provide the event ID and a list of the top 3 projects. If there are less than 20 projects in the event, only the top 2 projects are required.
-    """
-
-    event = await cache.get_one(Entity.EVENTS, votes.event, PrivateEvent)
+async def vote(
+    votes: CreateVotes,
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    """Vote for projects in an event."""
+    stmt = (
+        select(Event)
+        .where(Event.id == votes.event)
+        .options(selectinload(Event.attendees), selectinload(Event.projects))
+    )
+    event = await scalar_one_or_none(session, stmt)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    # Check if the user is not None and is attending the event
-    if user is None or user.id not in event.attendees:
+    if user not in event.attendees:
         raise BAD_ACCESS
 
-    for project_id in votes.projects:
-        vote = VoteCreate(
-            project=[project_id],
-            event=[event.id],
-            voter=[user.id],
+    # Dedupe project IDs to prevent voting for same project twice in one request
+    unique_project_ids = list(dict.fromkeys(votes.projects))
+
+    existing_votes = await scalar_all(
+        session,
+        select(Vote).where(Vote.event_id == event.id, Vote.voter_id == user.id),
+    )
+
+    # Check total votes (existing + new) doesn't exceed limit
+    if len(existing_votes) + len(unique_project_ids) > event.max_votes_per_user:
+        remaining = event.max_votes_per_user - len(existing_votes)
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot vote for {len(unique_project_ids)} projects. You have {remaining} vote(s) remaining.",
         )
-        project = await cache.get_one(Entity.PROJECTS, project_id, Project)
+
+    for project_id in unique_project_ids:
+        stmt = (
+            select(Project)
+            .where(Project.id == project_id)
+            .options(selectinload(Project.collaborators))
+        )
+        project = await scalar_one_or_none(session, stmt)
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
-
-        # Check if the project is in the event
-        if project.event != [event.id]:
+        if project.event_id != event.id:
             raise HTTPException(status_code=400, detail="Project is not in the event")
 
-        # fetch votes wherein the user is the voter and the event is the event_id. These need to be lookup fields, it seems
-        formula = match({"user_id": user.id, "event_id": event.id})
+        already_voted = await scalar_one_or_none(
+            session,
+            select(Vote).where(
+                Vote.voter_id == user.id, Vote.event_id == event.id, Vote.project_id == project_id
+            ),
+        )
+        if already_voted:
+            raise HTTPException(status_code=400, detail="User has already voted for this project")
 
-        existing_votes = db.votes.all(formula=formula)
-        # Check if the user has already met the required number of votes
-        if len(existing_votes) >= event.max_votes_per_user:
-            raise HTTPException(
-                status_code=400,
-                detail=f"User has already voted for {event.max_votes_per_user} projects",
-            )
+        if user.id == project.owner_id or user in project.collaborators:
+            raise HTTPException(status_code=403, detail="User cannot vote for their own project")
 
-        # Check if the user has already voted for this project
-        if db.votes.all(
-            formula=match(
-                {"user_id": user.id, "event_id": event.id, "project_id": project.id}
-            )
-        ):
-            raise HTTPException(
-                status_code=400,
-                detail="User has already voted for this project",
-            )
+        session.add(Vote(voter_id=user.id, project_id=project_id, event_id=event.id))
+        project.points += 1
 
-        if user.id in project.collaborators or user.id in project.owner:
-            raise HTTPException(
-                status_code=403,
-                detail="User cannot vote for their own project",
-            )
-
-        # Create vote record
-        db.votes.create(vote.model_dump())
+    await session.commit()
+    return {"message": "Votes recorded"}
 
 
-
-
-
-# The reason we're specifying response_model here is because of https://github.com/long2ice/fastapi-cache/issues/384
-@router.get("/{event_id}/projects", response_model=List[Project])
+@router.get("/{event_id}/projects", response_model=list[ProjectPublic])
 async def get_event_projects(
-    event_id: Annotated[str, Path(title="Event ID")],
-    leaderboard: Annotated[
-        bool,
-        Query(
-            title="Leaderboard",
-            description="If true, and the event has a leaderboard enabled, the projects will be returned in order of points. Otherwise, they will be returned in random order",
-        ),
-    ],
-) -> List[Project]:
-    """
-    Get the projects for a specific event
-    """
-    # Always fetch event to get project IDs and validate leaderboard access
-    event = await cache.get_one(Entity.EVENTS, event_id, PrivateEvent)
+    event_id: Annotated[UUID, Path(title="Event ID")],
+    leaderboard: Annotated[bool, Query(description="Sort by points if true")],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> list[ProjectPublic]:
+    """Get projects for an event."""
+    event = await session.get(Event, event_id)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    
-    # Batch fetch all projects by IDs from event.projects
-    projects = await cache.get_many_by_ids(Entity.PROJECTS, event.projects, Project)
-    
+
+    projects = await scalar_all(
+        session, select(Project).where(Project.event_id == event_id)
+    )
+
     if leaderboard:
         if not event.leaderboard_enabled:
-            raise HTTPException(
-                status_code=403, detail="Leaderboard is not enabled for this event"
-            )
-        # Return sorted by points
+            raise HTTPException(status_code=403, detail="Leaderboard is not enabled")
         projects.sort(key=lambda p: p.points, reverse=True)
     else:
-        # Return in random order
         random.shuffle(projects)
-    
-    return projects
+
+    return [ProjectPublic.model_validate(p) for p in projects]
 
 
-# The reason we're specifying response_model here is because of https://github.com/long2ice/fastapi-cache/issues/384
 @router.get("/id/{slug}", response_model=str)
 async def get_at_id(
     slug: Annotated[Slug, Path(title="Event Slug")],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> str:
-    """
-    Get an event's Airtable ID by its slug.
-    """
-    # Use cache-first slug lookup
-    event = await cache.get_by_formula(Entity.EVENTS, {"slug": slug}, Event)
+    """Get an event's ID by its slug."""
+    event = await scalar_one_or_none(session, select(Event).where(Event.slug == slug))
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-
-    return event.id
+    return str(event.id)
