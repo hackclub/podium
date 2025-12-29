@@ -1,42 +1,31 @@
-#!/usr/bin/env -S uv run
-# /// script
-# requires-python = ">=3.12"
-# dependencies = [
-#     "psycopg[binary]>=3.1",
-#     "django>=5.0",
-# ]
-# ///
+#!/usr/bin/env python
 """
 Bootstrap Mathesar with admin user and Podium database connection.
 
-Runs as init container before Mathesar starts. Uses Django for password
-hashing and psycopg for direct database access.
+Runs on container startup before Mathesar. Uses Mathesar's Django environment.
+Secrets are injected by Doppler via environment variables.
 
-Usage:
-    uv run bootstrap.py
-
-Environment variables (from Doppler + docker-compose):
-    MATHESAR_DB_HOST       - Mathesar's internal postgres host (default: mathesar-db)
-    MATHESAR_DB_PORT       - Mathesar's internal postgres port (default: 5432)
-    MATHESAR_DB_USER       - Mathesar's internal postgres user (default: mathesar)
-    MATHESAR_DB_PASSWORD   - Mathesar's internal postgres password (from Doppler)
-    MATHESAR_DB_NAME       - Mathesar's internal postgres database (default: mathesar_django)
-
+Environment variables (from Doppler):
     MATHESAR_ADMIN_USERNAME - Admin username (default: admin)
-    MATHESAR_ADMIN_PASSWORD - Admin password (from Doppler)
+    MATHESAR_ADMIN_PASSWORD - Admin password (required)
     MATHESAR_ADMIN_EMAIL    - Admin email (default: admin@podium.hackclub.com)
-
-    PODIUM_DATABASE_URL    - Podium postgres URL (from Doppler, same as backend uses)
-                             Format: postgresql://user:pass@host:port/dbname
+    PODIUM_DATABASE_URL     - Podium postgres URL (required)
+    POSTGRES_PASSWORD       - Internal DB password (injected by Doppler)
 """
 
 import os
 import sys
-from datetime import datetime, timezone
-from urllib.parse import urlparse
 
-import psycopg
-from django.contrib.auth.hashers import make_password
+# Setup Django before importing models
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.production")
+
+import django
+django.setup()
+
+from urllib.parse import urlparse
+from django.contrib.auth import get_user_model
+from django.apps import apps
+from django.utils import timezone
 
 
 def get_env(key: str, default: str | None = None) -> str:
@@ -48,21 +37,19 @@ def get_env(key: str, default: str | None = None) -> str:
 
 
 def main():
-    # Mathesar internal DB config
-    mathesar_db = {
-        "host": get_env("MATHESAR_DB_HOST", "mathesar-db"),
-        "port": int(get_env("MATHESAR_DB_PORT", "5432")),
-        "user": get_env("MATHESAR_DB_USER", "mathesar"),
-        "password": get_env("MATHESAR_DB_PASSWORD"),
-        "dbname": get_env("MATHESAR_DB_NAME", "mathesar_django"),
-    }
-
-    # Admin user config
+    User = get_user_model()
+    
+    # Check if admin already exists
     admin_username = get_env("MATHESAR_ADMIN_USERNAME", "admin")
+    if User.objects.filter(username=admin_username).exists():
+        print(f"• Admin user '{admin_username}' already exists, skipping bootstrap")
+        return
+    
+    # Get config from environment
     admin_password = get_env("MATHESAR_ADMIN_PASSWORD")
     admin_email = get_env("MATHESAR_ADMIN_EMAIL", "admin@podium.hackclub.com")
-
-    # Podium DB config (external connection) - parse from DATABASE_URL
+    
+    # Parse Podium database URL
     podium_url = get_env("PODIUM_DATABASE_URL")
     parsed = urlparse(podium_url)
     podium_host = parsed.hostname or "localhost"
@@ -70,104 +57,63 @@ def main():
     podium_db = parsed.path.lstrip("/") or "podium"
     podium_user = parsed.username or "postgres"
     podium_password = parsed.password or ""
-
-    now = datetime.now(timezone.utc)
-
-    print(f"Connecting to Mathesar DB at {mathesar_db['host']}:{mathesar_db['port']}...")
-
-    # Wait for database to be ready
-    import time
-    for attempt in range(30):
-        try:
-            conn = psycopg.connect(**mathesar_db)
-            break
-        except psycopg.OperationalError:
-            if attempt < 29:
-                print(f"  Waiting for database... ({attempt + 1}/30)")
-                time.sleep(2)
-            else:
-                print("✗ Could not connect to Mathesar database after 30 attempts")
-                sys.exit(1)
-
-    with conn:
-        with conn.cursor() as cur:
-            # 1. Create admin user
-            cur.execute(
-                "SELECT id FROM mathesar_user WHERE username = %s",
-                (admin_username,),
-            )
-            if cur.fetchone():
-                print(f"• Admin user already exists: {admin_username}")
-            else:
-                password_hash = make_password(admin_password)
-                cur.execute(
-                    """
-                    INSERT INTO mathesar_user (
-                        username, email, password, is_superuser, is_staff, is_active,
-                        date_joined, password_change_needed, display_language
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    """,
-                    (admin_username, admin_email, password_hash, True, True, True, now, False, "en"),
-                )
-                print(f"✓ Created admin user: {admin_username}")
-
-            # 2. Create or get server
-            cur.execute(
-                "SELECT id FROM mathesar_server WHERE host = %s AND port = %s",
-                (podium_host, podium_port),
-            )
-            row = cur.fetchone()
-            if row:
-                server_id = row[0]
-                print(f"• Server already exists: {podium_host}:{podium_port}")
-            else:
-                cur.execute(
-                    """
-                    INSERT INTO mathesar_server (host, port, sslmode, created_at, updated_at)
-                    VALUES (%s, %s, %s, %s, %s)
-                    RETURNING id
-                    """,
-                    (podium_host, podium_port, "prefer", now, now),
-                )
-                server_id = cur.fetchone()[0]
-                print(f"✓ Created server: {podium_host}:{podium_port}")
-
-            # 3. Create database connection
-            cur.execute(
-                "SELECT id FROM mathesar_database WHERE server_id = %s AND name = %s",
-                (server_id, podium_db),
-            )
-            if cur.fetchone():
-                print(f"• Database already exists: {podium_db}")
-            else:
-                cur.execute(
-                    """
-                    INSERT INTO mathesar_database (server_id, name, nickname, last_confirmed_sql_version, created_at, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                    """,
-                    (server_id, podium_db, "Podium", "", now, now),
-                )
-                print(f"✓ Created database: {podium_db}")
-
-            # 4. Create configured role (stored credentials)
-            cur.execute(
-                "SELECT id FROM mathesar_configuredrole WHERE server_id = %s AND name = %s",
-                (server_id, podium_user),
-            )
-            if cur.fetchone():
-                print(f"• Role already exists: {podium_user}")
-            else:
-                cur.execute(
-                    """
-                    INSERT INTO mathesar_configuredrole (server_id, name, password, created_at, updated_at)
-                    VALUES (%s, %s, %s, %s, %s)
-                    """,
-                    (server_id, podium_user, podium_password, now, now),
-                )
-                print(f"✓ Created role: {podium_user}")
-
-        conn.commit()
-
+    
+    now = timezone.now()
+    
+    # 1. Create admin user
+    print(f"Creating admin user: {admin_username}")
+    user = User.objects.create_superuser(
+        username=admin_username,
+        email=admin_email,
+        password=admin_password,
+    )
+    # Mark password change not needed
+    user.password_change_needed = False
+    user.save()
+    print(f"✓ Created admin user: {admin_username}")
+    
+    # 2. Create server connection for Podium
+    Server = apps.get_model("mathesar", "Server")
+    server, created = Server.objects.get_or_create(
+        host=podium_host,
+        port=podium_port,
+        defaults={
+            "sslmode": "prefer",
+        }
+    )
+    if created:
+        print(f"✓ Created server: {podium_host}:{podium_port}")
+    else:
+        print(f"• Server already exists: {podium_host}:{podium_port}")
+    
+    # 3. Create database connection
+    Database = apps.get_model("mathesar", "Database")
+    database, created = Database.objects.get_or_create(
+        server=server,
+        name=podium_db,
+        defaults={
+            "nickname": "Podium",
+        }
+    )
+    if created:
+        print(f"✓ Created database: {podium_db}")
+    else:
+        print(f"• Database already exists: {podium_db}")
+    
+    # 4. Create configured role (stored credentials)
+    ConfiguredRole = apps.get_model("mathesar", "ConfiguredRole")
+    role, created = ConfiguredRole.objects.get_or_create(
+        server=server,
+        name=podium_user,
+        defaults={
+            "password": podium_password,
+        }
+    )
+    if created:
+        print(f"✓ Created role: {podium_user}")
+    else:
+        print(f"• Role already exists: {podium_user}")
+    
     print("\n✅ Mathesar bootstrap complete!")
     print(f"   Login: {admin_username}")
     print(f"   Database: {podium_db} on {podium_host}:{podium_port}")

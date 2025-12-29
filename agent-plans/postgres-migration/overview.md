@@ -266,31 +266,32 @@ cat backend/scripts/bootstrap_mathesar.py | docker exec -i mathesar python /code
 
 Deploy as a separate Docker Compose resource on Coolify with its own internal Postgres.
 
-**Files:** `mathesar/docker-compose.yml` and `mathesar/bootstrap.py`
+**Files:** `mathesar/` directory
 
 ### Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│ Mathesar Docker Compose                                 │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐  │
-│  │ mathesar-db │◄─│ mathesar    │  │ mathesar-init   │  │
-│  │ (metadata)  │  │ (web UI)    │  │ (bootstrap/uv)  │  │
-│  └─────────────┘  └──────┬──────┘  └─────────────────┘  │
-└──────────────────────────┼──────────────────────────────┘
-                           │ connects to
-                           ▼
-              ┌─────────────────────────┐
-              │ Podium Postgres         │
-              │ (existing Coolify DB)   │
-              └─────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│ Mathesar Docker Compose                             │
+│  ┌─────────────┐  ┌───────────────────────────────┐ │
+│  │ mathesar-db │◄─│ mathesar                      │ │
+│  │ (metadata)  │  │ (custom image: Doppler +      │ │
+│  └─────────────┘  │  bootstrap + Mathesar)        │ │
+│                   └───────────────┬───────────────┘ │
+└───────────────────────────────────┼─────────────────┘
+                                    │ connects to
+                                    ▼
+                       ┌─────────────────────────┐
+                       │ Podium Postgres         │
+                       │ (existing Coolify DB)   │
+                       └─────────────────────────┘
 ```
 
 ### Doppler Secrets (Required)
 
 | Secret | Description |
 |--------|-------------|
-| `MATHESAR_DB_PASSWORD` | Password for Mathesar's internal database (new) |
+| `POSTGRES_PASSWORD` | Password for Mathesar's internal database (new) |
 | `MATHESAR_ADMIN_PASSWORD` | Mathesar admin user password (new) |
 | `PODIUM_DATABASE_URL` | Podium Postgres URL (already exists - same as backend) |
 
@@ -298,26 +299,39 @@ Optional (have defaults in bootstrap.py):
 - `MATHESAR_ADMIN_USERNAME` (default: `admin`)
 - `MATHESAR_ADMIN_EMAIL` (default: `admin@podium.hackclub.com`)
 
+### Coolify Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `DOPPLER_TOKEN` | Service token for Doppler (that's it!) |
+
 ### Deployment Steps
 
-1. Add secrets to Doppler project (e.g., `podium` project, `mathesar` config)
+1. Add secrets to Doppler project (e.g., `podium` project, `prd_mathesar` config)
 2. Create Doppler Service Token for the config
 3. Create new Docker Compose resource in Coolify
 4. Point to `mathesar/` directory in repo
-5. Set `DOPPLER_TOKEN` and `MATHESAR_DB_PASSWORD` in Coolify env vars
-6. Deploy - init container runs bootstrap automatically via Doppler
+5. Set only `DOPPLER_TOKEN` in Coolify env vars
+6. Deploy
 
 ### How It Works
 
-1. `mathesar-db` starts (internal Postgres for Mathesar metadata)
-2. `mathesar-init` builds from `Dockerfile.init` (uv + Doppler CLI)
-3. Doppler injects secrets, then runs `uv run bootstrap.py`
-   - Waits for mathesar-db to be ready
-   - Creates admin user with Django-compatible password hash
-   - Adds Podium database connection with stored credentials
-4. `mathesar` starts after init completes successfully
+Both containers use custom images with Doppler CLI:
 
-The init container uses `doppler run --` as entrypoint, matching the backend Dockerfile pattern.
+1. `mathesar-db` builds from `Dockerfile.postgres`:
+   - Extends `postgres:17-alpine`
+   - Adds Doppler CLI
+   - Wrapper entrypoint runs `doppler run -- docker-entrypoint.sh`
+   - Fetches `POSTGRES_PASSWORD` from Doppler at startup
+
+2. `mathesar` builds from `Dockerfile`:
+   - Extends `mathesar/mathesar:latest`
+   - Adds Doppler CLI
+   - On startup, `doppler run --` injects all secrets, then `entrypoint.sh`:
+     - Runs `bootstrap.py` (creates admin user + Podium DB connection if needed)
+     - Starts Mathesar with `./bin/mathesar run -nse`
+
+No separate init container - bootstrap runs on every startup but is idempotent.
 
 ---
 

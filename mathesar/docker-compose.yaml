@@ -1,0 +1,60 @@
+# Mathesar Admin UI for Podium
+# Deploy as Docker Compose resource on Coolify
+#
+# In Coolify, set only:
+#   DOPPLER_TOKEN - Service token for secrets
+#
+# Required Doppler secrets:
+#   POSTGRES_PASSWORD       - Mathesar's internal database password
+#   MATHESAR_ADMIN_PASSWORD - Mathesar admin user password
+#   PODIUM_DATABASE_URL     - Podium Postgres URL (already exists)
+#
+# Optional Doppler secrets (have defaults):
+#   MATHESAR_ADMIN_USERNAME (default: admin)
+#   MATHESAR_ADMIN_EMAIL    (default: admin@podium.hackclub.com)
+
+services:
+  mathesar:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - DOPPLER_TOKEN
+      # Internal DB config (Mathesar expects these names)
+      - POSTGRES_HOST=mathesar-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=mathesar
+      - POSTGRES_DB=mathesar_django
+      # POSTGRES_PASSWORD comes from Doppler
+    depends_on:
+      mathesar-db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Internal database for Mathesar metadata
+  # Custom image with Doppler CLI - fetches POSTGRES_PASSWORD from Doppler
+  mathesar-db:
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+    environment:
+      - DOPPLER_TOKEN
+      - POSTGRES_USER=mathesar
+      - POSTGRES_DB=mathesar_django
+      # POSTGRES_PASSWORD comes from Doppler
+    volumes:
+      - mathesar_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mathesar -d mathesar_django"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mathesar_pgdata:
