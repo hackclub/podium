@@ -179,19 +179,172 @@ Before production cutover, need to:
 
 ---
 
+## Admin Panel: Mathesar ✅ (Preferred)
+
+Using [Mathesar](https://mathesar.org/) as a spreadsheet-like admin UI for Postgres. Clean, focused, open-source (nonprofit).
+
+**Why Mathesar over NocoDB:**
+- Specifically designed for Postgres (not multi-database)
+- Uses native Postgres roles for access control
+- Cleaner UI, less clutter
+- 100% open source, nonprofit-maintained
+
+### Local Setup (Docker)
+
+```bash
+# Ensure network exists
+docker network create podium-net 2>/dev/null || true
+docker network connect podium-net podium-pg 2>/dev/null || true
+
+# Create Mathesar's internal database
+docker exec podium-pg psql -U postgres -c "CREATE DATABASE mathesar_django;" 2>/dev/null || true
+
+# Run Mathesar
+docker run -d \
+  --name mathesar \
+  --network podium-net \
+  -p 8084:8000 \
+  -e POSTGRES_HOST=podium-pg \
+  -e POSTGRES_PORT=5432 \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=localpass \
+  -e POSTGRES_DB=mathesar_django \
+  -v mathesar_data:/var/lib/mathesar \
+  mathesar/mathesar:latest
+```
+
+### Initial Setup (UI)
+
+1. Open http://localhost:8084
+2. Create admin account
+3. Add database connection:
+   - **Host:** `podium-pg`
+   - **Port:** `5432`
+   - **Database:** `podium`
+   - **Role:** `postgres`
+   - **Password:** `localpass`
+
+### Bootstrap Script (Skip UI Setup)
+
+For automated/reproducible setup, use the bootstrap script:
+
+```bash
+cat backend/scripts/bootstrap_mathesar.py | docker exec -i mathesar python /code/manage.py shell
+```
+
+This creates:
+- Admin user: `admin` / `admin123`
+- Database connection to `podium` on `podium-pg:5432`
+
+### Quick Commands
+
+```bash
+# Start/stop Mathesar
+docker start mathesar
+docker stop mathesar
+
+# View logs
+docker logs mathesar
+
+# Remove (keeps data in volume)
+docker rm mathesar
+
+# Re-run bootstrap after fresh container
+cat backend/scripts/bootstrap_mathesar.py | docker exec -i mathesar python /code/manage.py shell
+```
+
+### Notes
+
+- Mathesar uses Postgres permissions for access control
+- Can create multiple user accounts with different Postgres roles
+- Supports data explorer for ad-hoc queries
+- No way to fully pre-configure via env vars (requires UI or bootstrap script)
+
+---
+
+## Production Mathesar (Coolify)
+
+Deploy as a separate Docker Compose resource on Coolify with its own internal Postgres.
+
+**Files:** `mathesar/docker-compose.yml` and `mathesar/bootstrap.py`
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Mathesar Docker Compose                                 │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐  │
+│  │ mathesar-db │◄─│ mathesar    │  │ mathesar-init   │  │
+│  │ (metadata)  │  │ (web UI)    │  │ (bootstrap/uv)  │  │
+│  └─────────────┘  └──────┬──────┘  └─────────────────┘  │
+└──────────────────────────┼──────────────────────────────┘
+                           │ connects to
+                           ▼
+              ┌─────────────────────────┐
+              │ Podium Postgres         │
+              │ (existing Coolify DB)   │
+              └─────────────────────────┘
+```
+
+### Doppler Secrets (Required)
+
+| Secret | Description |
+|--------|-------------|
+| `MATHESAR_DB_PASSWORD` | Password for Mathesar's internal database (new) |
+| `MATHESAR_ADMIN_PASSWORD` | Mathesar admin user password (new) |
+| `PODIUM_DATABASE_URL` | Podium Postgres URL (already exists - same as backend) |
+
+Optional (have defaults in bootstrap.py):
+- `MATHESAR_ADMIN_USERNAME` (default: `admin`)
+- `MATHESAR_ADMIN_EMAIL` (default: `admin@podium.hackclub.com`)
+
+### Deployment Steps
+
+1. Add secrets to Doppler project (e.g., `podium` project, `mathesar` config)
+2. Create Doppler Service Token for the config
+3. Create new Docker Compose resource in Coolify
+4. Point to `mathesar/` directory in repo
+5. Set `DOPPLER_TOKEN` and `MATHESAR_DB_PASSWORD` in Coolify env vars
+6. Deploy - init container runs bootstrap automatically via Doppler
+
+### How It Works
+
+1. `mathesar-db` starts (internal Postgres for Mathesar metadata)
+2. `mathesar-init` builds from `Dockerfile.init` (uv + Doppler CLI)
+3. Doppler injects secrets, then runs `uv run bootstrap.py`
+   - Waits for mathesar-db to be ready
+   - Creates admin user with Django-compatible password hash
+   - Adds Podium database connection with stored credentials
+4. `mathesar` starts after init completes successfully
+
+The init container uses `doppler run --` as entrypoint, matching the backend Dockerfile pattern.
+
+---
+
+## Alternative: NocoDB
+
+NocoDB also works but is more complex (multi-base, multi-tenant design). If you prefer it:
+
+```bash
+docker run -d \
+  --name nocodb \
+  --network podium-net \
+  -p 8080:8080 \
+  -v nocodb_data:/usr/app/data \
+  nocodb/nocodb:latest
+```
+
+Then connect to external database in UI with `sslmode=disable` parameter.
+
+---
+
 ## Known Gaps
 
-### App-wide Admin Panel
-Currently only event-specific admin exists (`/events/admin`). No app-wide admin for:
-- Viewing all users
-- Viewing all events
-- Manual data fixes
-- Analytics dashboard
-
-**Options:**
-1. Build SvelteKit admin pages
-2. Use external tool (Retool, AdminJS)
-3. Direct database access via pgAdmin/Coolify
+### Production Admin
+For production admin access:
+- Deploy Mathesar on Coolify pointing to prod Postgres
+- Or use Coolify's built-in database UI
+- Or direct psql access for quick fixes
 
 ---
 
@@ -229,7 +382,7 @@ Data created in Postgres during v2 window would be lost. Keep cutover window sho
 
 ## Open Questions
 
-1. **Admin UI:** Build SvelteKit pages or use Retool? (needs decision)
+1. ~~**Admin UI:** Build SvelteKit pages or use Retool?~~ → Using NocoDB
 2. ~~Airtable sync: Keep read-only for analytics?~~ (drop entirely)
 3. IDs: Keep exposing UUIDs or generate short IDs? (keep UUIDs for now)
 4. **Prod DB:** Is Coolify Postgres ready and configured in Doppler?

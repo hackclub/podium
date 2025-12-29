@@ -1,0 +1,70 @@
+# Mathesar Admin UI for Podium
+# Deploy as Docker Compose resource on Coolify
+#
+# Secrets managed via Doppler. Set DOPPLER_TOKEN in Coolify.
+#
+# Required Doppler secrets:
+#   MATHESAR_DB_PASSWORD    - Password for Mathesar's internal database
+#   MATHESAR_ADMIN_PASSWORD - Mathesar admin user password
+#   PODIUM_DATABASE_URL     - Podium Postgres URL (already exists in Doppler)
+#
+# Optional Doppler secrets (have defaults in bootstrap.py):
+#   MATHESAR_ADMIN_USERNAME (default: admin)
+#   MATHESAR_ADMIN_EMAIL    (default: admin@podium.hackclub.com)
+
+services:
+  # Init container - runs bootstrap script once via Doppler, then exits
+  mathesar-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.init
+    environment:
+      - DOPPLER_TOKEN
+      # Mathesar internal DB (not in Doppler - internal to compose)
+      - MATHESAR_DB_HOST=mathesar-db
+      - MATHESAR_DB_PORT=5432
+      - MATHESAR_DB_USER=mathesar
+      - MATHESAR_DB_NAME=mathesar_django
+    depends_on:
+      mathesar-db:
+        condition: service_healthy
+
+  # Mathesar web UI
+  mathesar:
+    image: mathesar/mathesar:latest
+    ports:
+      - "8084:8000"
+    environment:
+      POSTGRES_HOST: mathesar-db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: mathesar
+      POSTGRES_PASSWORD: ${MATHESAR_DB_PASSWORD}
+      POSTGRES_DB: mathesar_django
+    depends_on:
+      mathesar-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Mathesar's internal database (metadata only)
+  mathesar-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: mathesar
+      POSTGRES_PASSWORD: ${MATHESAR_DB_PASSWORD}
+      POSTGRES_DB: mathesar_django
+    volumes:
+      - mathesar_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mathesar -d mathesar_django"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mathesar_pgdata:
