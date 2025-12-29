@@ -5,8 +5,7 @@
 FROM postgres:17.2-alpine3.21
 
 # Install Doppler CLI (Alpine method)
-RUN apk add --no-cache ca-certificates gnupg && \
-    wget -q -t3 'https://packages.doppler.com/public/cli/rsa.8004D9FF50437357.key' -O /etc/apk/keys/doppler@doppler.com-5b5b8e7a.rsa.pub && \
+RUN wget -q -t3 'https://packages.doppler.com/public/cli/rsa.8004D9FF50437357.key' -O /etc/apk/keys/cli@doppler-8004D9FF50437357.rsa.pub && \
     echo 'https://packages.doppler.com/public/cli/alpine/any-version/main' | tee -a /etc/apk/repositories && \
     apk add doppler
 
