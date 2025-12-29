@@ -14,5 +14,5 @@ COPY docker-entrypoint-doppler.sh /usr/local/bin/docker-entrypoint-doppler.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint-doppler.sh
 
 # Use our wrapper as the entrypoint, keep default CMD
-ENTRYPOINT ["docker-entrypoint-doppler.sh"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint-doppler.sh"]
 CMD ["postgres"]

@@ -1,11 +1,13 @@
 #!/bin/sh
 set -e
 
-if [ -z "$DOPPLER_TOKEN" ]; then
-  echo "Error: DOPPLER_TOKEN is not set. Cannot fetch secrets from Doppler." >&2
-  exit 1
+# If DOPPLER_TOKEN is set, use Doppler to inject secrets
+# Otherwise, assume secrets are passed directly via environment
+if [ -n "$DOPPLER_TOKEN" ]; then
+  echo "Fetching secrets from Doppler..."
+  # Map MATHESAR_DB_PASSWORD -> POSTGRES_PASSWORD (Doppler uses our naming, Postgres needs its naming)
+  exec doppler run -- sh -c 'export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-$MATHESAR_DB_PASSWORD}"; exec /usr/local/bin/docker-entrypoint.sh "$@"' -- "$@"
+else
+  echo "DOPPLER_TOKEN not set, using environment variables directly"
+  exec /usr/local/bin/docker-entrypoint.sh "$@"
 fi
-
-# Run Doppler to inject secrets (e.g., POSTGRES_PASSWORD),
-# then delegate to the official Postgres entrypoint
-exec doppler run -- /usr/local/bin/docker-entrypoint.sh "$@"

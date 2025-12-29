@@ -10,7 +10,7 @@ Environment variables (from Doppler):
     MATHESAR_ADMIN_PASSWORD - Admin password (required)
     MATHESAR_ADMIN_EMAIL    - Admin email (default: admin@podium.hackclub.com)
     PODIUM_DATABASE_URL     - Podium postgres URL (required)
-    POSTGRES_PASSWORD       - Internal DB password (injected by Doppler)
+    MATHESAR_DB_PASSWORD    - Internal DB password (mapped to POSTGRES_PASSWORD)
 """
 
 import os

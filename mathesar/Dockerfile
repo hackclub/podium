@@ -20,6 +20,5 @@ COPY bootstrap.py /code/bootstrap.py
 COPY entrypoint.sh /code/entrypoint.sh
 RUN chmod +x /code/entrypoint.sh
 
-# Doppler injects secrets, entrypoint handles bootstrap + startup
-ENTRYPOINT ["doppler", "run", "--"]
-CMD ["/code/entrypoint.sh"]
+# Entrypoint handles Doppler (if token set) + bootstrap + startup
+ENTRYPOINT ["/code/entrypoint.sh"]

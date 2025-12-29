@@ -1,15 +1,25 @@
 # Mathesar Admin UI for Podium
 # Deploy as Docker Compose resource on Coolify
 #
-# In Coolify, set only:
-#   DOPPLER_TOKEN - Service token for secrets
+# ============ COOLIFY DEPLOYMENT ============
+# Set only DOPPLER_TOKEN in Coolify env vars
 #
-# Required Doppler secrets:
-#   POSTGRES_PASSWORD       - Mathesar's internal database password
+# ============ LOCAL DEVELOPMENT =============
+# Option 1 (Doppler):
+#   export DOPPLER_TOKEN=$(doppler configs tokens create --max-age 1h --plain)
+#   docker compose up
+#
+# Option 2 (Direct secrets):
+#   Copy .env.example to .env and set POSTGRES_PASSWORD etc directly
+#   docker compose up
+#
+# ============ DOPPLER SECRETS ===============
+# Required:
+#   MATHESAR_DB_PASSWORD    - Mathesar's internal database password
 #   MATHESAR_ADMIN_PASSWORD - Mathesar admin user password
 #   PODIUM_DATABASE_URL     - Podium Postgres URL (already exists)
 #
-# Optional Doppler secrets (have defaults):
+# Optional (have defaults):
 #   MATHESAR_ADMIN_USERNAME (default: admin)
 #   MATHESAR_ADMIN_EMAIL    (default: admin@podium.hackclub.com)
 

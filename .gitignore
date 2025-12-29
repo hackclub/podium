@@ -5,4 +5,4 @@ sample_projects.csv
 logs/
 backend/podium/cache/generated/
 # for `act`
-.secrets 
+.secrets mathesar/.env
