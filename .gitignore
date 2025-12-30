@@ -4,6 +4,5 @@ quality_check_results/
 sample_projects.csv
 logs/
 backend/podium/cache/generated/
-# for `act`
-.secrets mathesar/.env
-mathesar/.env
+# Local secrets (docker compose + act)
+.env

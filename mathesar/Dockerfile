@@ -3,7 +3,7 @@
 
 # Pin to specific version for reproducibility
 # Check https://hub.docker.com/r/mathesar/mathesar/tags for latest stable
-FROM mathesar/mathesar:0.2.2
+FROM mathesar/mathesar:0.8.0
 
 # Install Doppler CLI (Debian/Ubuntu base)
 RUN apt-get update && apt-get install -y apt-transport-https ca-certificates curl gnupg && \

@@ -35,37 +35,32 @@ Models in `backend/podium/db/postgres/`:
 - `links.py` - M2M junction tables
 - `base.py` - Session factory
 
-## Local Postgres (Docker via OrbStack)
+## Local Postgres + Mathesar (Docker Compose)
 
 ```bash
-# List containers
-docker ps -a
+# First time setup
+cp .env.example .env
+# Edit .env with DOPPLER_TOKEN (generate: doppler configs tokens create dev-local --config dev --max-age 1h --plain)
 
-# Start existing container
-docker start podium-pg
+# Start
+docker compose up -d
 
-# Create new container (if needed)
-docker run -d --name podium-pg \
-  -e POSTGRES_PASSWORD=localpass \
-  -e POSTGRES_DB=podium \
-  -p 5432:5432 \
-  postgres:17
+# Postgres: localhost:5432 (postgres/localpass)
+# Mathesar: http://localhost:8000
+```
 
-# Stop container
-docker stop podium-pg
+For Coolify, use `mathesar/docker-compose.yaml` (connects to external `podium` network).
 
-# Verify port forwarding works
-nc -zv localhost 5432
+The `mathesar/bootstrap.py` script runs on container start to:
+- Create admin user and database connection (if missing)
+- Update stored credentials (always)
+- Run `install_sql()` to install Mathesar's helper functions in Podium DB
 
-# Test DB connection from backend
-cd backend && doppler run --config dev -- uv run python -c "
-from podium.db.postgres.base import engine
-import asyncio
-async def test():
-    async with engine.connect() as c:
-        print('DB OK:', (await c.execute(__import__('sqlalchemy').text('SELECT 1'))).scalar())
-asyncio.run(test())
-"
+## Reset Local Database
+
+```bash
+./scripts/reset-local-db.sh           # Reset and run migrations
+./scripts/reset-local-db.sh --sync    # Reset, migrate, and sync from production
 ```
 
 ## Migrations

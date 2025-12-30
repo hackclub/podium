@@ -2,21 +2,19 @@
 """
 Bootstrap Mathesar with admin user and Podium database connection.
 
-Runs on container startup before Mathesar. Uses Mathesar's Django environment.
-Secrets are injected by Doppler via environment variables.
+Runs on container startup. Idempotent - safe to run multiple times.
+Always ensures database connection is configured and SQL is upgraded.
 
-Environment variables (from Doppler):
+Environment variables:
     MATHESAR_ADMIN_USERNAME - Admin username (default: admin)
     MATHESAR_ADMIN_PASSWORD - Admin password (required)
     MATHESAR_ADMIN_EMAIL    - Admin email (default: admin@podium.hackclub.com)
     PODIUM_DATABASE_URL     - Podium postgres URL (required)
-    MATHESAR_DB_PASSWORD    - Internal DB password (mapped to POSTGRES_PASSWORD)
 """
 
 import os
 import sys
 
-# Setup Django before importing models
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.production")
 
 import django
@@ -25,7 +23,6 @@ django.setup()
 from urllib.parse import urlparse
 from django.contrib.auth import get_user_model
 from django.apps import apps
-from django.utils import timezone
 
 
 def get_env(key: str, default: str | None = None) -> str:
@@ -38,17 +35,15 @@ def get_env(key: str, default: str | None = None) -> str:
 
 def main():
     User = get_user_model()
-    
-    # Check if admin already exists
+    Server = apps.get_model("mathesar", "Server")
+    Database = apps.get_model("mathesar", "Database")
+    ConfiguredRole = apps.get_model("mathesar", "ConfiguredRole")
+    UserDatabaseRoleMap = apps.get_model("mathesar", "UserDatabaseRoleMap")
+
     admin_username = get_env("MATHESAR_ADMIN_USERNAME", "admin")
-    if User.objects.filter(username=admin_username).exists():
-        print(f"• Admin user '{admin_username}' already exists, skipping bootstrap")
-        return
-    
-    # Get config from environment
     admin_password = get_env("MATHESAR_ADMIN_PASSWORD")
     admin_email = get_env("MATHESAR_ADMIN_EMAIL", "admin@podium.hackclub.com")
-    
+
     # Parse Podium database URL
     podium_url = get_env("PODIUM_DATABASE_URL")
     parsed = urlparse(podium_url)
@@ -57,63 +52,65 @@ def main():
     podium_db = parsed.path.lstrip("/") or "podium"
     podium_user = parsed.username or "postgres"
     podium_password = parsed.password or ""
-    
-    now = timezone.now()
-    
-    # 1. Create admin user
-    print(f"Creating admin user: {admin_username}")
-    user = User.objects.create_superuser(
+
+    # 1. Create or get admin user
+    user, created = User.objects.get_or_create(
         username=admin_username,
-        email=admin_email,
-        password=admin_password,
-    )
-    # Mark password change not needed
-    user.password_change_needed = False
-    user.save()
-    print(f"✓ Created admin user: {admin_username}")
-    
-    # 2. Create server connection for Podium
-    Server = apps.get_model("mathesar", "Server")
-    server, created = Server.objects.get_or_create(
-        host=podium_host,
-        port=podium_port,
+        defaults={"email": admin_email, "is_superuser": True, "is_staff": True}
     )
     if created:
-        print(f"✓ Created server: {podium_host}:{podium_port}")
+        user.set_password(admin_password)
+        user.password_change_needed = False
+        user.save()
+        print(f"✓ Created admin user: {admin_username}")
     else:
-        print(f"• Server already exists: {podium_host}:{podium_port}")
-    
-    # 3. Create database connection
-    Database = apps.get_model("mathesar", "Database")
+        print(f"• Admin user exists: {admin_username}")
+
+    # 2. Create or update server
+    server, created = Server.objects.update_or_create(
+        host=podium_host,
+        port=podium_port,
+        defaults={}
+    )
+    print(f"{'✓ Created' if created else '•'} Server: {podium_host}:{podium_port}")
+
+    # 3. Create or get database
     database, created = Database.objects.get_or_create(
         server=server,
         name=podium_db,
-        defaults={
-            "nickname": "Podium",
-        }
+        defaults={"nickname": "Podium"}
     )
-    if created:
-        print(f"✓ Created database: {podium_db}")
-    else:
-        print(f"• Database already exists: {podium_db}")
-    
-    # 4. Create configured role (stored credentials)
-    ConfiguredRole = apps.get_model("mathesar", "ConfiguredRole")
-    role, created = ConfiguredRole.objects.get_or_create(
+    print(f"{'✓ Created' if created else '•'} Database: {podium_db}")
+
+    # 4. Create or UPDATE role (always update password)
+    role, created = ConfiguredRole.objects.update_or_create(
         server=server,
         name=podium_user,
-        defaults={
-            "password": podium_password,
-        }
+        defaults={"password": podium_password}
     )
-    if created:
-        print(f"✓ Created role: {podium_user}")
-    else:
-        print(f"• Role already exists: {podium_user}")
-    
-    print("\n✅ Mathesar bootstrap complete!")
-    print(f"   Login: {admin_username}")
-    print(f"   Database: {podium_db} on {podium_host}:{podium_port}")
+    print(f"{'✓ Created' if created else '✓ Updated'} Role: {podium_user}")
+
+    # 5. Link user to database
+    mapping, created = UserDatabaseRoleMap.objects.get_or_create(
+        user=user,
+        database=database,
+        defaults={"configured_role": role, "server": server}
+    )
+    if not created:
+        # Update role if it changed
+        mapping.configured_role = role
+        mapping.save()
+    print(f"{'✓ Created' if created else '•'} User-database link")
+
+    # 6. Install/upgrade Mathesar SQL in target database
+    print("Installing Mathesar SQL...")
+    try:
+        database.install_sql(username=podium_user, password=podium_password)
+        print("✓ Mathesar SQL installed")
+    except Exception as e:
+        print(f"⚠ SQL install skipped: {e}")
+
+    print(f"\n✅ Bootstrap complete! Database: {podium_db} on {podium_host}:{podium_port}")
 
 
 if __name__ == "__main__":

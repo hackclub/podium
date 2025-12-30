@@ -1,70 +1,38 @@
-# Mathesar Admin UI for Podium
-# Deploy as Docker Compose resource on Coolify
-#
-# ============ COOLIFY DEPLOYMENT ============
-# Set only DOPPLER_TOKEN in Coolify env vars
-#
-# ============ LOCAL DEVELOPMENT =============
-# Option 1 (Doppler):
-#   export DOPPLER_TOKEN=$(doppler configs tokens create --max-age 1h --plain)
-#   docker compose up
-#
-# Option 2 (Direct secrets):
-#   Copy .env.example to .env and set POSTGRES_PASSWORD etc directly
-#   docker compose up
-#
-# ============ DOPPLER SECRETS ===============
-# Required:
-#   MATHESAR_DB_PASSWORD    - Mathesar's internal database password
-#   MATHESAR_ADMIN_PASSWORD - Mathesar admin user password
-#   PODIUM_DATABASE_URL     - Podium Postgres URL (already exists)
-#
-# Optional (have defaults):
-#   MATHESAR_ADMIN_USERNAME (default: admin)
-#   MATHESAR_ADMIN_EMAIL    (default: admin@podium.hackclub.com)
+# Coolify: Set DOPPLER_TOKEN env var
+# Doppler secrets: MATHESAR_DB_PASSWORD, MATHESAR_ADMIN_PASSWORD, PODIUM_DATABASE_URL
 
 services:
   mathesar:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     environment:
       - DOPPLER_TOKEN
-      # Internal DB config (Mathesar expects these names)
       - POSTGRES_HOST=mathesar-db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=mathesar
       - POSTGRES_DB=mathesar_django
-      # POSTGRES_PASSWORD comes from Doppler
     depends_on:
-      mathesar-db:
-        condition: service_healthy
-    restart: unless-stopped
+      mathesar-db: { condition: service_healthy }
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      test: curl -f http://localhost:8000/
       interval: 30s
-      timeout: 10s
       retries: 3
 
-  # Internal database for Mathesar metadata
-  # Custom image with Doppler CLI - fetches POSTGRES_PASSWORD from Doppler
   mathesar-db:
-    build:
-      context: .
-      dockerfile: Dockerfile.postgres
+    build: { context: ., dockerfile: Dockerfile.postgres }
     environment:
       - DOPPLER_TOKEN
       - POSTGRES_USER=mathesar
       - POSTGRES_DB=mathesar_django
-      # POSTGRES_PASSWORD comes from Doppler
-    volumes:
-      - mathesar_pgdata:/var/lib/postgresql/data
-    restart: unless-stopped
+    volumes: [mathesar_pgdata:/var/lib/postgresql/data]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mathesar -d mathesar_django"]
+      test: pg_isready -U mathesar -d mathesar_django
       interval: 5s
-      timeout: 5s
       retries: 5
 
 volumes:
   mathesar_pgdata:
+
+networks:
+  default:
+    name: podium
+    external: true

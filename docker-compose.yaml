@@ -1,0 +1,46 @@
+# Local dev: docker compose up
+# Runs Postgres (localhost:5432) + Mathesar (localhost:8000)
+# Set DOPPLER_TOKEN in .env first (see .env.example)
+
+services:
+  podium-pg:
+    image: postgres:17
+    environment:
+      POSTGRES_PASSWORD: localpass
+      POSTGRES_DB: podium
+    ports: ["5432:5432"]
+    volumes: [podium_pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: pg_isready -U postgres -d podium
+      interval: 5s
+      retries: 5
+
+  mathesar:
+    build: ./mathesar
+    environment:
+      - DOPPLER_TOKEN
+      - POSTGRES_HOST=mathesar-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=mathesar
+      - POSTGRES_DB=mathesar_django
+      - PODIUM_DATABASE_URL=postgresql://postgres:localpass@podium-pg:5432/podium
+    ports: ["8000:8000"]
+    depends_on:
+      podium-pg: { condition: service_healthy }
+      mathesar-db: { condition: service_healthy }
+
+  mathesar-db:
+    build: { context: ./mathesar, dockerfile: Dockerfile.postgres }
+    environment:
+      - DOPPLER_TOKEN
+      - POSTGRES_USER=mathesar
+      - POSTGRES_DB=mathesar_django
+    volumes: [mathesar_pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: pg_isready -U mathesar -d mathesar_django
+      interval: 5s
+      retries: 5
+
+volumes:
+  podium_pgdata:
+  mathesar_pgdata:
