@@ -6,6 +6,7 @@ services:
     build: .
     environment:
       - DOPPLER_TOKEN
+      - DOMAIN_NAME=mathesar.podium-backend.hackclub.com
       - POSTGRES_HOST=mathesar-db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=mathesar
