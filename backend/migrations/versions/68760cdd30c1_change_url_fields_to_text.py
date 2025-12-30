@@ -11,7 +11,6 @@ exactly right.
 
 from alembic import op
 import sqlalchemy as sa
-import sqlmodel  # Required for SQLModel column types
 
 
 revision = '68760cdd30c1'

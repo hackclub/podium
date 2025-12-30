@@ -32,8 +32,11 @@ bun dev
 
 Models in `backend/podium/db/postgres/`:
 - `user.py`, `event.py`, `project.py`, `vote.py`, `referral.py`
-- `links.py` - M2M junction tables
+- `links.py` - M2M junction tables (use surrogate PKs for Mathesar Extend compatibility)
 - `base.py` - Session factory
+
+**Database Views:**
+- See `mathesar/VIEWS.md` for optional views (e.g., `users_with_events` for Airtable-like display)
 
 ## Local Postgres + Mathesar (Docker Compose)
 
