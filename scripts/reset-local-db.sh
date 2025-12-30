@@ -70,7 +70,26 @@ if [[ "$MODE" == "migrate-prod" ]]; then
   [[ "$confirm" != "y" && "$confirm" != "Y" ]] && error "Aborted."
   
   info "Migrating from Airtable prod..."
-  (cd backend && doppler run --config prd -- uv run python scripts/migrate_from_airtable.py)
+  # Fetch prod Airtable token, use dev config for everything else, override Airtable IDs from settings.toml [default]
+  export PROD_AIRTABLE_TOKEN=$(doppler secrets get PODIUM_AIRTABLE_TOKEN --config prd --plain)
+  (
+    cd backend
+    # Export dev secrets
+    set -a
+    eval "$(doppler secrets download --config dev --no-file --format env-no-quotes)"
+    set +a
+    # Override with prod Airtable IDs from settings.toml [default] section
+    eval "$(uv run python -c "
+import tomllib
+with open('settings.toml', 'rb') as f:
+    cfg = tomllib.load(f)['default']
+for k, v in cfg.items():
+    if k.startswith('airtable_'):
+        print(f'export PODIUM_{k.upper()}=\"{v}\"')
+")"
+    export PODIUM_AIRTABLE_TOKEN="$PROD_AIRTABLE_TOKEN"
+    uv run python scripts/migrate_from_airtable.py
+  )
 fi
 
 # Restart Mathesar if running

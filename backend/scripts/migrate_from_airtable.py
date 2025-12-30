@@ -28,6 +28,13 @@ def parse_date(value: str | None) -> date | None:
     except (ValueError, TypeError):
         return None
 
+
+def truncate(value: str | None, max_length: int) -> str:
+    """Truncate a string to max_length, handling None."""
+    if not value:
+        return ""
+    return value[:max_length]
+
 # Add parent to path for imports
 sys.path.insert(0, ".")
 
@@ -82,21 +89,21 @@ async def migrate_users(session: AsyncSession) -> None:
             skipped += 1
             continue
 
-        # Create new user
+        # Create new user (truncate fields to match DB constraints)
         user = User(
             id=uuid4(),
             airtable_id=airtable_id,
             email=email,
-            display_name=fields.get("display_name", ""),
-            first_name=fields.get("first_name", ""),
-            last_name=fields.get("last_name", ""),
-            phone=fields.get("phone", ""),
-            street_1=fields.get("street_1", ""),
-            street_2=fields.get("street_2", ""),
-            city=fields.get("city", ""),
-            state=fields.get("state", ""),
-            zip_code=fields.get("zip_code", ""),
-            country=fields.get("country", ""),
+            display_name=truncate(fields.get("display_name"), 255),
+            first_name=truncate(fields.get("first_name"), 50),
+            last_name=truncate(fields.get("last_name"), 50),
+            phone=truncate(fields.get("phone"), 20),
+            street_1=truncate(fields.get("street_1"), 255),
+            street_2=truncate(fields.get("street_2"), 255),
+            city=truncate(fields.get("city"), 255),
+            state=truncate(fields.get("state"), 255),
+            zip_code=truncate(fields.get("zip_code"), 20),
+            country=truncate(fields.get("country"), 100),
             dob=parse_date(fields.get("dob")),
         )
         session.add(user)
@@ -403,6 +410,14 @@ async def migrate_votes(session: AsyncSession) -> None:
         event_uuid = event_map.get(event_ids[0])
         if not all([voter_uuid, project_uuid, event_uuid]):
             errors += 1
+            continue
+
+        # Check for duplicate vote (same voter + project)
+        existing_vote = (await session.exec(
+            select(Vote).where(Vote.voter_id == voter_uuid, Vote.project_id == project_uuid)
+        )).first()
+        if existing_vote:
+            skipped += 1
             continue
 
         # Create new vote
