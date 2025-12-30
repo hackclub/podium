@@ -291,7 +291,7 @@ Deploy as a separate Docker Compose resource on Coolify with its own internal Po
 
 | Secret | Description |
 |--------|-------------|
-| `POSTGRES_PASSWORD` | Password for Mathesar's internal database (new) |
+| `MATHESAR_DB_PASSWORD` | Password for Mathesar's internal database (new) |
 | `MATHESAR_ADMIN_PASSWORD` | Mathesar admin user password (new) |
 | `PODIUM_DATABASE_URL` | Podium Postgres URL (already exists - same as backend) |
 
@@ -312,7 +312,8 @@ Optional (have defaults in bootstrap.py):
 3. Create new Docker Compose resource in Coolify
 4. Point to `mathesar/` directory in repo
 5. Set only `DOPPLER_TOKEN` in Coolify env vars
-6. Deploy
+6. Set domain to `https://mathesar.podium-backend.hackclub.com`
+7. Deploy
 
 ### How It Works
 
