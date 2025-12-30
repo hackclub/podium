@@ -1,0 +1,8 @@
+# Local development overrides
+# This file is automatically merged with docker-compose.yaml when running locally
+# Coolify ignores this file - it only reads docker-compose.yaml
+
+services:
+  mathesar:
+    ports:
+      - "8000:8000"
