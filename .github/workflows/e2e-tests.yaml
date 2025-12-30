@@ -16,6 +16,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: podium_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -82,12 +97,21 @@ jobs:
           fi
           echo "✅ Ports 8000 and 4173 are available"
 
+      - name: Run database migrations
+        run: |
+          cd backend
+          doppler run --project podium --config dev --preserve-env=PODIUM_DATABASE_URL -- uv run alembic upgrade head
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+          PODIUM_DATABASE_URL: postgresql+asyncpg://postgres:testpass@localhost:5432/podium_test
+
       - name: Run E2E tests
         run: |
           cd frontend
-          doppler run --project podium --config dev -- bunx playwright test
+          doppler run --project podium --config dev --preserve-env=PODIUM_DATABASE_URL -- npx playwright test
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+          PODIUM_DATABASE_URL: postgresql+asyncpg://postgres:testpass@localhost:5432/podium_test
 
       - name: Upload test results
         uses: actions/upload-artifact@v4

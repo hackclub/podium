@@ -7,6 +7,7 @@ An Event is a hackathon where users submit projects and vote.
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
+from pydantic import computed_field
 from sqlmodel import Field, SQLModel, Relationship
 
 from podium.db.postgres.links import EventAttendeeLink
@@ -54,6 +55,7 @@ class Event(SQLModel, table=True):
     votes: list["Vote"] = Relationship(back_populates="event")
     referrals: list["Referral"] = Relationship(back_populates="event")
 
+    @computed_field
     @property
     def feature_flags_list(self) -> list[str]:
         """Parse comma-separated feature flags into a list."""
@@ -61,6 +63,7 @@ class Event(SQLModel, table=True):
             return []
         return [f.strip() for f in self.feature_flags_csv.split(",") if f.strip()]
 
+    @computed_field
     @property
     def max_votes_per_user(self) -> int:
         """Calculate max votes based on project count (matches original Airtable logic)."""
@@ -88,6 +91,7 @@ class EventPublic(SQLModel):
     votable: bool
     leaderboard_enabled: bool
     demo_links_optional: bool
+    max_votes_per_user: int
 
 
 class EventPrivate(EventPublic):

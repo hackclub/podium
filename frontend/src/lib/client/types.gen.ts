@@ -53,6 +53,7 @@ export type EventPrivate = {
     votable: boolean;
     leaderboard_enabled: boolean;
     demo_links_optional: boolean;
+    max_votes_per_user: number;
     join_code: string;
     owner_id: string;
     ysws_checks_enabled: boolean;
@@ -69,6 +70,7 @@ export type EventPublic = {
     votable: boolean;
     leaderboard_enabled: boolean;
     demo_links_optional: boolean;
+    max_votes_per_user: number;
 };
 
 /**

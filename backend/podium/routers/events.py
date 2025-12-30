@@ -47,7 +47,8 @@ async def get_event_endpoint(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> EventPublic:
     """Get a public event by its ID."""
-    event = await session.get(Event, event_id)
+    stmt = select(Event).where(Event.id == event_id).options(selectinload(Event.projects))
+    event = await scalar_one_or_none(session, stmt)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     return EventPublic.model_validate(event)
@@ -62,7 +63,10 @@ async def get_attending_events(
     stmt = (
         select(User)
         .where(User.id == user.id)
-        .options(selectinload(User.owned_events), selectinload(User.events_attending))
+        .options(
+            selectinload(User.owned_events).selectinload(Event.projects),
+            selectinload(User.events_attending).selectinload(Event.projects),
+        )
     )
     u = await scalar_one_or_none(session, stmt)
     if not u:
