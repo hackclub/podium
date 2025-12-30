@@ -53,11 +53,11 @@ T = TypeVar("T", bound=SQLModel)
 
 async def scalar_one_or_none(session: AsyncSession, stmt: Select[tuple[T]]) -> T | None:
     """Execute a select and return the first model instance, or None if not found."""
-    result = await session.execute(stmt)
-    return cast(T | None, result.scalars().first())
+    result = await session.exec(stmt)  # type: ignore[arg-type]
+    return cast(T | None, result.first())
 
 
 async def scalar_all(session: AsyncSession, stmt: Select[tuple[T]]) -> list[T]:
     """Execute a select and return all model instances as a list."""
-    result = await session.execute(stmt)
-    return list(cast(Sequence[T], result.scalars().all()))
+    result = await session.exec(stmt)  # type: ignore[arg-type]
+    return list(cast(Sequence[T], result.all()))

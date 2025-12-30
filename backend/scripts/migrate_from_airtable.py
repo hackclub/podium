@@ -62,20 +62,18 @@ async def migrate_users(session: AsyncSession) -> None:
         email = fields.get("email", "").lower().strip()
 
         # Check if already migrated by airtable_id
-        result = await session.execute(
+        existing = (await session.exec(
             select(User).where(User.airtable_id == airtable_id)
-        )
-        existing = result.scalars().first()
+        )).first()
         if existing:
             user_map[airtable_id] = existing.id
             skipped += 1
             continue
 
         # Check if email already exists (from load tests or previous runs)
-        result = await session.execute(
+        existing_by_email = (await session.exec(
             select(User).where(User.email == email)
-        )
-        existing_by_email = result.scalars().first()
+        )).first()
         if existing_by_email:
             # Update the existing record with airtable_id for future runs
             existing_by_email.airtable_id = airtable_id
@@ -124,20 +122,18 @@ async def migrate_events(session: AsyncSession) -> None:
         join_code = fields.get("join_code", "")
 
         # Check if already migrated by airtable_id
-        result = await session.execute(
+        existing = (await session.exec(
             select(Event).where(Event.airtable_id == airtable_id)
-        )
-        existing = result.scalars().first()
+        )).first()
         if existing:
             event_map[airtable_id] = existing.id
             skipped += 1
             continue
 
         # Check if slug or join_code already exists
-        result = await session.execute(
+        existing_by_unique = (await session.exec(
             select(Event).where((Event.slug == slug) | (Event.join_code == join_code))
-        )
-        existing_by_unique = result.scalars().first()
+        )).first()
         if existing_by_unique:
             existing_by_unique.airtable_id = airtable_id
             session.add(existing_by_unique)
@@ -200,13 +196,13 @@ async def migrate_attendees(session: AsyncSession) -> None:
                 continue
 
             # Check if link already exists
-            result = await session.execute(
+            existing = (await session.exec(
                 select(EventAttendeeLink).where(
                     EventAttendeeLink.event_id == event_uuid,
                     EventAttendeeLink.user_id == user_uuid,
                 )
-            )
-            if result.scalars().first():
+            )).first()
+            if existing:
                 skipped += 1
                 continue
 
@@ -232,20 +228,18 @@ async def migrate_projects(session: AsyncSession) -> None:
         join_code = fields.get("join_code", "")
 
         # Check if already migrated by airtable_id
-        result = await session.execute(
+        existing = (await session.exec(
             select(Project).where(Project.airtable_id == airtable_id)
-        )
-        existing = result.scalars().first()
+        )).first()
         if existing:
             project_map[airtable_id] = existing.id
             skipped += 1
             continue
 
         # Check if join_code already exists
-        result = await session.execute(
+        existing_by_code = (await session.exec(
             select(Project).where(Project.join_code == join_code)
-        )
-        existing_by_code = result.scalars().first()
+        )).first()
         if existing_by_code:
             existing_by_code.airtable_id = airtable_id
             session.add(existing_by_code)
@@ -311,13 +305,13 @@ async def migrate_collaborators(session: AsyncSession) -> None:
                 continue
 
             # Check if link already exists
-            result = await session.execute(
+            existing = (await session.exec(
                 select(ProjectCollaboratorLink).where(
                     ProjectCollaboratorLink.project_id == project_uuid,
                     ProjectCollaboratorLink.user_id == user_uuid,
                 )
-            )
-            if result.scalars().first():
+            )).first()
+            if existing:
                 skipped += 1
                 continue
 
@@ -342,10 +336,10 @@ async def migrate_referrals(session: AsyncSession) -> None:
         airtable_id = record["id"]
 
         # Check if already migrated
-        result = await session.execute(
+        existing = (await session.exec(
             select(Referral).where(Referral.airtable_id == airtable_id)
-        )
-        if result.scalars().first():
+        )).first()
+        if existing:
             skipped += 1
             continue
 
@@ -389,10 +383,10 @@ async def migrate_votes(session: AsyncSession) -> None:
         airtable_id = record["id"]
 
         # Check if already migrated
-        result = await session.execute(
+        existing = (await session.exec(
             select(Vote).where(Vote.airtable_id == airtable_id)
-        )
-        if result.scalars().first():
+        )).first()
+        if existing:
             skipped += 1
             continue
 
@@ -431,13 +425,13 @@ async def validate(session: AsyncSession) -> None:
     print("\n--- Validation ---")
 
     # Postgres counts
-    users = (await session.execute(select(User))).scalars().all()
-    events = (await session.execute(select(Event))).scalars().all()
-    projects = (await session.execute(select(Project))).scalars().all()
-    votes = (await session.execute(select(Vote))).scalars().all()
-    referrals = (await session.execute(select(Referral))).scalars().all()
-    attendee_links = (await session.execute(select(EventAttendeeLink))).scalars().all()
-    collab_links = (await session.execute(select(ProjectCollaboratorLink))).scalars().all()
+    users = (await session.exec(select(User))).all()
+    events = (await session.exec(select(Event))).all()
+    projects = (await session.exec(select(Project))).all()
+    votes = (await session.exec(select(Vote))).all()
+    referrals = (await session.exec(select(Referral))).all()
+    attendee_links = (await session.exec(select(EventAttendeeLink))).all()
+    collab_links = (await session.exec(select(ProjectCollaboratorLink))).all()
 
     # Airtable counts
     at_users = len(list(tables["users"].all()))
