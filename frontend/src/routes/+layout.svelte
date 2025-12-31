@@ -16,6 +16,7 @@
   import NoticeAndHelp from "$lib/components/NoticeAndHelp.svelte";
   import UpdateUser from "$lib/components/UpdateUser.svelte";
   import AirtableHitsCounter from "$lib/components/AirtableHitsCounter.svelte";
+  import DevModeIndicator from "$lib/components/DevModeIndicator.svelte";
   import { resetAirtableHits } from "$lib/airtable-hits.svelte";
 
   let loadingText = $state(returnLoadingText());
@@ -360,3 +361,6 @@
 
 <!-- Airtable Hits Counter (Top Right, dev only) -->
 <AirtableHitsCounter />
+
+<!-- Dev Mode Indicator (red border + notice) -->
+<DevModeIndicator />
