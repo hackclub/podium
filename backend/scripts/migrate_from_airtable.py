@@ -17,6 +17,7 @@ from uuid import UUID, uuid4
 
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from tqdm import tqdm
 
 
 def parse_date(value: str | None) -> date | None:
@@ -59,11 +60,11 @@ project_map: dict[str, UUID] = {}
 
 async def migrate_users(session: AsyncSession) -> None:
     """Migrate all users from Airtable to Postgres."""
-    print("Migrating users...")
     created = 0
     skipped = 0
+    records = list(tables["users"].all())
 
-    for record in tables["users"].all():
+    for record in tqdm(records, desc="Users", unit="rec"):
         fields = record["fields"]
         airtable_id = record["id"]
         email = fields.get("email", "").lower().strip()
@@ -117,12 +118,12 @@ async def migrate_users(session: AsyncSession) -> None:
 
 async def migrate_events(session: AsyncSession) -> None:
     """Migrate all events from Airtable to Postgres."""
-    print("Migrating events...")
     created = 0
     skipped = 0
     errors = 0
+    records = list(tables["events"].all())
 
-    for record in tables["events"].all():
+    for record in tqdm(records, desc="Events", unit="rec"):
         fields = record["fields"]
         airtable_id = record["id"]
         slug = fields.get("slug", "")
@@ -187,11 +188,11 @@ async def migrate_events(session: AsyncSession) -> None:
 
 async def migrate_attendees(session: AsyncSession) -> None:
     """Migrate event attendees (M2M relationship)."""
-    print("Migrating attendees...")
     created = 0
     skipped = 0
+    records = list(tables["events"].all())
 
-    for record in tables["events"].all():
+    for record in tqdm(records, desc="Attendees", unit="event"):
         event_airtable_id = record["id"]
         event_uuid = event_map.get(event_airtable_id)
         if not event_uuid:
@@ -224,12 +225,12 @@ async def migrate_attendees(session: AsyncSession) -> None:
 
 async def migrate_projects(session: AsyncSession) -> None:
     """Migrate all projects from Airtable to Postgres."""
-    print("Migrating projects...")
     created = 0
     skipped = 0
     errors = 0
+    records = list(tables["projects"].all())
 
-    for record in tables["projects"].all():
+    for record in tqdm(records, desc="Projects", unit="rec"):
         fields = record["fields"]
         airtable_id = record["id"]
         join_code = fields.get("join_code", "")
@@ -296,11 +297,11 @@ async def migrate_projects(session: AsyncSession) -> None:
 
 async def migrate_collaborators(session: AsyncSession) -> None:
     """Migrate project collaborators (M2M relationship)."""
-    print("Migrating collaborators...")
     created = 0
     skipped = 0
+    records = list(tables["projects"].all())
 
-    for record in tables["projects"].all():
+    for record in tqdm(records, desc="Collaborators", unit="proj"):
         project_airtable_id = record["id"]
         project_uuid = project_map.get(project_airtable_id)
         if not project_uuid:
@@ -333,12 +334,12 @@ async def migrate_collaborators(session: AsyncSession) -> None:
 
 async def migrate_referrals(session: AsyncSession) -> None:
     """Migrate all referrals from Airtable to Postgres."""
-    print("Migrating referrals...")
     created = 0
     skipped = 0
     errors = 0
+    records = list(tables["referrals"].all())
 
-    for record in tables["referrals"].all():
+    for record in tqdm(records, desc="Referrals", unit="rec"):
         fields = record["fields"]
         airtable_id = record["id"]
 
@@ -380,12 +381,12 @@ async def migrate_referrals(session: AsyncSession) -> None:
 
 async def migrate_votes(session: AsyncSession) -> None:
     """Migrate all votes from Airtable to Postgres."""
-    print("Migrating votes...")
     created = 0
     skipped = 0
     errors = 0
+    records = list(tables["votes"].all())
 
-    for record in tables["votes"].all():
+    for record in tqdm(records, desc="Votes", unit="rec"):
         fields = record["fields"]
         airtable_id = record["id"]
 

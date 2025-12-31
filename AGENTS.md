@@ -59,11 +59,19 @@ The `mathesar/bootstrap.py` script runs on container start to:
 - Update stored credentials (always)
 - Run `install_sql()` to install Mathesar's helper functions in Podium DB
 
-## Reset Local Database
+## Database Reset & Migration
 
+**Local database (safe):**
 ```bash
-./scripts/reset-local-db.sh           # Reset and run migrations
-./scripts/reset-local-db.sh --sync    # Reset, migrate, and sync from production
+./scripts/reset-migrate.sh                 # Reset local DB with empty schema
+./scripts/reset-migrate.sh --sync <URL>    # Reset local DB + sync from Postgres URL
+./scripts/reset-migrate.sh --migrate-dev   # Reset local DB + migrate from dev Airtable
+./scripts/reset-migrate.sh --checkout-prod # Reset local DB + migrate from prod Airtable
+```
+
+**Production database (dangerous):**
+```bash
+./scripts/reset-migrate.sh --migrate-prod  # Migrate prod Airtable -> prod Postgres
 ```
 
 ## Migrations

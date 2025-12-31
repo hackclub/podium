@@ -23,10 +23,9 @@ Custom database views for Airtable-like display.
 
 Shows users with their attending and owned events as array columns.
 
-### Create via Mathesar UI
+### Create via Postgres client
 
-1. Go to **Database** → **Run SQL**
-2. Execute:
+Mathesar doesn't have a built-in SQL runner. Use psql, pgAdmin, DBeaver, or similar:
 
 ```sql
 CREATE VIEW users_with_events AS
@@ -45,10 +44,22 @@ LEFT JOIN events own_e ON own_e.owner_id = u.id
 GROUP BY u.id;
 ```
 
-3. Refresh the schema in Mathesar—`users_with_events` appears as a read-only table
+After creating, refresh Mathesar's schema page—the view appears as a read-only table.
 
 ### Drop
 
 ```sql
 DROP VIEW IF EXISTS users_with_events;
 ```
+
+---
+
+## Explorations (Alternative)
+
+If you don't want to create a DB view, use Mathesar's **Explorations** feature:
+
+1. Click **Open Data Explorer** (or **+ New Exploration**)
+2. Select `users` as base table
+3. Add columns and join related tables
+4. Save the exploration for reuse
+
