@@ -60,9 +60,20 @@ project_map: dict[str, UUID] = {}
 
 async def migrate_users(session: AsyncSession) -> None:
     """Migrate all users from Airtable to Postgres."""
-    created = 0
-    skipped = 0
     records = list(tables["users"].all())
+
+    # Bulk fetch existing users (by airtable_id and email)
+    existing_by_airtable = {
+        u.airtable_id: u for u in (await session.exec(
+            select(User).where(User.airtable_id.isnot(None))
+        )).all()
+    }
+    existing_by_email = {
+        u.email: u for u in (await session.exec(select(User))).all()
+    }
+
+    to_create: list[User] = []
+    skipped = 0
 
     for record in tqdm(records, desc="Users", unit="rec"):
         fields = record["fields"]
@@ -70,23 +81,17 @@ async def migrate_users(session: AsyncSession) -> None:
         email = fields.get("email", "").lower().strip()
 
         # Check if already migrated by airtable_id
-        existing = (await session.exec(
-            select(User).where(User.airtable_id == airtable_id)
-        )).first()
-        if existing:
-            user_map[airtable_id] = existing.id
+        if airtable_id in existing_by_airtable:
+            user_map[airtable_id] = existing_by_airtable[airtable_id].id
             skipped += 1
             continue
 
         # Check if email already exists (from load tests or previous runs)
-        existing_by_email = (await session.exec(
-            select(User).where(User.email == email)
-        )).first()
-        if existing_by_email:
-            # Update the existing record with airtable_id for future runs
-            existing_by_email.airtable_id = airtable_id
-            session.add(existing_by_email)
-            user_map[airtable_id] = existing_by_email.id
+        if email in existing_by_email:
+            existing_user = existing_by_email[email]
+            existing_user.airtable_id = airtable_id
+            session.add(existing_user)
+            user_map[airtable_id] = existing_user.id
             skipped += 1
             continue
 
@@ -107,21 +112,31 @@ async def migrate_users(session: AsyncSession) -> None:
             country=truncate(fields.get("country"), 100),
             dob=parse_date(fields.get("dob")),
         )
-        session.add(user)
-        await session.flush()  # Flush immediately to catch errors early
+        to_create.append(user)
         user_map[airtable_id] = user.id
-        created += 1
 
+    session.add_all(to_create)
     await session.commit()
-    print(f"  Users: {created} created, {skipped} skipped (already exist)")
+    print(f"  Users: {len(to_create)} created, {skipped} skipped (already exist)")
 
 
 async def migrate_events(session: AsyncSession) -> None:
     """Migrate all events from Airtable to Postgres."""
-    created = 0
+    records = list(tables["events"].all())
+
+    # Bulk fetch existing events
+    existing_by_airtable = {
+        e.airtable_id: e for e in (await session.exec(
+            select(Event).where(Event.airtable_id.isnot(None))
+        )).all()
+    }
+    all_events = (await session.exec(select(Event))).all()
+    existing_by_slug = {e.slug: e for e in all_events}
+    existing_by_code = {e.join_code: e for e in all_events}
+
+    to_create: list[Event] = []
     skipped = 0
     errors = 0
-    records = list(tables["events"].all())
 
     for record in tqdm(records, desc="Events", unit="rec"):
         fields = record["fields"]
@@ -130,18 +145,13 @@ async def migrate_events(session: AsyncSession) -> None:
         join_code = fields.get("join_code", "")
 
         # Check if already migrated by airtable_id
-        existing = (await session.exec(
-            select(Event).where(Event.airtable_id == airtable_id)
-        )).first()
-        if existing:
-            event_map[airtable_id] = existing.id
+        if airtable_id in existing_by_airtable:
+            event_map[airtable_id] = existing_by_airtable[airtable_id].id
             skipped += 1
             continue
 
         # Check if slug or join_code already exists
-        existing_by_unique = (await session.exec(
-            select(Event).where((Event.slug == slug) | (Event.join_code == join_code))
-        )).first()
+        existing_by_unique = existing_by_slug.get(slug) or existing_by_code.get(join_code)
         if existing_by_unique:
             existing_by_unique.airtable_id = airtable_id
             session.add(existing_by_unique)
@@ -177,20 +187,26 @@ async def migrate_events(session: AsyncSession) -> None:
             feature_flags_csv=",".join(fields.get("feature_flags", [])),
             owner_id=owner_uuid,
         )
-        session.add(event)
-        await session.flush()
+        to_create.append(event)
         event_map[airtable_id] = event.id
-        created += 1
 
+    session.add_all(to_create)
     await session.commit()
-    print(f"  Events: {created} created, {skipped} skipped, {errors} errors")
+    print(f"  Events: {len(to_create)} created, {skipped} skipped, {errors} errors")
 
 
 async def migrate_attendees(session: AsyncSession) -> None:
     """Migrate event attendees (M2M relationship)."""
-    created = 0
-    skipped = 0
     records = list(tables["events"].all())
+
+    # Bulk fetch existing links
+    existing_links = {
+        (link.event_id, link.user_id)
+        for link in (await session.exec(select(EventAttendeeLink))).all()
+    }
+
+    to_create: list[EventAttendeeLink] = []
+    skipped = 0
 
     for record in tqdm(records, desc="Attendees", unit="event"):
         event_airtable_id = record["id"]
@@ -204,31 +220,37 @@ async def migrate_attendees(session: AsyncSession) -> None:
                 continue
 
             # Check if link already exists
-            existing = (await session.exec(
-                select(EventAttendeeLink).where(
-                    EventAttendeeLink.event_id == event_uuid,
-                    EventAttendeeLink.user_id == user_uuid,
-                )
-            )).first()
-            if existing:
+            if (event_uuid, user_uuid) in existing_links:
                 skipped += 1
                 continue
 
             # Create link
             link = EventAttendeeLink(event_id=event_uuid, user_id=user_uuid)
-            session.add(link)
-            created += 1
+            to_create.append(link)
+            existing_links.add((event_uuid, user_uuid))  # Prevent duplicates within batch
 
+    session.add_all(to_create)
     await session.commit()
-    print(f"  Attendees: {created} created, {skipped} skipped")
+    print(f"  Attendees: {len(to_create)} created, {skipped} skipped")
 
 
 async def migrate_projects(session: AsyncSession) -> None:
     """Migrate all projects from Airtable to Postgres."""
-    created = 0
+    records = list(tables["projects"].all())
+
+    # Bulk fetch existing projects
+    existing_by_airtable = {
+        p.airtable_id: p for p in (await session.exec(
+            select(Project).where(Project.airtable_id.isnot(None))
+        )).all()
+    }
+    existing_by_code = {
+        p.join_code: p for p in (await session.exec(select(Project))).all()
+    }
+
+    to_create: list[Project] = []
     skipped = 0
     errors = 0
-    records = list(tables["projects"].all())
 
     for record in tqdm(records, desc="Projects", unit="rec"):
         fields = record["fields"]
@@ -236,22 +258,17 @@ async def migrate_projects(session: AsyncSession) -> None:
         join_code = fields.get("join_code", "")
 
         # Check if already migrated by airtable_id
-        existing = (await session.exec(
-            select(Project).where(Project.airtable_id == airtable_id)
-        )).first()
-        if existing:
-            project_map[airtable_id] = existing.id
+        if airtable_id in existing_by_airtable:
+            project_map[airtable_id] = existing_by_airtable[airtable_id].id
             skipped += 1
             continue
 
         # Check if join_code already exists
-        existing_by_code = (await session.exec(
-            select(Project).where(Project.join_code == join_code)
-        )).first()
-        if existing_by_code:
-            existing_by_code.airtable_id = airtable_id
-            session.add(existing_by_code)
-            project_map[airtable_id] = existing_by_code.id
+        if join_code in existing_by_code:
+            existing_proj = existing_by_code[join_code]
+            existing_proj.airtable_id = airtable_id
+            session.add(existing_proj)
+            project_map[airtable_id] = existing_proj.id
             skipped += 1
             continue
 
@@ -286,20 +303,26 @@ async def migrate_projects(session: AsyncSession) -> None:
             owner_id=owner_uuid,
             event_id=event_uuid,
         )
-        session.add(project)
-        await session.flush()
+        to_create.append(project)
         project_map[airtable_id] = project.id
-        created += 1
 
+    session.add_all(to_create)
     await session.commit()
-    print(f"  Projects: {created} created, {skipped} skipped, {errors} errors")
+    print(f"  Projects: {len(to_create)} created, {skipped} skipped, {errors} errors")
 
 
 async def migrate_collaborators(session: AsyncSession) -> None:
     """Migrate project collaborators (M2M relationship)."""
-    created = 0
-    skipped = 0
     records = list(tables["projects"].all())
+
+    # Bulk fetch existing links
+    existing_links = {
+        (link.project_id, link.user_id)
+        for link in (await session.exec(select(ProjectCollaboratorLink))).all()
+    }
+
+    to_create: list[ProjectCollaboratorLink] = []
+    skipped = 0
 
     for record in tqdm(records, desc="Collaborators", unit="proj"):
         project_airtable_id = record["id"]
@@ -313,41 +336,41 @@ async def migrate_collaborators(session: AsyncSession) -> None:
                 continue
 
             # Check if link already exists
-            existing = (await session.exec(
-                select(ProjectCollaboratorLink).where(
-                    ProjectCollaboratorLink.project_id == project_uuid,
-                    ProjectCollaboratorLink.user_id == user_uuid,
-                )
-            )).first()
-            if existing:
+            if (project_uuid, user_uuid) in existing_links:
                 skipped += 1
                 continue
 
             # Create link
             link = ProjectCollaboratorLink(project_id=project_uuid, user_id=user_uuid)
-            session.add(link)
-            created += 1
+            to_create.append(link)
+            existing_links.add((project_uuid, user_uuid))  # Prevent duplicates within batch
 
+    session.add_all(to_create)
     await session.commit()
-    print(f"  Collaborators: {created} created, {skipped} skipped")
+    print(f"  Collaborators: {len(to_create)} created, {skipped} skipped")
 
 
 async def migrate_referrals(session: AsyncSession) -> None:
     """Migrate all referrals from Airtable to Postgres."""
-    created = 0
+    records = list(tables["referrals"].all())
+
+    # Bulk fetch existing referrals
+    existing_airtable_ids = {
+        r.airtable_id for r in (await session.exec(
+            select(Referral).where(Referral.airtable_id.isnot(None))
+        )).all()
+    }
+
+    to_create: list[Referral] = []
     skipped = 0
     errors = 0
-    records = list(tables["referrals"].all())
 
     for record in tqdm(records, desc="Referrals", unit="rec"):
         fields = record["fields"]
         airtable_id = record["id"]
 
         # Check if already migrated
-        existing = (await session.exec(
-            select(Referral).where(Referral.airtable_id == airtable_id)
-        )).first()
-        if existing:
+        if airtable_id in existing_airtable_ids:
             skipped += 1
             continue
 
@@ -355,12 +378,19 @@ async def migrate_referrals(session: AsyncSession) -> None:
         user_ids = fields.get("user", [])
         event_ids = fields.get("event", [])
         if not user_ids or not event_ids:
+            tqdm.write(f"  [SKIP] Referral {airtable_id}: missing user={user_ids} or event={event_ids}")
             errors += 1
             continue
 
         user_uuid = user_map.get(user_ids[0])
         event_uuid = event_map.get(event_ids[0])
         if not user_uuid or not event_uuid:
+            missing = []
+            if not user_uuid:
+                missing.append(f"user {user_ids[0]}")
+            if not event_uuid:
+                missing.append(f"event {event_ids[0]}")
+            tqdm.write(f"  [SKIP] Referral {airtable_id}: {', '.join(missing)} not migrated")
             errors += 1
             continue
 
@@ -372,29 +402,32 @@ async def migrate_referrals(session: AsyncSession) -> None:
             user_id=user_uuid,
             event_id=event_uuid,
         )
-        session.add(referral)
-        created += 1
+        to_create.append(referral)
 
+    session.add_all(to_create)
     await session.commit()
-    print(f"  Referrals: {created} created, {skipped} skipped, {errors} errors")
+    print(f"  Referrals: {len(to_create)} created, {skipped} skipped, {errors} errors")
 
 
 async def migrate_votes(session: AsyncSession) -> None:
     """Migrate all votes from Airtable to Postgres."""
-    created = 0
+    records = list(tables["votes"].all())
+
+    # Bulk fetch existing votes
+    all_votes = (await session.exec(select(Vote))).all()
+    existing_airtable_ids = {v.airtable_id for v in all_votes if v.airtable_id}
+    existing_voter_project = {(v.voter_id, v.project_id) for v in all_votes}
+
+    to_create: list[Vote] = []
     skipped = 0
     errors = 0
-    records = list(tables["votes"].all())
 
     for record in tqdm(records, desc="Votes", unit="rec"):
         fields = record["fields"]
         airtable_id = record["id"]
 
         # Check if already migrated
-        existing = (await session.exec(
-            select(Vote).where(Vote.airtable_id == airtable_id)
-        )).first()
-        if existing:
+        if airtable_id in existing_airtable_ids:
             skipped += 1
             continue
 
@@ -403,6 +436,7 @@ async def migrate_votes(session: AsyncSession) -> None:
         project_ids = fields.get("project", [])
         event_ids = fields.get("event", [])
         if not all([voter_ids, project_ids, event_ids]):
+            tqdm.write(f"  [SKIP] Vote {airtable_id}: missing voter={voter_ids}, project={project_ids}, event={event_ids}")
             errors += 1
             continue
 
@@ -410,14 +444,19 @@ async def migrate_votes(session: AsyncSession) -> None:
         project_uuid = project_map.get(project_ids[0])
         event_uuid = event_map.get(event_ids[0])
         if not all([voter_uuid, project_uuid, event_uuid]):
+            missing = []
+            if not voter_uuid:
+                missing.append(f"voter {voter_ids[0]}")
+            if not project_uuid:
+                missing.append(f"project {project_ids[0]}")
+            if not event_uuid:
+                missing.append(f"event {event_ids[0]}")
+            tqdm.write(f"  [SKIP] Vote {airtable_id}: {', '.join(missing)} not migrated")
             errors += 1
             continue
 
         # Check for duplicate vote (same voter + project)
-        existing_vote = (await session.exec(
-            select(Vote).where(Vote.voter_id == voter_uuid, Vote.project_id == project_uuid)
-        )).first()
-        if existing_vote:
+        if (voter_uuid, project_uuid) in existing_voter_project:
             skipped += 1
             continue
 
@@ -429,11 +468,12 @@ async def migrate_votes(session: AsyncSession) -> None:
             project_id=project_uuid,
             event_id=event_uuid,
         )
-        session.add(vote)
-        created += 1
+        to_create.append(vote)
+        existing_voter_project.add((voter_uuid, project_uuid))  # Prevent duplicates within batch
 
+    session.add_all(to_create)
     await session.commit()
-    print(f"  Votes: {created} created, {skipped} skipped, {errors} errors")
+    print(f"  Votes: {len(to_create)} created, {skipped} skipped, {errors} errors")
 
 
 async def validate(session: AsyncSession) -> None:

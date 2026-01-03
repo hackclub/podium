@@ -99,12 +99,30 @@ fi
 
 # Migrate prod Airtable -> prod Postgres
 if [[ "$MODE" == "migrate-prod" ]]; then
-  warn "⚠️  You are about to migrate PRODUCTION Airtable data to PRODUCTION PostgreSQL."
-  warn "⚠️  This will modify the production database!"
-  echo -n "Type 'yes' to confirm: "
+  warn "⚠️  You are about to RESET and migrate PRODUCTION PostgreSQL."
+  warn "⚠️  This will DELETE ALL DATA in prod Postgres and re-import from Airtable!"
+  echo -n "Type 'YES! delete prod!' to confirm: "
   read -r confirm
-  [[ "$confirm" != "yes" ]] && error "Aborted. You must type 'yes' to confirm."
+  [[ "$confirm" != "YES! delete prod!" ]] && error "Aborted. You must type 'YES! delete prod!' to confirm."
   
+  info "Truncating all tables in prod Postgres..."
+  (
+    cd backend
+    doppler run --config prd -- uv run python -c "
+import asyncio
+from sqlalchemy import text
+from podium.db.postgres.base import engine
+
+async def reset():
+    async with engine.begin() as conn:
+        # Disable FK checks, truncate all tables, re-enable
+        await conn.execute(text('TRUNCATE users, events, projects, votes, referrals, event_attendees, project_collaborators RESTART IDENTITY CASCADE'))
+        print('All tables truncated')
+
+asyncio.run(reset())
+"
+  )
+
   info "Running migrations on prod Postgres..."
   (cd backend && doppler run --config prd -- uv run alembic upgrade head)
 

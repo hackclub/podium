@@ -87,4 +87,13 @@ settings.validators.register(
     ],
 )
 
-settings.validators.validate()
+try:
+    settings.validators.validate()
+except Exception as e:
+    print(
+        "\n⚠️  Configuration validation failed. Check that:\n"
+        "  - Doppler is configured correctly (run 'doppler setup')\n"
+        "  - No stale DOPPLER_TOKEN exists in .env\n"
+        "  - Required secrets are set in Doppler\n"
+    )
+    raise
