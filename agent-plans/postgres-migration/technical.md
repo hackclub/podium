@@ -319,6 +319,115 @@ async def update_event(
 
 ---
 
+## Manual Migration Process (Without reset-migrate.sh)
+
+If you can't use `reset-migrate.sh`, follow these steps manually.
+
+### Prerequisites
+
+- **SQL client** (Beekeeper Studio or similar) connected to the target Postgres
+- **Doppler CLI** configured with access to `dev` and `prd` configs
+- **Backend dependencies** installed: `cd backend && uv sync`
+
+### Step 1: Reset the Database
+
+#### Local database
+
+Connect to `localhost:5432` with user `postgres` / password `localpass`, then:
+
+```sql
+-- Terminate existing connections
+SELECT pg_terminate_backend(pid)
+FROM pg_stat_activity
+WHERE datname = 'podium' AND pid <> pg_backend_pid();
+
+-- Drop and recreate
+DROP DATABASE IF EXISTS podium;
+CREATE DATABASE podium;
+```
+
+#### Production database
+
+Get the connection URL:
+```bash
+doppler secrets get PODIUM_DATABASE_URL --config prd --plain
+```
+
+Connect via Beekeeper Studio, then **truncate data only** (don't drop the database):
+
+```sql
+TRUNCATE users, events, projects, votes, referrals, event_attendees, project_collaborators
+RESTART IDENTITY CASCADE;
+```
+
+### Step 2: Run Alembic Migrations
+
+Alembic manages **schema only**, not data.
+
+**Run after:**
+- Creating a fresh database (local or prod)
+- Pulling new code with new migrations
+
+**Safe to skip if:**
+- Schema hasn't changed and you only truncated tables
+
+```bash
+# Local
+cd backend && doppler run --config dev -- uv run alembic upgrade head
+
+# Production
+cd backend && doppler run --config prd -- uv run alembic upgrade head
+```
+
+### Step 3: Run the Migration Script
+
+The script reads config via Dynaconf:
+- **DB connection:** `PODIUM_DATABASE_URL` from Doppler
+- **Airtable IDs:** from `settings.toml` (`[development]` for dev, `[default]` for prod)
+- **Airtable token:** `PODIUM_AIRTABLE_TOKEN` from Doppler
+
+#### Local Postgres ← dev Airtable
+
+```bash
+cd backend && doppler run --config dev -- uv run python scripts/migrate_from_airtable.py
+```
+
+#### Production Postgres ← prod Airtable (cutover)
+
+```bash
+cd backend && doppler run --config prd -- uv run python scripts/migrate_from_airtable.py
+```
+
+That's it. The `prd` Doppler config contains all necessary secrets, and `settings.toml [default]` has the prod Airtable IDs.
+
+#### Local Postgres ← prod Airtable (dry run)
+
+This cross-environment scenario requires mixing dev DB settings with prod Airtable settings. Use `reset-migrate.sh --checkout-prod` for this—it handles the env var juggling.
+
+### Step 4: Verify Migration
+
+Run in your SQL client:
+
+```sql
+SELECT 'users' AS table_name, COUNT(*) FROM users
+UNION ALL SELECT 'events', COUNT(*) FROM events
+UNION ALL SELECT 'projects', COUNT(*) FROM projects
+UNION ALL SELECT 'votes', COUNT(*) FROM votes
+UNION ALL SELECT 'referrals', COUNT(*) FROM referrals
+UNION ALL SELECT 'event_attendees', COUNT(*) FROM event_attendees
+UNION ALL SELECT 'project_collaborators', COUNT(*) FROM project_collaborators;
+```
+
+Compare against Airtable record counts.
+
+### Step 5: Restart Mathesar (if running locally)
+
+```bash
+docker compose restart mathesar
+```
+
+---
+
 ## Cutover Checklist
 
 ### Before Cutover
@@ -342,4 +451,55 @@ async def update_event(
 - [ ] Remove Redis/Valkey from Coolify
 - [ ] Remove PyAirtable dependency
 - [ ] Delete old Airtable models
-- [ ] Remove `airtable_id` from models + generate migration (also fixes Mathesar record summary auto-detection)
+- [ ] Remove `airtable_id` from models (see below)
+
+---
+
+## Removing airtable_id Fields (Post-Cutover)
+
+After the migration is verified and stable, remove the temporary `airtable_id` fields:
+
+### Step 1: Remove from Models
+
+Delete the `airtable_id` field from each model in `backend/podium/db/postgres/`:
+
+- `user.py`
+- `event.py`
+- `project.py`
+- `vote.py`
+- `referral.py`
+
+```python
+# Delete this line from each model:
+airtable_id: str | None = Field(default=None, max_length=32, unique=True, index=True)
+```
+
+### Step 2: Generate Migration
+
+```bash
+cd backend && doppler run --config dev -- uv run alembic revision --autogenerate -m "remove_airtable_id_fields"
+```
+
+Review the generated migration to confirm it drops the columns and indexes.
+
+### Step 3: Apply Migration
+
+```bash
+# Local
+cd backend && doppler run --config dev -- uv run alembic upgrade head
+
+# Production
+cd backend && doppler run --config prd -- uv run alembic upgrade head
+```
+
+### Step 4: Remove Migration Script
+
+Delete `backend/scripts/migrate_from_airtable.py` and the old Airtable models in `backend/podium/db/` (if still present).
+
+### Step 5: Remove PyAirtable Dependency
+
+```bash
+cd backend && uv remove pyairtable
+```
+
+> **Bonus:** Removing `airtable_id` also fixes Mathesar's record summary auto-detection, which currently picks up `airtable_id` instead of more useful fields like `name` or `email`.
