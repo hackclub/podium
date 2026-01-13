@@ -39,7 +39,7 @@ def truncate(value: str | None, max_length: int) -> str:
 # Add parent to path for imports
 sys.path.insert(0, ".")
 
-from podium.db.db import tables, main as init_airtable  # noqa: E402
+from podium.db._airtable_deprecated.db import tables, main as init_airtable  # noqa: E402
 from podium.db.postgres.base import async_session_factory  # noqa: E402
 from podium.db.postgres import (  # noqa: E402
     User,

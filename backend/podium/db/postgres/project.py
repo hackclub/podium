@@ -27,9 +27,6 @@ class Project(SQLModel, table=True):
     # Primary key - auto-generated UUID
     id: UUID = Field(default_factory=uuid4, primary_key=True)
 
-    # For migration from Airtable (temporary)
-    airtable_id: str | None = Field(default=None, max_length=32, unique=True, index=True)
-
     # Core fields
     name: str = Field(max_length=255)
     repo: str = Field(default="")  # TEXT - URLs can be long
@@ -56,6 +53,9 @@ class Project(SQLModel, table=True):
         back_populates="projects_collaborating", link_model=ProjectCollaboratorLink
     )
     votes: list["Vote"] = Relationship(back_populates="project")
+
+    # DEPRECATED: For migration from Airtable only. Remove after migration.
+    airtable_id: str | None = Field(default=None, max_length=32, unique=True, index=True)
 
 
 # =============================================================================

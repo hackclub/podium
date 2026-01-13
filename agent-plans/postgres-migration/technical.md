@@ -461,18 +461,13 @@ After the migration is verified and stable, remove the temporary `airtable_id` f
 
 ### Step 1: Remove from Models
 
-Delete the `airtable_id` field from each model in `backend/podium/db/postgres/`:
+Delete the `airtable_id` field from the bottom of each model class (marked `DEPRECATED`):
 
-- `user.py`
-- `event.py`
-- `project.py`
-- `vote.py`
-- `referral.py`
-
-```python
-# Delete this line from each model:
-airtable_id: str | None = Field(default=None, max_length=32, unique=True, index=True)
-```
+- `backend/podium/db/postgres/user.py`
+- `backend/podium/db/postgres/event.py`
+- `backend/podium/db/postgres/project.py`
+- `backend/podium/db/postgres/vote.py`
+- `backend/podium/db/postgres/referral.py`
 
 ### Step 2: Generate Migration
 

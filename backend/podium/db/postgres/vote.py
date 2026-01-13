@@ -25,9 +25,6 @@ class Vote(SQLModel, table=True):
     # Primary key - auto-generated UUID
     id: UUID = Field(default_factory=uuid4, primary_key=True)
 
-    # For migration from Airtable (temporary)
-    airtable_id: str | None = Field(default=None, max_length=32, unique=True, index=True)
-
     # Foreign keys
     voter_id: UUID = Field(foreign_key="users.id")
     project_id: UUID = Field(foreign_key="projects.id")
@@ -37,3 +34,6 @@ class Vote(SQLModel, table=True):
     voter: "User" = Relationship(back_populates="votes")
     project: "Project" = Relationship(back_populates="votes")
     event: "Event" = Relationship(back_populates="votes")
+
+    # DEPRECATED: For migration from Airtable only. Remove after migration.
+    airtable_id: str | None = Field(default=None, max_length=32, unique=True, index=True)

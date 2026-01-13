@@ -15,32 +15,32 @@ services:
       interval: 5s
       retries: 5
 
-  mathesar:
-    build: ./mathesar
-    environment:
-      - DOPPLER_TOKEN
-      - POSTGRES_HOST=mathesar-db
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=mathesar
-      - POSTGRES_DB=mathesar_django
-      - PODIUM_DATABASE_URL=postgresql://postgres:localpass@podium-pg:5432/podium
-    ports: ["8000:8000"]
-    depends_on:
-      podium-pg: { condition: service_healthy }
-      mathesar-db: { condition: service_healthy }
+  # mathesar:
+  #   build: ./mathesar
+  #   environment:
+  #     - DOPPLER_TOKEN
+  #     - POSTGRES_HOST=mathesar-db
+  #     - POSTGRES_PORT=5432
+  #     - POSTGRES_USER=mathesar
+  #     - POSTGRES_DB=mathesar_django
+  #     - PODIUM_DATABASE_URL=postgresql://postgres:localpass@podium-pg:5432/podium
+  #   ports: ["8000:8000"]
+  #   depends_on:
+  #     podium-pg: { condition: service_healthy }
+  #     mathesar-db: { condition: service_healthy }
 
-  mathesar-db:
-    build: { context: ./mathesar, dockerfile: Dockerfile.postgres }
-    environment:
-      - DOPPLER_TOKEN
-      - POSTGRES_USER=mathesar
-      - POSTGRES_DB=mathesar_django
-    volumes: [mathesar_pgdata:/var/lib/postgresql/data]
-    healthcheck:
-      test: pg_isready -U mathesar -d mathesar_django
-      interval: 5s
-      retries: 5
+  # mathesar-db:
+  #   build: { context: ./mathesar, dockerfile: Dockerfile.postgres }
+  #   environment:
+  #     - DOPPLER_TOKEN
+  #     - POSTGRES_USER=mathesar
+  #     - POSTGRES_DB=mathesar_django
+  #   volumes: [mathesar_pgdata:/var/lib/postgresql/data]
+  #   healthcheck:
+  #     test: pg_isready -U mathesar -d mathesar_django
+  #     interval: 5s
+  #     retries: 5
 
 volumes:
   podium_pgdata:
-  mathesar_pgdata:
+  # mathesar_pgdata:

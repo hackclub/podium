@@ -27,9 +27,6 @@ class Event(SQLModel, table=True):
     # Primary key - auto-generated UUID
     id: UUID = Field(default_factory=uuid4, primary_key=True)
 
-    # For migration from Airtable (temporary)
-    airtable_id: str | None = Field(default=None, max_length=32, unique=True, index=True)
-
     # Core fields
     name: str = Field(max_length=255)
     slug: str = Field(max_length=50, unique=True, index=True)
@@ -74,6 +71,9 @@ class Event(SQLModel, table=True):
             return 2
         else:
             return 3
+
+    # DEPRECATED: For migration from Airtable only. Remove after migration.
+    airtable_id: str | None = Field(default=None, max_length=32, unique=True, index=True)
 
 
 # =============================================================================

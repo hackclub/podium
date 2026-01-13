@@ -28,9 +28,6 @@ class User(SQLModel, table=True):
     # Primary key - auto-generated UUID
     id: UUID = Field(default_factory=uuid4, primary_key=True)
 
-    # For migration from Airtable (temporary, remove after migration)
-    airtable_id: str | None = Field(default=None, max_length=32, unique=True, index=True)
-
     # Core fields
     email: str = Field(max_length=255, unique=True, index=True)
     display_name: str = Field(default="", max_length=255)
@@ -60,6 +57,9 @@ class User(SQLModel, table=True):
     projects_collaborating: list["Project"] = Relationship(
         back_populates="collaborators", link_model=ProjectCollaboratorLink
     )
+
+    # DEPRECATED: For migration from Airtable only. Remove after migration.
+    airtable_id: str | None = Field(default=None, max_length=32, unique=True, index=True)
 
 
 # =============================================================================
