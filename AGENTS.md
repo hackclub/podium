@@ -32,32 +32,25 @@ bun dev
 
 Models in `backend/podium/db/postgres/`:
 - `user.py`, `event.py`, `project.py`, `vote.py`, `referral.py`
-- `links.py` - M2M junction tables (use surrogate PKs for Mathesar Extend compatibility)
+- `links.py` - M2M junction tables
 - `base.py` - Session factory
 
-**Database Views:**
-- See `mathesar/VIEWS.md` for optional views (e.g., `users_with_events` for Airtable-like display)
+See [docs/database.md](docs/database.md) for query patterns and migration guide.
 
-## Local Postgres + Mathesar (Docker Compose)
+## Local Postgres + NocoDB (Docker Compose)
 
 ```bash
 # First time setup
 cp .env.example .env
-# Edit .env with DOPPLER_TOKEN (generate: doppler configs tokens create dev-local --config dev --max-age 1h --plain)
 
 # Start
 docker compose up -d
 
 # Postgres: localhost:5432 (postgres/localpass)
-# Mathesar: http://localhost:8000
+# NocoDB: http://localhost:8080
 ```
 
-For Coolify, use `mathesar/docker-compose.yaml` (connects to external `podium` network).
-
-The `mathesar/bootstrap.py` script runs on container start to:
-- Create admin user and database connection (if missing)
-- Update stored credentials (always)
-- Run `install_sql()` to install Mathesar's helper functions in Podium DB
+See [docs/nocodb.md](docs/nocodb.md) for NocoDB setup.
 
 ## Database Reset & Migration
 

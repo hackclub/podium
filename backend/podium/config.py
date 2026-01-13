@@ -89,7 +89,7 @@ settings.validators.register(
 
 try:
     settings.validators.validate()
-except Exception as e:
+except Exception:
     print(
         "\n⚠️  Configuration validation failed. Check that:\n"
         "  - Doppler is configured correctly (run 'doppler setup')\n"

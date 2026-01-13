@@ -1,1 +1,0 @@
-AI-generated drafts to get an idea of what the code is going to look like after the migration
