@@ -5,7 +5,7 @@ services:
   mathesar:
     build: .
     environment:
-      - DOPPLER_TOKEN
+      # - DOPPLER_TOKEN
       - ALLOWED_HOSTS=mathesar.podium-backend.hackclub.com,localhost
       - POSTGRES_HOST=mathesar-db
       - POSTGRES_PORT=5432
@@ -21,7 +21,7 @@ services:
   mathesar-db:
     build: { context: ., dockerfile: Dockerfile.postgres }
     environment:
-      - DOPPLER_TOKEN
+      # - DOPPLER_TOKEN
       - POSTGRES_USER=mathesar
       - POSTGRES_DB=mathesar_django
     volumes: [mathesar_pgdata:/var/lib/postgresql/data]

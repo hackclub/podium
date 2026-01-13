@@ -1,0 +1,1 @@
+Mathesar provides a web-based interface for managing the database. In reality, in most cases, it'll be better to just connect to the DB with NocoDB, which Coolify has a built-in service for.
