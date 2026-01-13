@@ -52,20 +52,14 @@ docker compose up -d
 
 See [docs/nocodb.md](docs/nocodb.md) for NocoDB setup.
 
-## Database Reset & Migration
+## Database Reset
 
-**Local database (safe):**
 ```bash
-./scripts/reset-migrate.sh                 # Reset local DB with empty schema
-./scripts/reset-migrate.sh --sync <URL>    # Reset local DB + sync from Postgres URL
-./scripts/reset-migrate.sh --migrate-dev   # Reset local DB + migrate from dev Airtable
-./scripts/reset-migrate.sh --checkout-prod # Reset local DB + migrate from prod Airtable
+./scripts/reset-migrate.sh              # Reset local DB with empty schema
+./scripts/reset-migrate.sh --sync <URL> # Reset + sync data from Postgres URL
 ```
 
-**Production database (dangerous):**
-```bash
-./scripts/reset-migrate.sh --migrate-prod  # Migrate prod Airtable -> prod Postgres
-```
+For Airtable migrations, see `docs/migrations/`.
 
 ## Migrations
 
