@@ -17,8 +17,7 @@ export const themes = [
   "night",
   "retro",
   "dracula",
-  "undercity",
-  "daydream",
+  // "undercity",
 ];
 export const lightTheme = "nord";
 // export const darkTheme = "coffee";
