@@ -115,9 +115,9 @@ export type ProjectPrivate = {
     demo: string;
     description: string;
     points: number;
+    owner_id: string;
     join_code: string;
     hours_spent: number;
-    owner_id: string;
     event_id: string;
     cached_auto_quality?: ({
     [key: string]: unknown;
@@ -135,6 +135,7 @@ export type ProjectPublic = {
     demo: string;
     description: string;
     points: number;
+    owner_id: string;
 };
 
 /**

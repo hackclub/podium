@@ -73,6 +73,7 @@ class ProjectPublic(SQLModel):
     demo: str
     description: str
     points: int
+    owner_id: UUID
 
 
 class ProjectPrivate(ProjectPublic):
@@ -80,7 +81,6 @@ class ProjectPrivate(ProjectPublic):
 
     join_code: str
     hours_spent: int
-    owner_id: UUID
     event_id: UUID
     cached_auto_quality: dict[str, Any] | None = None
 

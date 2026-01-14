@@ -4,18 +4,11 @@
   import { toast } from "svelte-sonner";
   import { EventsService } from "$lib/client/sdk.gen";
   import ProjectCard from "$lib/components/ProjectCard.svelte";
-  import {
-    customInvalidateAll,
-    handleError,
-    invalidateEvents,
-    invalidateUser,
-  } from "$lib/misc";
-  import { getAuthenticatedUser } from "$lib/user.svelte";
-  import { invalidateAll, goto } from "$app/navigation";
+  import { customInvalidateAll, handleError } from "$lib/misc";
+  import { goto } from "$app/navigation";
 
   const { data } = $props();
   let selectedProjects: string[] = $state([]);
-  let userId = getAuthenticatedUser().user.id;
 
   function toggleProjectSelection(projectId: string) {
     if (selectedProjects.includes(projectId)) {
@@ -70,16 +63,12 @@
       class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
     >
       {#each data.projects as project}
-        <!-- First conditional checks if the user is the owner or a collaborator of the project, in which case they cannot vote for it. Second conditional checks if the user has already voted for this project, in which case they also cannot vote for it. -->
-        {@const p = project as any}
-        {#if !(p.owner && p.owner.includes(userId)) && !(p.collaborators && p.collaborators.includes(userId)) && !(p.votes ?? []).some( (vote: string) => ((getAuthenticatedUser().user as any).votes ?? []).includes(vote), )}
-          <ProjectCard
-            {project}
-            isSelected={selectedProjects.includes(project.id)}
-            toggle={() => toggleProjectSelection(project.id)}
-            selectable={true}
-          />
-        {/if}
+        <ProjectCard
+          {project}
+          isSelected={selectedProjects.includes(project.id)}
+          toggle={() => toggleProjectSelection(project.id)}
+          selectable={true}
+        />
       {/each}
     </div>
     <!-- Not disabling if user has already voted since this is hidden then anyway. Also not disabling if projects is under toSelect since people can come back. -->

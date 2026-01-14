@@ -61,6 +61,7 @@
     demo: "",
     description: "",
     points: 0,
+    owner_id: "",
   };
   // Derive           project = { ...chosenProject };
   let project: ProjectUpdate = $derived({ ...preselectedProject });

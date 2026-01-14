@@ -30,14 +30,24 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
     // Check if user already voted
     // console.debug("Project IDs loaded:", projects.data.map((project) => project.id));
     // console.debug("User votes:", getAuthenticatedUser().user.votes);
-    const userVotesInEvent = (((getAuthenticatedUser().user as any).votes || []) as string[]).filter(
-      (vote: string) => {
-        // A project was voted for if project.votes contains the vote ID.
-        return projects.some((project) => {
-          return ((project as any).votes ?? []).includes(vote);
-        });
-      },
+    const user = getAuthenticatedUser().user as any;
+    const userId = user.id;
+    const userVoteIds = (user.votes ?? []) as string[];
+
+    // Filter to only projects the user can vote for
+    const votableProjects = projects.filter((project) => {
+      const p = project as any;
+      const collaboratorIds = (p.collaborators ?? []).map((c: any) => c.id ?? c);
+      const isOwner = p.owner_id === userId;
+      const isCollaborator = collaboratorIds.includes(userId);
+      const hasVoted = (p.votes ?? []).some((vote: string) => userVoteIds.includes(vote));
+      return !isOwner && !isCollaborator && !hasVoted;
+    });
+
+    const userVotesInEvent = userVoteIds.filter((vote: string) =>
+      projects.some((project) => ((project as any).votes ?? []).includes(vote))
     ).length;
+
     if (userVotesInEvent > toSelect) {
       Sentry.captureMessage(
         `User has more votes (${userVotesInEvent}) than allowed (${toSelect}) for event ${event.id}`,
@@ -50,7 +60,7 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
     console.debug(
       `User has ${userVotesInEvent} votes in event ${event.id}, can select ${toSelect} more projects`,
     );
-    return { projects: projects, toSelect, alreadyVoted };
+    return { projects: votableProjects, toSelect, alreadyVoted };
   } catch (err) {
     console.error(err);
     throw error(500, "Failed to load projects");
