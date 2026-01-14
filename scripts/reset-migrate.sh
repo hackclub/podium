@@ -36,12 +36,12 @@ case "$1" in
 esac
 
 # Verify Docker is running
-docker compose ps --quiet postgres >/dev/null 2>&1 || error "Run 'docker compose up -d' first"
+docker compose ps --quiet podium-pg >/dev/null 2>&1 || error "Run 'docker compose up -d' first"
 
 # Reset database
 info "Resetting database..."
-docker compose exec -T postgres psql -U postgres -c "DROP DATABASE IF EXISTS podium;" 2>/dev/null || true
-docker compose exec -T postgres psql -U postgres -c "CREATE DATABASE podium;"
+docker compose exec -T podium-pg psql -U postgres -c "DROP DATABASE IF EXISTS podium;" 2>/dev/null || true
+docker compose exec -T podium-pg psql -U postgres -c "CREATE DATABASE podium;"
 
 # Run migrations
 info "Running migrations..."
@@ -53,7 +53,7 @@ if [[ "$MODE" == "sync" ]]; then
   CLEAN_URL=$(echo "$SYNC_URL" | sed 's/+asyncpg//')
   docker run --rm postgres:17 pg_dump "$CLEAN_URL" \
     --data-only --disable-triggers --exclude-table=alembic_version \
-    | docker compose exec -T postgres psql -U postgres -d podium
+    | docker compose exec -T podium-pg psql -U postgres -d podium
 fi
 
 info "Done! Postgres: localhost:5432"
