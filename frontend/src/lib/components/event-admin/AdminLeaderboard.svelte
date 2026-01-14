@@ -33,8 +33,7 @@
               <div
                 class="bg-base-100/90 backdrop-blur-sm rounded-lg p-2 text-xs"
               >
-                <div class="font-medium">Points: {project.points || 0}</div>
-                <div>Votes: {(project as any).votes?.length || 0}</div>
+                <div class="font-medium">Votes: {project.points || 0}</div>
               </div>
             </div>
 

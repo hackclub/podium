@@ -43,7 +43,10 @@ async def get_projects(
     stmt = (
         select(User)
         .where(User.id == user.id)
-        .options(selectinload(User.owned_projects), selectinload(User.projects_collaborating))
+        .options(
+            selectinload(User.owned_projects).selectinload(Project.votes),
+            selectinload(User.projects_collaborating).selectinload(Project.votes),
+        )
     )
     u = await scalar_one_or_none(session, stmt)
     if not u:
@@ -137,7 +140,12 @@ async def update_project(
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
     """Update a project."""
-    project = await session.get(Project, project_id)
+    project = await scalar_one_or_none(
+        session,
+        select(Project)
+        .where(Project.id == project_id)
+        .options(selectinload(Project.votes)),
+    )
     if not project or project.owner_id != user.id:
         raise BAD_ACCESS
 
@@ -177,7 +185,12 @@ async def get_project_endpoint(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> ProjectPublic:
     """Get a project by ID."""
-    project = await session.get(Project, project_id)
+    project = await scalar_one_or_none(
+        session,
+        select(Project)
+        .where(Project.id == project_id)
+        .options(selectinload(Project.votes)),
+    )
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     return ProjectPublic.model_validate(project)

@@ -1,4 +1,5 @@
 .vercel
+backups/
 tmp/
 quality_check_results/
 sample_projects.csv

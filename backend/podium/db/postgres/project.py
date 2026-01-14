@@ -7,6 +7,7 @@ A Project is a hackathon submission that belongs to an Event.
 from typing import Any, TYPE_CHECKING
 from uuid import UUID, uuid4
 
+from pydantic import computed_field
 from sqlalchemy import Column
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel, Relationship
@@ -35,7 +36,14 @@ class Project(SQLModel, table=True):
     description: str = Field(default="")
     join_code: str = Field(max_length=20, unique=True)
     hours_spent: int = Field(default=0)
-    points: int = Field(default=0, index=True)
+
+    # Computed field pattern: use @computed_field for derived values.
+    # Requires eager-loading the relationship: select(Project).options(selectinload(Project.votes))
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def points(self) -> int:
+        """Vote count - computed from votes relationship."""
+        return len(self.votes)
 
     # Cached results from automated quality checks (JSONB for flexibility)
     cached_auto_quality: dict[str, Any] | None = Field(

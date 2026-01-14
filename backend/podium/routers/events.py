@@ -235,7 +235,6 @@ async def vote(
             raise HTTPException(status_code=403, detail="User cannot vote for their own project")
 
         session.add(Vote(voter_id=user.id, project_id=project_id, event_id=event.id))
-        project.points += 1
 
     await session.commit()
     return {"message": "Votes recorded"}
@@ -253,7 +252,10 @@ async def get_event_projects(
         raise HTTPException(status_code=404, detail="Event not found")
 
     projects = await scalar_all(
-        session, select(Project).where(Project.event_id == event_id)
+        session,
+        select(Project)
+        .where(Project.event_id == event_id)
+        .options(selectinload(Project.votes)),
     )
 
     if leaderboard:

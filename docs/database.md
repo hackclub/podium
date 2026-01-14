@@ -30,10 +30,41 @@ event.sqlmodel_update(event_update.model_dump(exclude_unset=True, exclude_none=T
 await session.commit()
 ```
 
-Eager load relationships to avoid N+1:
+## Eager Loading
+
+Without eager loading, accessing a relationship triggers a separate query (N+1 problem). Use `selectinload` to fetch related records in one query:
+
 ```python
-stmt = select(Event).options(selectinload(Event.attendees)).where(Event.id == id)
+# Bad: each project.votes access triggers a query
+projects = await scalar_all(session, select(Project))
+for p in projects:
+    print(p.votes)  # N additional queries
+
+# Good: votes loaded upfront with one extra query
+projects = await scalar_all(
+    session,
+    select(Project).options(selectinload(Project.votes))
+)
 ```
+
+See [SQLAlchemy loading docs](https://docs.sqlalchemy.org/en/20/orm/queryguide/relationships.html#relationship-loading-techniques).
+
+## Computed Fields
+
+Use `@computed_field` for derived values from relationships. Must eager-load the relationship first:
+
+```python
+# Model
+@computed_field
+@property
+def points(self) -> int:
+    return len(self.votes)
+
+# Query - must include selectinload
+stmt = select(Project).options(selectinload(Project.votes))
+```
+
+See [Pydantic computed_field docs](https://docs.pydantic.dev/latest/concepts/fields/#computed-fields).
 
 ## Migrations
 
