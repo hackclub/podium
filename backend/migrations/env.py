@@ -18,7 +18,7 @@ from sqlmodel import SQLModel
 
 # Import all models so SQLModel.metadata is populated.
 # This single import loads everything via db/postgres/__init__.py
-from podium.db import postgres as models  # noqa: F401
+from podium.db import postgres  # noqa: F401
 
 # Alembic config object (reads from alembic.ini)
 config = context.config
