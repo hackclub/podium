@@ -5,15 +5,15 @@
 @plugin "daisyui" {
   themes:
     coffee,
-    /* night --prefersdark, */ night,
-    /* retro --default, */ retro,
+    night --prefersdark, night,
+    retro --default, retro,
     dracula;
 }
-
+/* 
 @plugin "daisyui/theme" {
   name: "undercity";
-  default: true;
-  prefersdark: true;
+  default: false;
+  prefersdark: false;
   --color-base-100: #2e2a54;
   --color-base-200: #272239;
   --color-base-300: rgba(86, 76, 173);
@@ -76,7 +76,7 @@
   --border: 1px;
   --depth: 1;
   --noise: 1;
-}
+} */
 
 @theme {
   --font-sans: Phantom Sans, sans-serif;

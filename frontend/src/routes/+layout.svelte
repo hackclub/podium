@@ -9,6 +9,8 @@
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import { setSystemTheme, returnLoadingText } from "$lib/misc";
   import { goto } from "$app/navigation";
+  import { PUBLIC_MAINTENANCE_MODE } from "$env/static/public";
+  import MaintenanceMode from "$lib/components/MaintenanceMode.svelte";
 
   import Podium from "$lib/assets/podium.png";
 
@@ -133,7 +135,9 @@
   closeButton
 />
 
-{#if page.url.pathname !== "/login" && isAuthenticated}
+{#if PUBLIC_MAINTENANCE_MODE === "true"}
+  <MaintenanceMode />
+{:else if page.url.pathname !== "/login" && isAuthenticated}
   <!-- Sidebar Layout for authenticated users -->
   <div class="drawer lg:drawer-open">
     <input id="sidebar-drawer" type="checkbox" class="drawer-toggle" />
