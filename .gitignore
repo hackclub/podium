@@ -1,8 +1,9 @@
 .vercel
+backups/
 tmp/
 quality_check_results/
 sample_projects.csv
 logs/
 backend/podium/cache/generated/
-# for `act`
-.secrets 
+# Local secrets (docker compose + act)
+.env

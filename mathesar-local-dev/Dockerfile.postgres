@@ -1,0 +1,18 @@
+# Custom Postgres image with Doppler CLI
+# Fetches POSTGRES_PASSWORD from Doppler at startup
+
+# Pin to specific version for reproducibility
+FROM postgres:17.2-alpine3.21
+
+# Install Doppler CLI (Alpine method)
+RUN wget -q -t3 'https://packages.doppler.com/public/cli/rsa.8004D9FF50437357.key' -O /etc/apk/keys/cli@doppler-8004D9FF50437357.rsa.pub && \
+    echo 'https://packages.doppler.com/public/cli/alpine/any-version/main' | tee -a /etc/apk/repositories && \
+    apk add doppler
+
+# Add wrapper entrypoint that runs Doppler first
+COPY docker-entrypoint-doppler.sh /usr/local/bin/docker-entrypoint-doppler.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint-doppler.sh
+
+# Use our wrapper as the entrypoint, keep default CMD
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint-doppler.sh"]
+CMD ["postgres"]

@@ -3,11 +3,11 @@
   import { EventsService } from "$lib/client/sdk.gen";
   import type {
     UserAttendee,
-    Project,
-    Event,
-    PrivateEvent,
-    Vote,
-    Referral,
+    ProjectPublic,
+    EventPublic,
+    EventPrivate,
+    VoteResponse,
+    ReferralResponse,
   } from "$lib/client/types.gen";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import UpdateEvent from "./UpdateEvent.svelte";
@@ -20,16 +20,16 @@
   import { toast } from "svelte-sonner";
 
   interface Props {
-    event: PrivateEvent & { owned: boolean; partOfEvent: boolean };
+    event: EventPrivate & { owned: boolean; partOfEvent: boolean };
   }
 
   let { event }: Props = $props();
 
   // Admin state
   let attendees = $state<UserAttendee[]>([]);
-  let adminLeaderboard = $state<Project[]>([]);
-  let votes = $state<Vote[]>([]);
-  let referrals = $state<Referral[]>([]);
+  let adminLeaderboard = $state<ProjectPublic[]>([]);
+  let votes = $state<VoteResponse[]>([]);
+  let referrals = $state<ReferralResponse[]>([]);
   let loading = $state(false);
 
   // Lookup maps for efficient data access
@@ -120,7 +120,7 @@
       const { error } =
         await EventsService.removeAttendeeEventsAdminEventIdRemoveAttendeePost({
           path: { event_id: event.id },
-          body: userId,
+          body: { user_id: userId },
           throwOnError: false,
         });
 

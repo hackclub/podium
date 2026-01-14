@@ -6,7 +6,7 @@
  * - Repo URL is a valid GitHub/Gitee URL
  */
 
-import type { Project } from "$lib/client/types.gen";
+import type { ProjectPublic } from "$lib/client/types.gen";
 import type { ValidationResult } from "../types";
 
 // URL validation regexes
@@ -18,7 +18,7 @@ export const githubRegex =
 /**
  * Validate a project for Daydream requirements
  */
-export function validateDaydreamProject(project: Project): ValidationResult {
+export function validateDaydreamProject(project: ProjectPublic): ValidationResult {
   const demo = project.demo?.trim() || "";
   const repo = project.repo?.trim() || "";
 

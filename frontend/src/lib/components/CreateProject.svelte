@@ -1,6 +1,6 @@
 <script lang="ts">
   import { EventsService, ProjectsService } from "$lib/client/sdk.gen";
-  import type { ProjectCreationPayload, Event } from "$lib/client";
+  import type { ProjectCreate, EventPublic } from "$lib/client";
   import { toast } from "svelte-sonner";
   import { customInvalidateAll, handleError } from "$lib/misc";
   import Modal from "$lib/components/Modal.svelte";
@@ -12,24 +12,24 @@
     preselectedEvent,
   }: {
     onProjectCreated?: () => void;
-    preselectedEvent?: Event;
+    preselectedEvent?: EventPublic;
   } = $props();
 
-  let project: ProjectCreationPayload = $state({
+  let project: ProjectCreate = $state({
     name: "",
     repo: "",
     demo: "",
     image_url: "",
     description: "",
-    event: [preselectedEvent?.id || ""],
+    event_id: preselectedEvent?.id || "",
     hours_spent: 0,
   });
-  let events: Event[] = $state([]);
+  let events: EventPublic[] = $state([]);
   let fetchedEvents = false;
 
   // Track the selected event's demo_links_optional setting
   let selectedEvent = $derived(
-    preselectedEvent || events.find((e) => e.id === project.event[0]),
+    preselectedEvent || events.find((e) => e.id === project.event_id),
   );
   let demoLinksOptional = $derived(selectedEvent?.demo_links_optional || false);
 
@@ -63,7 +63,7 @@
       demo: "",
       image_url: "",
       description: "",
-      event: [""],
+      event_id: "",
       hours_spent: 0,
     };
     await customInvalidateAll();
@@ -99,7 +99,7 @@
       <label class="label" for="event">Event</label>
       <select
         id="event"
-        bind:value={project.event[0]}
+        bind:value={project.event_id}
         class="select select-bordered w-full"
         onfocus={() => {
           if (!fetchedEvents) fetchEvents();

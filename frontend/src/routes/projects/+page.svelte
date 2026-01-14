@@ -22,8 +22,8 @@
   onMount(async () => {
     for (const project of data.projects) {
       // Find the event for this project to check if it has a feature flag
-      const projectEvent = data.events.find((e) => e.id === project.event[0]);
-      const featureFlag = projectEvent?.feature_flags_list?.[0];
+      const projectEvent = data.events.find((e) => e.id === project.event_id);
+      const featureFlag = (projectEvent as any)?.feature_flags_list?.[0];
       
       const result = await checkProjectQuality(project, featureFlag);
       if (result) {
@@ -44,7 +44,7 @@
             {#key project.id}
               <ProjectCardWrapper
                 {project}
-                events={data.events}
+                events={data.events as any}
                 {projectQualityResults}
                 {projectModalState}
                 {formatReasons}

@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { Vote } from "$lib/client/types.gen";
+  import type { VoteResponse } from "$lib/client/types.gen";
 
   interface Props {
-    votes: Vote[];
+    votes: VoteResponse[];
     userLookup: Map<string, string>;
     projectLookup: Map<string, string>;
   }
@@ -30,18 +30,18 @@
               <tr>
                 <td>
                   <div class="font-medium">
-                    {userLookup.get(vote.voter[0]) || "Unknown User"}
+                    {userLookup.get(vote.voter_id) || "Unknown User"}
                   </div>
                   <div class="text-xs text-base-content/70 font-mono">
-                    {vote.voter[0]}
+                    {vote.voter_id}
                   </div>
                 </td>
                 <td>
                   <div class="font-medium">
-                    {projectLookup.get(vote.project[0]) || "Unknown Project"}
+                    {projectLookup.get(vote.project_id) || "Unknown Project"}
                   </div>
                   <div class="text-xs text-base-content/70 font-mono">
-                    {vote.project[0]}
+                    {vote.project_id}
                   </div>
                 </td>
               </tr>

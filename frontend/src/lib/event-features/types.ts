@@ -6,7 +6,7 @@
  * and UI components that integrate seamlessly into the admin dashboard.
  */
 
-import type { Project } from "$lib/client/types.gen";
+import type { ProjectPublic } from "$lib/client/types.gen";
 import type { Component } from "svelte";
 
 /**
@@ -23,7 +23,7 @@ export interface ValidationResult {
  * Project validator function signature
  */
 export type ProjectValidator = (
-  project: Project,
+  project: ProjectPublic,
 ) => ValidationResult | Promise<ValidationResult>;
 
 /**
@@ -32,7 +32,7 @@ export type ProjectValidator = (
  */
 export type ValidationUIComponent = Component<{
   validation: ValidationResult;
-  project: Project;
+  project: ProjectPublic;
 }>;
 
 /**

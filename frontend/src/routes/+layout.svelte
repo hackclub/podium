@@ -9,7 +9,7 @@
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import { setSystemTheme, returnLoadingText } from "$lib/misc";
   import { goto } from "$app/navigation";
-  import { PUBLIC_MAINTENANCE_MODE } from "$env/static/public";
+  import { env } from "$env/dynamic/public";
   import MaintenanceMode from "$lib/components/MaintenanceMode.svelte";
 
   import Podium from "$lib/assets/podium.png";
@@ -18,6 +18,7 @@
   import NoticeAndHelp from "$lib/components/NoticeAndHelp.svelte";
   import UpdateUser from "$lib/components/UpdateUser.svelte";
   import AirtableHitsCounter from "$lib/components/AirtableHitsCounter.svelte";
+  import DevModeIndicator from "$lib/components/DevModeIndicator.svelte";
   import { resetAirtableHits } from "$lib/airtable-hits.svelte";
 
   let loadingText = $state(returnLoadingText());
@@ -134,7 +135,7 @@
   closeButton
 />
 
-{#if PUBLIC_MAINTENANCE_MODE === "true"}
+{#if env.PUBLIC_MAINTENANCE_MODE === "true"}
   <MaintenanceMode />
 {:else if page.url.pathname !== "/login" && isAuthenticated}
   <!-- Sidebar Layout for authenticated users -->
@@ -364,3 +365,6 @@
 
 <!-- Airtable Hits Counter (Top Right, dev only) -->
 <AirtableHitsCounter />
+
+<!-- Dev Mode Indicator (red border + notice) -->
+<DevModeIndicator />

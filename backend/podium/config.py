@@ -1,4 +1,13 @@
+"""
+Application configuration using Dynaconf.
+
+All settings are loaded from environment variables with PODIUM_ prefix,
+or from settings.toml/.secrets.toml files. Dynaconf strips the prefix,
+so PODIUM_DATABASE_URL becomes settings.database_url.
+"""
+
 import os
+import sys
 from dynaconf import Dynaconf, Validator
 
 # type: ignore
@@ -13,33 +22,35 @@ settings = Dynaconf(
 )
 settings.validators.register(
     validators=[
+        # Airtable settings - optional, only needed for scripts/migrate_from_airtable.py
+        # Can be removed after production cutover is complete
         Validator(
             "airtable_token",
-            must_exist=True,
+            default="",
         ),
         Validator(
             "airtable_base_id",
-            must_exist=True,
+            default="",
         ),
         Validator(
             "airtable_events_table_id",
-            must_exist=True,
+            default="",
         ),
         Validator(
             "airtable_users_table_id",
-            must_exist=True,
+            default="",
         ),
         Validator(
             "airtable_referrals_table_id",
-            must_exist=True,
+            default="",
         ),
         Validator(
             "airtable_votes_table_id",
-            must_exist=True,
+            default="",
         ),
         Validator(
             "loops_api_key",
-            # must_exist=True,
+            default="",
         ),
         Validator(
             "loops_transactional_id",
@@ -67,14 +78,18 @@ settings.validators.register(
             default="",
         ),
         Validator(
-            "redis_url",
-            # default="redis://localhost:6379",
+            "database_url",
+            must_exist=True,
         ),
         Validator(
-            "airtable_webhook_secret",
-            # must_exist=False,  # Optional - only needed if using cache invalidation webhooks
+            "production_url",
+            default="http://localhost:5173",
         ),
     ],
 )
 
-settings.validators.validate()
+try:
+    settings.validators.validate()
+except Exception:
+    sys.stderr.write("\n⚠️  Configuration validation failed. Check that:\n  - Doppler is configured correctly (run 'doppler setup')\n  - No stale DOPPLER_TOKEN exists in .env\n  - Required secrets are set in Doppler\n\n")
+    raise

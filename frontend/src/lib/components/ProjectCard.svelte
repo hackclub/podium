@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { PrivateProject, Project } from "$lib/client/types.gen";
+  import type { ProjectPrivate, ProjectPublic } from "$lib/client/types.gen";
   import { onMount } from "svelte";
   interface Props {
-    project: PrivateProject | Project;
+    project: ProjectPrivate | ProjectPublic;
     isSelected: boolean;
     toggle: () => void;
     selectable?: boolean;
@@ -15,9 +15,10 @@
   onMount(() => {
     // Use lookup fields from Airtable to avoid N+1 queries
     // Note: Airtable lookup fields return arrays even for single records
+    const p = project as any;
     const allNames = [
-      ...(project.collaborator_display_names || []),
-      ...(project.owner_display_name || []),
+      ...(p.collaborator_display_names || []),
+      ...(p.owner_display_name || []),
     ].filter(Boolean); // Remove empty strings
 
     // Only format if we have valid names

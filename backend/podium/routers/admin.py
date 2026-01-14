@@ -1,129 +1,174 @@
+from typing import Annotated
+from uuid import UUID
+
 from fastapi import APIRouter, Body, Depends, HTTPException, Path
-from typing import Annotated, List
-from podium import db, cache
-from podium.cache.operations import Entity
-from podium.constants import BAD_ACCESS
-from podium.db.event import PrivateEvent
+from pydantic import BaseModel
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from podium.db.postgres import (
+    User,
+    Event,
+    EventPrivate,
+    Project,
+    ProjectPrivate,
+    Vote,
+    Referral,
+    get_session,
+    scalar_one_or_none,
+    scalar_all,
+)
 from podium.routers.auth import get_current_user
-from podium.db.user import UserAttendee, UserInternal
-from podium.db.project import AdminProject
-from podium.db.vote import Vote
-from podium.db.referral import Referral
+from podium.constants import BAD_ACCESS
 
 router = APIRouter(prefix="/events/admin", tags=["events"])
 
 
-def is_user_event_owner(user: UserInternal, event_id: str) -> bool:
-    return event_id in user.owned_events
+class UserAttendee(BaseModel):
+    id: UUID
+    email: str
+    display_name: str
+    first_name: str
+    last_name: str
+
+
+class VoteResponse(BaseModel):
+    id: UUID
+    voter_id: UUID
+    project_id: UUID
+    event_id: UUID
+
+
+class ReferralResponse(BaseModel):
+    id: UUID
+    content: str
+    user_id: UUID
+    event_id: UUID
+
+
+async def get_owned_event(
+    event_id: UUID, user: User, session: AsyncSession
+) -> Event:
+    """Get an event if the user owns it, else raise BAD_ACCESS."""
+    event = await session.get(Event, event_id)
+    if not event or event.owner_id != user.id:
+        raise BAD_ACCESS
+    return event
 
 
 @router.get("/{event_id}")
 async def get_event_admin(
-    event_id: Annotated[str, Path(title="Event ID")],
-    user: Annotated[UserInternal, Depends(get_current_user)],
-) -> PrivateEvent:
-    if not is_user_event_owner(user, event_id):
-        raise BAD_ACCESS
-    event = await cache.get_one(Entity.EVENTS, event_id, PrivateEvent)
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-    return event
+    event_id: Annotated[UUID, Path(title="Event ID")],
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> EventPrivate:
+    event = await get_owned_event(event_id, user, session)
+    return EventPrivate.model_validate(event)
 
 
 @router.get("/{event_id}/attendees")
 async def get_event_attendees(
-    event_id: Annotated[str, Path(title="Event ID")],
-    user: Annotated[UserInternal, Depends(get_current_user)],
-) -> List[UserAttendee]:
-    """Get the attendees of an event"""
-    if not is_user_event_owner(user, event_id):
-        raise BAD_ACCESS
+    event_id: Annotated[UUID, Path(title="Event ID")],
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> list[UserAttendee]:
+    """Get attendees of an event."""
+    await get_owned_event(event_id, user, session)
 
-    # Fetch attendees from cache
-    event = await cache.get_one(Entity.EVENTS, event_id, PrivateEvent)
+    stmt = (
+        select(Event)
+        .where(Event.id == event_id)
+        .options(selectinload(Event.attendees))
+    )
+    event = await scalar_one_or_none(session, stmt)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    attendee_ids = event.attendees or []
-    import asyncio
-    attendees = await asyncio.gather(*[cache.get_one(Entity.USERS, user_id, UserAttendee) for user_id in attendee_ids])
-    return [a for a in attendees if a is not None]
+
+    return [
+        UserAttendee(
+            id=a.id,
+            email=a.email,
+            display_name=a.display_name,
+            first_name=a.first_name,
+            last_name=a.last_name,
+        )
+        for a in event.attendees
+    ]
 
 
 @router.post("/{event_id}/remove-attendee")
 async def remove_attendee(
-    event_id: Annotated[str, Path(title="Event ID")],
-    user_id: Annotated[str, Body(title="User ID")],
-    user: Annotated[UserInternal, Depends(get_current_user)],
+    event_id: Annotated[UUID, Path(title="Event ID")],
+    user_id: Annotated[UUID, Body(embed=True)],
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    if not is_user_event_owner(user, event_id):
-        raise BAD_ACCESS
-    db.events.update(
-        event_id,
-        {
-            "attendees": [
-                attendee
-                for attendee in db.events.get(event_id)["fields"].get("attendees", [])
-                if attendee != user_id
-            ]
-        },
+    """Remove an attendee from an event."""
+    await get_owned_event(event_id, user, session)
+
+    stmt = (
+        select(Event)
+        .where(Event.id == event_id)
+        .options(selectinload(Event.attendees))
     )
-    # Invalidate cache so next read sees updated attendees
-    await cache.invalidate_entity(Entity.EVENTS, event_id)
-    return {"message": "Attendee removed"}
-
-
-@router.get(
-    "/{event_id}/leaderboard", response_model=List[AdminProject]
-)  # response model isn't needed here since we're not using fastapi-cache
-async def get_event_leaderboard(
-    event_id: Annotated[str, Path(title="Event ID")],
-    user: Annotated[UserInternal, Depends(get_current_user)],
-) -> List[AdminProject]:
-    """Get the leaderboard for an event (admin only)"""
-    if not is_user_event_owner(user, event_id):
-        raise BAD_ACCESS
-
-    event = await cache.get_one(Entity.EVENTS, event_id, PrivateEvent)
+    event = await scalar_one_or_none(session, stmt)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    # Get projects sorted by points (leaderboard order) with AdminProject model
-    projects = await cache.get_many_by_formula(Entity.PROJECTS, {"event_id": event_id}, AdminProject)
+    event.attendees = [a for a in event.attendees if a.id != user_id]
+    await session.commit()
+    return {"message": "Attendee removed"}
+
+
+@router.get("/{event_id}/leaderboard", response_model=list[ProjectPrivate])
+async def get_event_leaderboard(
+    event_id: Annotated[UUID, Path(title="Event ID")],
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> list[ProjectPrivate]:
+    """Get leaderboard for an event (admin only)."""
+    await get_owned_event(event_id, user, session)
+
+    projects = await scalar_all(
+        session,
+        select(Project)
+        .where(Project.event_id == event_id)
+        .options(selectinload(Project.votes)),
+    )
     projects.sort(key=lambda p: p.points, reverse=True)
-    return projects
+    return [ProjectPrivate.model_validate(p) for p in projects]
 
 
 @router.get("/{event_id}/votes")
 async def get_event_votes(
-    event_id: Annotated[str, Path(title="Event ID")],
-    user: Annotated[UserInternal, Depends(get_current_user)],
-) -> List[Vote]:
-    """Get all votes for an event (admin only)"""
-    if not is_user_event_owner(user, event_id):
-        raise BAD_ACCESS
+    event_id: Annotated[UUID, Path(title="Event ID")],
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> list[VoteResponse]:
+    """Get all votes for an event (admin only)."""
+    await get_owned_event(event_id, user, session)
 
-    event = await cache.get_one(Entity.EVENTS, event_id, PrivateEvent)
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-
-    # Get all votes for this event
-    votes = await cache.get_many_by_formula(Entity.VOTES, {"event_id": event_id}, Vote)
-    return votes
+    votes = await scalar_all(session, select(Vote).where(Vote.event_id == event_id))
+    return [
+        VoteResponse(id=v.id, voter_id=v.voter_id, project_id=v.project_id, event_id=v.event_id)
+        for v in votes
+    ]
 
 
 @router.get("/{event_id}/referrals")
 async def get_event_referrals(
-    event_id: Annotated[str, Path(title="Event ID")],
-    user: Annotated[UserInternal, Depends(get_current_user)],
-) -> List[Referral]:
-    """Get all referrals for an event (admin only)"""
-    if not is_user_event_owner(user, event_id):
-        raise BAD_ACCESS
+    event_id: Annotated[UUID, Path(title="Event ID")],
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> list[ReferralResponse]:
+    """Get all referrals for an event (admin only)."""
+    await get_owned_event(event_id, user, session)
 
-    event = await cache.get_one(Entity.EVENTS, event_id, PrivateEvent)
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-
-    # Get all referrals for this event
-    referrals = await cache.get_many_by_formula(Entity.REFERRALS, {"event_id": event_id}, Referral)
-    return referrals
+    referrals = await scalar_all(
+        session, select(Referral).where(Referral.event_id == event_id)
+    )
+    return [
+        ReferralResponse(id=r.id, content=r.content, user_id=r.user_id, event_id=r.event_id)
+        for r in referrals
+    ]

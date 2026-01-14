@@ -1,0 +1,42 @@
+# Coolify: Set DOPPLER_TOKEN env var
+# Doppler secrets: MATHESAR_DB_PASSWORD, MATHESAR_ADMIN_PASSWORD, PODIUM_DATABASE_URL
+
+services:
+  mathesar:
+    build: .
+    environment:
+      # - DOPPLER_TOKEN
+      - ALLOWED_HOSTS=mathesar.podium-backend.hackclub.com,localhost
+      - POSTGRES_HOST=mathesar-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=mathesar
+      - POSTGRES_DB=mathesar_django
+    depends_on:
+      mathesar-db: { condition: service_healthy }
+    healthcheck:
+      test: curl -f http://localhost:8000/
+      interval: 30s
+      retries: 3
+
+  mathesar-db:
+    build: { context: ., dockerfile: Dockerfile.postgres }
+    environment:
+      # - DOPPLER_TOKEN
+      - POSTGRES_USER=mathesar
+      - POSTGRES_DB=mathesar_django
+    volumes: [mathesar_pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: pg_isready -U mathesar -d mathesar_django
+      interval: 5s
+      retries: 5
+
+volumes:
+  mathesar_pgdata:
+
+# Note: For local dev with main Podium backend, use:
+#   docker network create podium
+# and uncomment below:
+# networks:
+#   default:
+#     name: podium
+#     external: true

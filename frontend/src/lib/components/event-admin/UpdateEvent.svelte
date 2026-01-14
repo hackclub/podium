@@ -1,6 +1,6 @@
 <script lang="ts">
   import { EventsService } from "$lib/client/sdk.gen";
-  import type { Event } from "$lib/client";
+  import type { EventPublic } from "$lib/client";
   import { toast } from "svelte-sonner";
   import { customInvalidateAll, handleError } from "$lib/misc";
   import type { EventUpdate } from "$lib/client/types.gen";
@@ -10,7 +10,7 @@
   let {
     preselectedEvent,
     events,
-  }: { preselectedEvent: Event; events: Array<Event> } = $props();
+  }: { preselectedEvent: EventPublic; events: Array<EventPublic> } = $props();
 
   let updateModal: Modal = $state() as Modal;
   let deleteConfirmation: ConfirmationModal = $state() as ConfirmationModal;

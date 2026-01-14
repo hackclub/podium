@@ -3,7 +3,7 @@ import { error, redirect } from "@sveltejs/kit";
 import type { PageLoad } from "./$types";
 import { getAuthenticatedUser } from "$lib/user.svelte";
 import { client, EventsService, ProjectsService } from "$lib/client/sdk.gen";
-import type { Event, PrivateProject, UserEvents } from "$lib/client/types.gen";
+import type { EventPublic, ProjectPrivate, UserEvents } from "$lib/client/types.gen";
 
 export const load: PageLoad = async ({ params, fetch, depends }) => {
   // depends("events:events")
