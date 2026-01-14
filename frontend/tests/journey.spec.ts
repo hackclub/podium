@@ -1,5 +1,5 @@
 import { test, expect, request as apiRequest } from '@playwright/test';
-import { signMagicLinkToken, signAccessToken } from './helpers/jwt';
+import { signMagicLinkToken } from './helpers/jwt';
 
 const API_BASE_URL = 'http://127.0.0.1:8000';
 
@@ -83,7 +83,7 @@ test.describe('Full User Journey', () => {
 		// PART 1: Organizer creates event and projects
 		// ============================================
 		const organizerEmail = `organizer+${timestamp}@test.local`;
-		const { token: organizerToken, api: organizerApi } = await createUserAndGetToken(
+		const { token: organizerToken } = await createUserAndGetToken(
 			organizerEmail,
 			'Organizer User'
 		);
@@ -241,12 +241,6 @@ test.describe('Full User Journey', () => {
 		).toBeVisible({ timeout: 15000 });
 
 		// Vote for projects via API (UI voting is complex with selection state)
-		// First get the event projects to find one to vote for
-		const projectsResp = await attendeeApi.get(
-			`${API_BASE_URL}/events/${eventSlug.replace(eventSlug, '')}/projects?leaderboard=false`,
-			{ headers: { Authorization: `Bearer ${attendeeToken}` } }
-		);
-		
 		// Get event ID from the page URL or API
 		const eventIdResp = await attendeeApi.get(`${API_BASE_URL}/events/id/${eventSlug}`);
 		if (eventIdResp.ok()) {

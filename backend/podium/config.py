@@ -7,6 +7,7 @@ so PODIUM_DATABASE_URL becomes settings.database_url.
 """
 
 import os
+import sys
 from dynaconf import Dynaconf, Validator
 
 # type: ignore
@@ -90,10 +91,10 @@ settings.validators.register(
 try:
     settings.validators.validate()
 except Exception:
-    print(
+    sys.stderr.write(
         "\n⚠️  Configuration validation failed. Check that:\n"
         "  - Doppler is configured correctly (run 'doppler setup')\n"
         "  - No stale DOPPLER_TOKEN exists in .env\n"
-        "  - Required secrets are set in Doppler\n"
+        "  - Required secrets are set in Doppler\n\n"
     )
     raise
