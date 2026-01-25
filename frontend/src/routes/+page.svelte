@@ -1,55 +1,55 @@
-<svelte:options runes />
-
 <script lang="ts">
-  import CreateProject from "$lib/components/CreateProject.svelte";
-  import AttendEvent from "$lib/components/AttendEvent.svelte";
-  import { getAuthenticatedUser, signOut } from "$lib/user.svelte";
-  import UpdateUser from "$lib/components/UpdateUser.svelte";
-
   import { onMount } from "svelte";
   import { EventsService, ProjectsService } from "$lib/client/sdk.gen";
-  import type { ProjectPrivate, EventPrivate } from "$lib/client";
-  import { handleError } from "$lib/misc";
-  import ProjectCard from "$lib/components/ProjectCard.svelte";
-  import { fade } from "svelte/transition";
-  import StartWizard from "$lib/components/StartWizard.svelte";
-  import FlagshipEventWizard from "$lib/components/FlagshipEventWizard.svelte";
-  import {
-    getActiveFlagshipEvent,
-    isFlagshipEvent,
-  } from "$lib/event-features/flagship-config";
+  import type { ProjectPrivate, EventPublic } from "$lib/client";
+  import { getAuthenticatedUser } from "$lib/user.svelte";
+  import EventSelector from "$lib/components/EventSelector.svelte";
+  import ProjectSubmissionWizard from "$lib/components/ProjectSubmissionWizard.svelte";
+  import { setHasProject } from "$lib/project-state.svelte";
 
-  let projects = $state() as Array<ProjectPrivate>;
-  let flagshipEvents = $state<EventPrivate[]>([]);
+  let projects = $state<ProjectPrivate[]>([]);
+  let attendingEvents = $state<EventPublic[]>([]);
+  let loading = $state(true);
+
+  const currentEvent = $derived(() => attendingEvents[0]);
+
+  const hasProjectForCurrentEvent = $derived(() => {
+    const event = currentEvent();
+    if (!event || !projects.length) return false;
+    return projects.some((p) => p.event_id === event.id);
+  });
 
   onMount(async () => {
+    if (!getAuthenticatedUser().access_token) {
+      loading = false;
+      return;
+    }
+
     try {
-      // Check for flagship events
-      const activeFlagship = getActiveFlagshipEvent();
-      if (activeFlagship) {
-        const { data, error } = await EventsService.getAttendingEventsEventsGet(
-          {
-            throwOnError: false,
-          },
-        );
-        if (!error && data) {
-          const attending = (data.attending_events ?? []) as EventPrivate[];
-          // Filter for events matching the active flagship feature flag
-          flagshipEvents = attending.filter((e) =>
-            (e as any).feature_flags_list?.includes(activeFlagship.featureFlag),
-          );
-        }
+      const [eventsRes, projectsRes] = await Promise.all([
+        EventsService.getAttendingEventsEventsGet({ throwOnError: false }),
+        ProjectsService.getProjectsProjectsMineGet({ throwOnError: false }),
+      ]);
+
+      if (!eventsRes.error && eventsRes.data) {
+        attendingEvents = (eventsRes.data.attending_events ??
+          []) as EventPublic[];
       }
 
-      // Fetch user's projects
-      const { data: projectsData, error: projectsError } =
-        await ProjectsService.getProjectsProjectsMineGet({
-          throwOnError: false,
-        });
-      if (projectsError || !projectsData) return;
-      projects = projectsData;
+      if (!projectsRes.error && projectsRes.data) {
+        projects = projectsRes.data;
+      }
+
+      // Update global project state for sidebar navigation
+      setHasProject(projects.length > 0);
     } catch (_) {}
+
+    loading = false;
   });
+
+  function handleEventJoined() {
+    window.location.reload();
+  }
 </script>
 
 {#if !getAuthenticatedUser().access_token}
@@ -77,15 +77,26 @@
     </div>
 
     <div class="min-h-[60vh] flex items-center justify-center">
-    {#if flagshipEvents.length}
-        {@const activeFlagship = getActiveFlagshipEvent()}
-        <FlagshipEventWizard
-          {flagshipEvents}
-          {projects}
-          welcomeMessage={activeFlagship?.welcomeMessage}
-        />
+      {#if loading}
+        <div class="flex flex-col items-center gap-4">
+          <span class="loading loading-spinner loading-lg text-primary"></span>
+          <p class="text-base-content/70">Loading...</p>
+        </div>
+      {:else if !currentEvent()}
+        <!-- User not attending any event - show event selector -->
+        <div class="max-w-md w-full mx-auto">
+          <div class="card bg-base-100 shadow-lg">
+            <div class="card-body">
+              <EventSelector onEventJoined={handleEventJoined} />
+            </div>
+          </div>
+        </div>
       {:else}
-        <StartWizard />
+        <!-- User is attending an event - show project wizard -->
+        <ProjectSubmissionWizard
+          flagshipEvents={attendingEvents as any}
+          {projects}
+        />
       {/if}
     </div>
   </div>

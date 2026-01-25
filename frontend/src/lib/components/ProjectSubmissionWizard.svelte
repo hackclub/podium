@@ -8,14 +8,50 @@
    * 3. Navigating to voting/galleries
    *
    * Replaces event-specific wizards like DaydreamWizard with a generic version.
+   *
+   * URL Hash Tracking:
+   * - The wizard step is reflected in the URL hash (e.g., #create, #join)
+   * - Browser back/forward navigation works correctly
+   * - Invalid hash values are ignored (user cannot break the flow)
    */
 
+  import { onMount, onDestroy } from "svelte";
+  import { replaceState } from "$app/navigation";
   import JoinProject from "./JoinProject.svelte";
   import type { ProjectPrivate, EventPrivate } from "$lib/client";
-  import { getEventFeature } from "$lib/event-features/registry";
+  import { validateProject } from "$lib/validation";
   import CreateProject from "./CreateProject.svelte";
   import UpdateProjectModal from "./UpdateProjectModal.svelte";
   import Modal from "./Modal.svelte";
+
+  type WizardStep =
+    | "chooseProject"
+    | "createProject"
+    | "joinProject"
+    | "validateProject"
+    | "success";
+
+  // Map URL hash values to wizard steps
+  const HASH_TO_STEP: Record<string, WizardStep> = {
+    "": "chooseProject",
+    "choose": "chooseProject",
+    "create": "createProject",
+    "join": "joinProject",
+    "validate": "validateProject",
+    "success": "success",
+  };
+
+  // Map wizard steps to URL hash values
+  const STEP_TO_HASH: Record<WizardStep, string> = {
+    chooseProject: "choose",
+    createProject: "create",
+    joinProject: "join",
+    validateProject: "validate",
+    success: "success",
+  };
+
+  // Steps that require a project to exist (cannot be accessed directly via URL)
+  const PROTECTED_STEPS: Set<WizardStep> = new Set(["validateProject", "success"]);
 
   interface Props {
     /** The flagship event(s) the user is attending */
@@ -31,21 +67,10 @@
   let currentEvent = $state(flagshipEvents[0]);
   let validationResult = $state<any>(null); // Store full validation result
   let updateProjectModal: Modal = $state() as Modal;
-  let currentStep = $state<
-    | "chooseProject"
-    | "createProject"
-    | "joinProject"
-    | "validateProject"
-    | "success"
-  >("chooseProject");
+  let currentStep = $state<WizardStep>("chooseProject");
   let validationState = $state<"loading" | "success" | "failure">("loading");
-
-  // Get the event feature for validation if available
-  const eventFeature = $derived(
-    (currentEvent as any)?.feature_flags_list?.[0]
-      ? getEventFeature((currentEvent as any).feature_flags_list[0])
-      : undefined,
-  );
+  let isInitialized = $state(false);
+  let hasAutoValidated = $state(false);
 
   // Check if user already has a project for this event
   const hasExistingProject = $derived(() => {
@@ -66,78 +91,139 @@
 
   const hasMultipleProjects = $derived(() => eventProjects().length > 1);
 
-  // Auto-validate when project data changes (after edit/update)
-  let lastValidatedProject = $state<string | null>(null);
-  $effect(() => {
-    const project = userProject();
-    if (project && eventFeature?.validateProject && currentStep === "validateProject") {
-      // Create a hash of the relevant project fields to detect actual changes
-      const projectHash = JSON.stringify({
-        repo: project.repo,
-        demo: project.demo,
-        name: project.name,
-        description: project.description,
-      });
-      
-      if (lastValidatedProject !== projectHash) {
-        lastValidatedProject = projectHash;
-        goToValidateProject();
-      }
+  /**
+   * Validates if a step transition is allowed based on current state.
+   * Prevents users from accessing protected steps via URL manipulation.
+   */
+  function isStepAllowed(step: WizardStep): boolean {
+    // Protected steps require an existing project
+    if (PROTECTED_STEPS.has(step)) {
+      return hasExistingProject();
+    }
+    return true;
+  }
+
+  /**
+   * Updates the URL hash to reflect the current step.
+   * Uses replaceState to avoid polluting browser history with every step change.
+   */
+  function updateHash(step: WizardStep) {
+    const hash = STEP_TO_HASH[step];
+    const newUrl = new URL(window.location.href);
+    newUrl.hash = hash;
+    replaceState(newUrl, {});
+  }
+
+  /**
+   * Reads the current URL hash and returns the corresponding step,
+   * falling back to chooseProject if invalid or not allowed.
+   */
+  function getStepFromHash(): WizardStep {
+    const hash = window.location.hash.replace("#", "");
+    const step = HASH_TO_STEP[hash];
+    
+    if (step && isStepAllowed(step)) {
+      return step;
+    }
+    
+    // Default: if user has project, go to validate; otherwise choose
+    return hasExistingProject() ? "validateProject" : "chooseProject";
+  }
+
+  /**
+   * Handle browser back/forward navigation
+   */
+  function handlePopState() {
+    const step = getStepFromHash();
+    if (step !== currentStep) {
+      setStep(step, false); // Don't update hash again
+    }
+  }
+
+  /**
+   * Sets the current step and optionally updates the URL hash.
+   */
+  function setStep(step: WizardStep, updateUrl = true) {
+    if (!isStepAllowed(step)) {
+      step = hasExistingProject() ? "validateProject" : "chooseProject";
+    }
+    currentStep = step;
+    if (updateUrl && typeof window !== "undefined") {
+      updateHash(step);
+    }
+  }
+
+  // Initialize from URL hash on mount
+  onMount(() => {
+    window.addEventListener("popstate", handlePopState);
+    
+    // Only read from hash if user doesn't have an existing project
+    // (if they do, the $effect below will handle it)
+    if (!hasExistingProject()) {
+      const initialStep = getStepFromHash();
+      setStep(initialStep);
+    }
+    isInitialized = true;
+  });
+
+  onDestroy(() => {
+    if (typeof window !== "undefined") {
+      window.removeEventListener("popstate", handlePopState);
     }
   });
 
-  // Update step when data is available
+  // Update step when data is available (user has existing project) - run once
   $effect(() => {
-    if (hasExistingProject()) {
-      // If we have a project, validate it if needed, otherwise show success
-      if (eventFeature?.validateProject) {
-        goToValidateProject();
-      } else {
-        currentStep = "success";
+    if (hasExistingProject() && isInitialized && !hasAutoValidated) {
+      hasAutoValidated = true;
+      goToValidateProject();
+    }
+  });
+
+  // Sync URL hash when step changes programmatically
+  $effect(() => {
+    if (isInitialized && typeof window !== "undefined") {
+      const currentHash = window.location.hash.replace("#", "");
+      const expectedHash = STEP_TO_HASH[currentStep];
+      if (currentHash !== expectedHash) {
+        updateHash(currentStep);
       }
     }
   });
 
   function goToCreateProject() {
-    currentStep = "createProject";
+    setStep("createProject");
   }
 
   function goToJoinProject() {
-    currentStep = "joinProject";
+    setStep("joinProject");
   }
 
   async function goToValidateProject() {
     validationState = "loading";
-    currentStep = "validateProject";
+    setStep("validateProject");
 
-    // Run validation if the feature provides a validator
-    if (eventFeature?.validateProject) {
-      const project = userProject();
-      if (project) {
-        const result = await Promise.resolve(eventFeature.validateProject(project));
-        validationResult = result; // Store full result including message
-        validationState = result.isValid ? "success" : "failure";
-      } else {
-        validationState = "success"; // No project to validate
-      }
+    const project = userProject();
+    if (project) {
+      const result = await validateProject(project.id);
+      validationResult = result;
+      validationState = result.valid ? "success" : "failure";
     } else {
-      // No validator, just succeed
       validationState = "success";
     }
   }
 
   function handleProjectAction() {
-    // Auto-progress to validation/success after project creation/join
-    if (eventFeature?.validateProject) {
-      goToValidateProject();
-    } else {
-      currentStep = "success";
-    }
+    goToValidateProject();
   }
 
   function submitAnotherProject() {
-    currentStep = "chooseProject";
+    setStep("chooseProject");
     validationState = "loading";
+  }
+
+  function goBack() {
+    setStep("chooseProject");
   }
 </script>
 
@@ -254,10 +340,7 @@
       {:else if currentStep === "createProject"}
         <!-- Create Project Step -->
         <div class="mb-4">
-          <button
-            class="btn btn-ghost btn-sm"
-            onclick={() => (currentStep = "chooseProject")}
-          >
+          <button class="btn btn-ghost btn-sm" onclick={goBack}>
             ← Back
           </button>
         </div>
@@ -270,10 +353,7 @@
       {:else if currentStep === "joinProject"}
         <!-- Join Project Step -->
         <div class="mb-4">
-          <button
-            class="btn btn-ghost btn-sm"
-            onclick={() => (currentStep = "chooseProject")}
-          >
+          <button class="btn btn-ghost btn-sm" onclick={goBack}>
             ← Back
           </button>
         </div>
@@ -357,5 +437,5 @@
 </div>
 
 {#if userProject()}
-  <UpdateProjectModal preselectedProject={userProject()!} events={flagshipEvents} bind:modal={updateProjectModal} />
+  <UpdateProjectModal preselectedProject={userProject()!} events={flagshipEvents} bind:modal={updateProjectModal} onProjectUpdated={goToValidateProject} />
 {/if}

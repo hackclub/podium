@@ -39,7 +39,6 @@ export const load: LayoutLoad = async ({ fetch, url }) => {
   // Return empty events for unauthenticated users on sub-routes
   return {
     events: {
-      owned_events: [],
       attending_events: [],
     },
   };

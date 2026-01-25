@@ -18,7 +18,7 @@ Query patterns:
 from podium.db.postgres.base import get_session, engine, init_db, scalar_one_or_none, scalar_all
 from podium.db.postgres.links import EventAttendeeLink, ProjectCollaboratorLink
 from podium.db.postgres.user import User, UserPublic, UserPrivate, UserSignup, UserUpdate
-from podium.db.postgres.event import Event, EventPublic, EventPrivate, EventCreate, EventUpdate
+from podium.db.postgres.event import Event, EventPublic, EventPrivate, EventUpdate
 from podium.db.postgres.project import (
     Project,
     ProjectPublic,
@@ -49,7 +49,6 @@ __all__ = [
     "Event",
     "EventPublic",
     "EventPrivate",
-    "EventCreate",
     "EventUpdate",
     # Project
     "Project",

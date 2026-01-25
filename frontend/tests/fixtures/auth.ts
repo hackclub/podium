@@ -1,16 +1,21 @@
 import { test as base, request as apiRequest, expect } from '@playwright/test';
+import type { APIRequestContext, BrowserContext, Page } from '@playwright/test';
 
 const API_BASE_URL = 'http://127.0.0.1:8000';
 
-type AuthFixtures = {
+type WorkerFixtures = {
 	userEmail: string;
 	token: string;
-	api: import('@playwright/test').APIRequestContext;
-	authedContext: import('@playwright/test').BrowserContext;
-	authedPage: import('@playwright/test').Page;
+	api: APIRequestContext;
 };
 
-export const test = base.extend<AuthFixtures>({
+type TestFixtures = {
+	authedContext: BrowserContext;
+	authedPage: Page;
+	authedApi: APIRequestContext;
+};
+
+export const test = base.extend<TestFixtures, WorkerFixtures>({
 	// Unique email per worker (parallel isolation)
 	userEmail: [
 		async ({}, use, workerInfo) => {
@@ -112,6 +117,18 @@ export const test = base.extend<AuthFixtures>({
 		
 		await use(page);
 		await page.close();
+	},
+
+	// Authenticated API context for direct API calls in tests
+	authedApi: async ({ token }, use) => {
+		const api = await apiRequest.newContext({
+			baseURL: API_BASE_URL,
+			extraHTTPHeaders: {
+				Authorization: `Bearer ${token}`
+			}
+		});
+		await use(api);
+		await api.dispose();
 	}
 });
 

@@ -1,15 +1,13 @@
 from secrets import token_urlsafe
 from typing import Annotated
-from datetime import datetime
 from uuid import UUID
-import httpx
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from podium.config import settings
 from podium.db.postgres import (
     User,
     Event,
@@ -22,8 +20,13 @@ from podium.db.postgres import (
     scalar_one_or_none,
 )
 from podium.routers.auth import get_current_user
-from podium.generated.review_factory_models import CheckStatus
+from podium.validators import is_itch_url, is_playable
 from podium.constants import BAD_AUTH, BAD_ACCESS
+
+
+class ValidationResult(BaseModel):
+    valid: bool
+    message: str
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -196,60 +199,26 @@ async def get_project_endpoint(
     return ProjectPublic.model_validate(project)
 
 
-@router.post("/check/start")
-async def start_project_check(
-    project: ProjectPublic,
+@router.post("/validate")
+async def validate_project(
+    project_id: Annotated[UUID, Query(description="Project ID to validate")],
     session: Annotated[AsyncSession, Depends(get_session)],
-) -> CheckStatus:
-    """Start an asynchronous project check."""
-    if not settings.review_factory_token:
-        raise HTTPException(status_code=500, detail="Review Factory token not set")
-
-    db_project = await session.get(Project, project.id)
-    if not db_project:
+) -> ValidationResult:
+    """Validate a project's demo URL for itch.io browser playability."""
+    project = await session.get(Project, project_id)
+    if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    if db_project.cached_auto_quality:
-        return CheckStatus(
-            check_id="cached",
-            status="completed",
-            created_at=datetime.now(),
-            result=db_project.cached_auto_quality,
+    if not project.demo:
+        return ValidationResult(valid=False, message="No demo URL provided")
+
+    if not is_itch_url(project.demo):
+        return ValidationResult(valid=False, message="Demo URL must be an itch.io game page")
+
+    if is_playable(project.demo):
+        return ValidationResult(valid=True, message="Game is browser-playable")
+    else:
+        return ValidationResult(
+            valid=False,
+            message="Game is not browser-playable. Enable 'Run game in browser' in your itch.io project settings.",
         )
-
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.post(
-            f"{settings.review_factory_url}/start-check",
-            json={
-                "repo": str(db_project.repo),
-                "image_url": str(db_project.image_url) if db_project.image_url else "",
-                "demo": str(db_project.demo) if db_project.demo else "",
-            },
-            headers={
-                "Authorization": f"Bearer {settings.review_factory_token}",
-                "Content-Type": "application/json",
-            },
-        )
-        response.raise_for_status()
-        return CheckStatus.model_validate(response.json())
-
-
-@router.get("/check/{check_id}")
-async def poll_project_check(check_id: str) -> CheckStatus:
-    """Poll the status of a project check."""
-    if not settings.review_factory_token:
-        raise HTTPException(status_code=500, detail="Review Factory token not set")
-
-    if check_id == "cached":
-        raise HTTPException(status_code=404, detail="Cached results should be returned immediately")
-
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.get(
-            f"{settings.review_factory_url}/poll-check/{check_id}",
-            headers={
-                "Authorization": f"Bearer {settings.review_factory_token}",
-                "Content-Type": "application/json",
-            },
-        )
-        response.raise_for_status()
-        return CheckStatus.model_validate(response.json())

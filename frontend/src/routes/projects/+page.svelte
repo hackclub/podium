@@ -1,34 +1,16 @@
 <script lang="ts">
-  import UpdateProjectModal from "$lib/components/UpdateProjectModal.svelte";
-  import DOMPurify from "dompurify";
   import type { PageData } from "./$types";
   import ProjectCardWrapper from "$lib/components/ProjectCardWrapper.svelte";
   import { onMount } from "svelte";
-  import { checkProjectQuality } from "$lib/async";
-  import type { Unified } from "$lib/client";
-  import Modal from "$lib/components/Modal.svelte";
+  import { validateProject, type ValidationResult } from "$lib/validation";
   let { data }: { data: PageData } = $props();
 
-  // Stuff for project quality
-  const projectModalState = $state({} as Record<string, Modal>);
-
-  // Function to sanitize reasons and replace newlines with <br> tags
-  function formatReasons(reasons: string): string {
-    return DOMPurify.sanitize(reasons.replace(/\n/g, "<br>"));
-  }
-
-  let projectQualityResults: Record<string, any> = $state({});
+  let projectQualityResults: Record<string, ValidationResult> = $state({});
 
   onMount(async () => {
     for (const project of data.projects) {
-      // Find the event for this project to check if it has a feature flag
-      const projectEvent = data.events.find((e) => e.id === project.event_id);
-      const featureFlag = (projectEvent as any)?.feature_flags_list?.[0];
-      
-      const result = await checkProjectQuality(project, featureFlag);
-      if (result) {
-        projectQualityResults[project.id] = result;
-      }
+      const result = await validateProject(project.id);
+      projectQualityResults[project.id] = result;
     }
   });
 </script>
@@ -45,9 +27,7 @@
               <ProjectCardWrapper
                 {project}
                 events={data.events as any}
-                {projectQualityResults}
-                {projectModalState}
-                {formatReasons}
+                validationResults={projectQualityResults}
               />
             {/key}
           {/each}
@@ -55,11 +35,10 @@
       {:else}
         <div class="text-center py-8">
           <p class="text-base-content/70 mb-4">
-            You haven't created any projects yet.
+            You haven't submitted any projects yet.
           </p>
           <div class="flex gap-2 justify-center">
-            <a href="/projects/create" class="btn btn-primary">Create Project</a
-            >
+            <a href="/" class="btn btn-primary">Submit a Project</a>
             <a href="/projects/join" class="btn btn-outline">Join Project</a>
           </div>
         </div>

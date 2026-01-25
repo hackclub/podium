@@ -32,6 +32,7 @@ export default defineConfig({
 	},
 
 	globalSetup: './tests/global-setup.ts',
+	globalTeardown: './tests/global-teardown.ts',
 
 	webServer: isExternal ? undefined : [
 		{

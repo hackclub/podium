@@ -10,18 +10,15 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from podium.config import settings
 from podium.routers.auth import get_current_user
 from podium.db.postgres import (
     User,
     Event,
     EventPublic,
-    EventPrivate,
-    EventCreate,
-    EventUpdate,
     Project,
     ProjectPublic,
     Vote,
-    Referral,
     get_session,
     scalar_one_or_none,
     scalar_all,
@@ -32,13 +29,35 @@ router = APIRouter(prefix="/events", tags=["events"])
 
 
 class UserEvents(BaseModel):
-    owned_events: list[EventPrivate]
     attending_events: list[EventPublic]
 
 
 class CreateVotes(BaseModel):
     projects: list[UUID]
     event: UUID
+
+
+@router.get("/official")
+async def list_official_events(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> list[EventPublic]:
+    """List all official events for the current series (flagship + satellites)."""
+    active_series = settings.active_event_series
+    if not active_series:
+        return []
+
+    all_events = await scalar_all(
+        session,
+        select(Event).options(selectinload(Event.projects)),
+    )
+
+    official_events = [
+        EventPublic.model_validate(e)
+        for e in all_events
+        if active_series in e.feature_flags_list
+    ]
+
+    return official_events
 
 
 @router.get("/{event_id}")
@@ -59,12 +78,11 @@ async def get_attending_events(
     user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> UserEvents:
-    """Get events the current user owns and attends."""
+    """Get events the current user attends."""
     stmt = (
         select(User)
         .where(User.id == user.id)
         .options(
-            selectinload(User.owned_events).selectinload(Event.projects),
             selectinload(User.events_attending).selectinload(Event.projects),
         )
     )
@@ -72,107 +90,60 @@ async def get_attending_events(
     if not u:
         raise BAD_AUTH
     return UserEvents(
-        owned_events=[EventPrivate.model_validate(e) for e in u.owned_events],
         attending_events=[EventPublic.model_validate(e) for e in u.events_attending],
     )
 
 
-@router.post("/")
-async def create_event(
-    event: EventCreate,
-    user: Annotated[User, Depends(get_current_user)],
-    session: Annotated[AsyncSession, Depends(get_session)],
-):
-    """Create a new event."""
-    slug = slugify(event.name, lowercase=True, separator="-")
-    existing = await scalar_one_or_none(session, select(Event).where(Event.slug == slug))
-    if existing:
-        raise HTTPException(status_code=400, detail="Event slug already exists")
-
-    while True:
-        join_code = token_urlsafe(3).upper()
-        code_exists = await scalar_one_or_none(
-            session, select(Event).where(Event.join_code == join_code)
-        )
-        if not code_exists:
-            break
-
-    new_event = Event.model_validate(
-        event,
-        update={
-            "slug": slug,
-            "join_code": join_code,
-            "owner_id": user.id,
-        },
-    )
-    session.add(new_event)
-    await session.commit()
-    await session.refresh(new_event)
-    return {"id": str(new_event.id), "slug": new_event.slug, "join_code": new_event.join_code}
-
-
-@router.post("/attend")
+@router.post("/{event_id}/attend")
 async def attend_event(
-    join_code: Annotated[str, Query(description="Event join code")],
-    referral: Annotated[str, Query(description="How did you hear about this event?")],
+    event_id: Annotated[UUID, Path(title="Event ID")],
     user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    """Attend an event using a join code."""
+    """Attend an official event by ID."""
+    active_series = settings.active_event_series
+    if not active_series:
+        raise HTTPException(status_code=400, detail="No active event series configured")
+
     stmt = (
         select(Event)
-        .where(Event.join_code == join_code.upper())
-        .options(selectinload(Event.attendees))
+        .where(Event.id == event_id)
+        .options(selectinload(Event.attendees), selectinload(Event.projects))
     )
     event = await scalar_one_or_none(session, stmt)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
+    if active_series not in event.feature_flags_list:
+        raise HTTPException(status_code=400, detail="Event is not part of the active series")
+
     if user in event.attendees:
-        raise HTTPException(status_code=400, detail="User already attending event")
+        return {"message": "Already attending this event", "event_id": str(event.id)}
+
+    user_stmt = (
+        select(User)
+        .where(User.id == user.id)
+        .options(selectinload(User.events_attending).selectinload(Event.projects))
+    )
+    full_user = await scalar_one_or_none(session, user_stmt)
+    if not full_user:
+        raise BAD_AUTH
+
+    for attending_event in full_user.events_attending:
+        if active_series in attending_event.feature_flags_list:
+            attending_event_with_attendees = await scalar_one_or_none(
+                session,
+                select(Event)
+                .where(Event.id == attending_event.id)
+                .options(selectinload(Event.attendees)),
+            )
+            if attending_event_with_attendees and user in attending_event_with_attendees.attendees:
+                attending_event_with_attendees.attendees.remove(user)
 
     event.attendees.append(user)
-
-    if referral:
-        session.add(Referral(content=referral, user_id=user.id, event_id=event.id))
-
     await session.commit()
+
     return {"message": "Successfully joined event", "event_id": str(event.id)}
-
-
-@router.put("/{event_id}")
-async def update_event(
-    event_id: Annotated[UUID, Path(title="Event ID")],
-    event_update: EventUpdate,
-    user: Annotated[User, Depends(get_current_user)],
-    session: Annotated[AsyncSession, Depends(get_session)],
-):
-    """Update an event."""
-    event = await session.get(Event, event_id)
-    if not event or event.owner_id != user.id:
-        raise BAD_ACCESS
-
-    update_data = event_update.model_dump(exclude_unset=True, exclude_none=True)
-    event.sqlmodel_update(update_data)
-
-    await session.commit()
-    return {"message": "Event updated"}
-
-
-@router.delete("/{event_id}")
-async def delete_event(
-    event_id: Annotated[UUID, Path(title="Event ID")],
-    user: Annotated[User, Depends(get_current_user)],
-    session: Annotated[AsyncSession, Depends(get_session)],
-):
-    """Delete an event."""
-    event = await session.get(Event, event_id)
-    if not event or event.owner_id != user.id:
-        raise BAD_ACCESS
-
-    await session.delete(event)
-    await session.commit()
-    return {"message": "Event deleted"}
 
 
 @router.post("/vote")
@@ -278,3 +249,144 @@ async def get_at_id(
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     return str(event.id)
+
+
+# =============================================================================
+# TEST-ONLY ENDPOINTS
+# =============================================================================
+
+
+class TestEventCreate(BaseModel):
+    """Request body for creating a test event."""
+
+    name: str
+    description: str = ""
+
+
+@router.post("/test/create")
+async def create_test_event(
+    event_data: TestEventCreate,
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> EventPublic:
+    """Create a test event. Only available when enable_test_endpoints is true."""
+    if not getattr(settings, "enable_test_endpoints", False):
+        raise HTTPException(status_code=404, detail="Not found")
+
+    active_series = settings.active_event_series
+    if not active_series:
+        raise HTTPException(status_code=400, detail="No active event series configured")
+
+    base_slug = slugify(event_data.name)[:40]
+    slug = f"{base_slug}-{token_urlsafe(4)}"
+    join_code = token_urlsafe(6)
+
+    event = Event(
+        name=event_data.name,
+        slug=slug,
+        description=event_data.description,
+        join_code=join_code,
+        owner_id=user.id,
+        votable=True,
+        leaderboard_enabled=True,
+        demo_links_optional=True,
+        feature_flags_csv=active_series,
+    )
+
+    session.add(event)
+    await session.commit()
+    await session.refresh(event)
+
+    # Reload with projects relationship for max_votes_per_user computation
+    stmt = select(Event).where(Event.id == event.id).options(selectinload(Event.projects))
+    event = await scalar_one_or_none(session, stmt)
+
+    return EventPublic.model_validate(event)
+
+
+@router.post("/test/cleanup")
+async def cleanup_test_data(
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    """Delete all test data created by e2e tests. Only available when enable_test_endpoints is true."""
+    if not getattr(settings, "enable_test_endpoints", False):
+        raise HTTPException(status_code=404, detail="Not found")
+
+    from sqlalchemy import text
+
+    # Delete test users (pattern: test+pw*@example.com, organizer+*@test.local, attendee+*@test.local)
+    await session.execute(
+        text("""
+            DELETE FROM votes WHERE voter_id IN (
+                SELECT id FROM users WHERE email LIKE 'test+pw%@example.com'
+                OR email LIKE 'organizer+%@test.local'
+                OR email LIKE 'attendee+%@test.local'
+            )
+        """)
+    )
+    await session.execute(
+        text("""
+            DELETE FROM votes WHERE project_id IN (
+                SELECT id FROM projects WHERE owner_id IN (
+                    SELECT id FROM users WHERE email LIKE 'test+pw%@example.com'
+                    OR email LIKE 'organizer+%@test.local'
+                    OR email LIKE 'attendee+%@test.local'
+                )
+            )
+        """)
+    )
+    await session.execute(
+        text("""
+            DELETE FROM project_collaborators WHERE user_id IN (
+                SELECT id FROM users WHERE email LIKE 'test+pw%@example.com'
+                OR email LIKE 'organizer+%@test.local'
+                OR email LIKE 'attendee+%@test.local'
+            )
+        """)
+    )
+    await session.execute(
+        text("""
+            DELETE FROM projects WHERE owner_id IN (
+                SELECT id FROM users WHERE email LIKE 'test+pw%@example.com'
+                OR email LIKE 'organizer+%@test.local'
+                OR email LIKE 'attendee+%@test.local'
+            )
+        """)
+    )
+    await session.execute(
+        text("""
+            DELETE FROM event_attendees WHERE user_id IN (
+                SELECT id FROM users WHERE email LIKE 'test+pw%@example.com'
+                OR email LIKE 'organizer+%@test.local'
+                OR email LIKE 'attendee+%@test.local'
+            )
+        """)
+    )
+    await session.execute(
+        text("""
+            DELETE FROM events WHERE owner_id IN (
+                SELECT id FROM users WHERE email LIKE 'test+pw%@example.com'
+                OR email LIKE 'organizer+%@test.local'
+                OR email LIKE 'attendee+%@test.local'
+            )
+        """)
+    )
+    await session.execute(
+        text("""
+            DELETE FROM referrals WHERE user_id IN (
+                SELECT id FROM users WHERE email LIKE 'test+pw%@example.com'
+                OR email LIKE 'organizer+%@test.local'
+                OR email LIKE 'attendee+%@test.local'
+            )
+        """)
+    )
+    await session.execute(
+        text("""
+            DELETE FROM users WHERE email LIKE 'test+pw%@example.com'
+            OR email LIKE 'organizer+%@test.local'
+            OR email LIKE 'attendee+%@test.local'
+        """)
+    )
+
+    await session.commit()
+    return {"message": "Test data cleaned up"}

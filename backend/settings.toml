@@ -17,5 +17,5 @@ airtable_projects_table_id = "tbl9YL1Au1MtPzAiq"
 airtable_referrals_table_id = "tblU0VGfBD7vy2kUK"
 airtable_votes_table_id = "tblWcPEiD9cxaeN8O"
 production_url = "http://localhost:5173"
-review_factory_url = "http://localhost:8001"
 enable_test_endpoints = true  # Enable for local development and stress testing
+active_event_series = "test-series"  # Active series for testing

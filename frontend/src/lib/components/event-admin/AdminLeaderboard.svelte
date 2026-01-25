@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { ProjectPublic, EventPrivate } from "$lib/client/types.gen";
   import ProjectCard from "$lib/components/ProjectCard.svelte";
-  import { getActiveFeatures } from "$lib/event-features/registry";
 
   interface Props {
     projects: ProjectPublic[];
@@ -9,11 +8,6 @@
   }
 
   let { projects, event }: Props = $props();
-
-  // Get active event features for this event
-  const activeFeatures = $derived(
-    event ? getActiveFeatures((event as any).feature_flags_list) : [],
-  );
 </script>
 
 <div class="card bg-base-200">
@@ -36,19 +30,6 @@
                 <div class="font-medium">Votes: {project.points || 0}</div>
               </div>
             </div>
-
-            <!-- Event feature validation indicators -->
-            {#each activeFeatures as feature}
-              {#if feature.validateProject && feature.ValidationComponent}
-                {@const validation = feature.validateProject(project)}
-                {#await validation then resolved}
-                  <feature.ValidationComponent
-                    validation={resolved}
-                    {project}
-                  />
-                {/await}
-              {/if}
-            {/each}
 
             <ProjectCard
               {project}

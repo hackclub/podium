@@ -51,7 +51,9 @@ async def get_owned_event(
     event_id: UUID, user: User, session: AsyncSession
 ) -> Event:
     """Get an event if the user owns it, else raise BAD_ACCESS."""
-    event = await session.get(Event, event_id)
+    # Load with projects for max_votes_per_user computed field
+    stmt = select(Event).where(Event.id == event_id).options(selectinload(Event.projects))
+    event = await scalar_one_or_none(session, stmt)
     if not event or event.owner_id != user.id:
         raise BAD_ACCESS
     return event

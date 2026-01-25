@@ -1,28 +1,38 @@
-import { APIRequestContext } from '@playwright/test';
+import type { APIRequestContext } from '@playwright/test';
 
 const API_URL = process.env.PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
-export async function createEvent(
+/**
+ * Create a test event via the test-only endpoint.
+ * Requires enable_test_endpoints=true in backend settings.
+ */
+export async function createTestEvent(
 	api: APIRequestContext,
-	data: { name: string; description: string }
+	data: { name: string; description?: string }
 ) {
-	const response = await api.post(`${API_URL}/events/`, { data });
+	const response = await api.post(`${API_URL}/events/test/create`, { data });
 	if (!response.ok()) {
-		throw new Error(`Failed to create event: ${response.status()} ${await response.text()}`);
+		throw new Error(`Failed to create test event: ${response.status()} ${await response.text()}`);
 	}
 	return await response.json();
 }
 
-export async function attendEvent(
-	api: APIRequestContext,
-	joinCode: string,
-	referral?: string
-) {
-	const url = new URL(`${API_URL}/events/attend`);
-	url.searchParams.set('join_code', joinCode);
-	url.searchParams.set('referral', referral || 'test');
+/**
+ * Get list of official events for the current series.
+ */
+export async function getOfficialEvents(api: APIRequestContext) {
+	const response = await api.get(`${API_URL}/events/official`);
+	if (!response.ok()) {
+		throw new Error(`Failed to get official events: ${response.status()} ${await response.text()}`);
+	}
+	return await response.json();
+}
 
-	const response = await api.post(url.toString());
+/**
+ * Attend an official event by ID.
+ */
+export async function attendEvent(api: APIRequestContext, eventId: string) {
+	const response = await api.post(`${API_URL}/events/${eventId}/attend`);
 	if (!response.ok()) {
 		throw new Error(`Failed to attend event: ${response.status()} ${await response.text()}`);
 	}

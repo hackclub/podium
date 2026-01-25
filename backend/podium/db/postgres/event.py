@@ -97,18 +97,8 @@ class EventPublic(SQLModel):
 class EventPrivate(EventPublic):
     """Private event info - visible to owner and attendees."""
 
-    join_code: str
     owner_id: UUID
     ysws_checks_enabled: bool
-
-
-class EventCreate(SQLModel):
-    """Request body for creating an event."""
-
-    name: str
-    description: str = ""
-    demo_links_optional: bool = False
-    ysws_checks_enabled: bool = False
 
 
 class EventUpdate(SQLModel):

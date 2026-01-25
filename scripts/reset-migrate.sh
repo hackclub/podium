@@ -38,10 +38,13 @@ esac
 # Verify Docker is running
 docker compose ps --quiet podium-pg >/dev/null 2>&1 || error "Run 'docker compose up -d' first"
 
-# Reset database
+# Reset database (terminate connections first to allow drop)
 info "Resetting database..."
-docker compose exec -T podium-pg psql -U postgres -c "DROP DATABASE IF EXISTS podium;" 2>/dev/null || true
-docker compose exec -T podium-pg psql -U postgres -c "CREATE DATABASE podium;"
+docker compose exec -T podium-pg psql -U postgres -c "
+  SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'podium' AND pid <> pg_backend_pid();
+  DROP DATABASE IF EXISTS podium;
+  CREATE DATABASE podium;
+"
 
 # Run migrations
 info "Running migrations..."

@@ -8,7 +8,6 @@
   import ThemeSwitcher from "$lib/components/ThemeSwitcher.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import { setSystemTheme, returnLoadingText } from "$lib/misc";
-  import { goto } from "$app/navigation";
   import { env } from "$env/dynamic/public";
   import MaintenanceMode from "$lib/components/MaintenanceMode.svelte";
 
@@ -20,6 +19,7 @@
   import AirtableHitsCounter from "$lib/components/AirtableHitsCounter.svelte";
   import DevModeIndicator from "$lib/components/DevModeIndicator.svelte";
   import { resetAirtableHits } from "$lib/airtable-hits.svelte";
+  import { getHasProject } from "$lib/project-state.svelte";
 
   let loadingText = $state(returnLoadingText());
   let loadingTextInterval: NodeJS.Timeout = $state() as NodeJS.Timeout;
@@ -48,32 +48,21 @@
     }
   });
 
-  // Navigation options - some with dropdowns
-  const navOptions = {
-    "/": { label: "Home", icon: "home" },
-    "/projects": { label: "Projects", icon: "projects" },
-  };
+  // Check if user has submitted a project
+  const hasProject = $derived(getHasProject());
 
-  // Events section with dropdown
-  const eventsSection = {
-    main: { path: "/events", label: "My Events", icon: "events" },
-    subItems: {
-      "/events/create": { label: "Create Event", icon: "create" },
-    },
-  };
-
-  // State for events dropdown
-  let eventsExpanded = $state(false);
-
-  // Helper function to check if current path matches events section
-  const isInEventsSection = () => {
-    return page.url.pathname.startsWith("/events");
-  };
-
-  // Auto-expand events section based on current path
-  $effect(() => {
-    eventsExpanded = isInEventsSection();
-  });
+  // Navigation options - only show full nav if user has a project
+  const navOptions = $derived(
+    hasProject
+      ? {
+          "/": { label: "Home", icon: "home" },
+          "/projects": { label: "Projects", icon: "projects" },
+          "/events": { label: "Events", icon: "events" },
+        }
+      : {
+          "/": { label: "Home", icon: "home" },
+        },
+  );
 
   // Reset Airtable hits counter on page navigation
   $effect(() => {
@@ -229,81 +218,6 @@
               </li>
             {/each}
 
-            <!-- Events Section with Dropdown -->
-            <li>
-              <button
-                onclick={() => {
-                  eventsExpanded = !eventsExpanded;
-                  goto("/events");
-                }}
-                class="flex items-center gap-3 p-3 rounded-lg transition-colors w-full text-left"
-                class:bg-primary={isInEventsSection()}
-                class:text-primary-content={isInEventsSection()}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d={iconPaths.events}
-                  />
-                </svg>
-                <span class="font-medium flex-1"
-                  >{eventsSection.main.label}</span
-                >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-4 w-4 transition-transform duration-200"
-                  class:rotate-180={eventsExpanded}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d={iconPaths.chevron}
-                  />
-                </svg>
-              </button>
-            </li>
-
-            <!-- Events Sub-navigation -->
-            {#if eventsExpanded}
-              {#each Object.entries(eventsSection.subItems) as [subPath, { label, icon }]}
-                <li class="ml-6">
-                  <a
-                    href={subPath}
-                    class="flex items-center gap-3 p-2 rounded-lg transition-colors text-sm"
-                    class:bg-primary={page.url.pathname === subPath}
-                    class:text-primary-content={page.url.pathname === subPath}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      class="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d={iconPaths[icon as keyof typeof iconPaths]}
-                      />
-                    </svg>
-                    <span>{label}</span>
-                  </a>
-                </li>
-              {/each}
-            {/if}
           </ul>
         </div>
 

@@ -1,3 +1,6 @@
+<script lang="ts">
+</script>
+
 <div class="min-h-screen flex flex-col items-center justify-center bg-base-200 p-6">
   <div class="text-center max-w-md">
     <h1 class="text-4xl font-extrabold text-primary mb-4">Podium</h1>

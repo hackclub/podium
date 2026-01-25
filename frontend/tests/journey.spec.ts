@@ -72,6 +72,15 @@ async function createAuthenticatedPage(
 	return page;
 }
 
+async function createAuthedApiContext(token: string) {
+	return apiRequest.newContext({
+		baseURL: API_BASE_URL,
+		extraHTTPHeaders: {
+			Authorization: `Bearer ${token}`
+		}
+	});
+}
+
 test.describe('Full User Journey', () => {
 	test('complete hackathon workflow - organizer creates event, attendee joins and votes', async ({
 		browser
@@ -88,69 +97,26 @@ test.describe('Full User Journey', () => {
 			'Organizer User'
 		);
 
+		// Create authenticated API context for organizer
+		const organizerApi = await createAuthedApiContext(organizerToken);
+
+		// Create event via test API endpoint
+		const eventName = `Test Hackathon ${timestamp}`;
+		const createEventResp = await organizerApi.post('/events/test/create', {
+			data: { name: eventName, description: 'A test hackathon event' }
+		});
+		expect(createEventResp.ok()).toBe(true);
+		const event = await createEventResp.json();
+		const eventId = event.id;
+		const eventSlug = event.slug;
+
+		// Organizer attends their own event
+		const attendResp = await organizerApi.post(`/events/${eventId}/attend`);
+		expect(attendResp.ok()).toBe(true);
+
 		const organizerPage = await createAuthenticatedPage(browser, organizerToken, baseURL);
 
-		// Create a new event
-		const eventName = `Test Hackathon ${timestamp}`;
-		await organizerPage.goto('/events/create');
-		await organizerPage.locator('#event_name').fill(eventName);
-		await organizerPage.locator('#event_description').fill('A test hackathon event');
-
-		await Promise.all([
-			organizerPage.waitForResponse(
-				(r) => r.url().includes('/events') && r.request().method() === 'POST' && r.ok()
-			),
-			organizerPage.getByRole('button', { name: /create event/i }).click()
-		]);
-
-		await expect(organizerPage.getByText(/event created/i)).toBeVisible({ timeout: 10000 });
-
-		// Navigate to events list and get the event
-		await organizerPage.goto('/events');
-		await organizerPage.waitForResponse(
-			(r) => r.url().includes('/events') && r.request().method() === 'GET' && r.ok()
-		);
-		await organizerPage.getByRole('link', { name: eventName }).first().click();
-
-		// Get join code from admin panel
-		await expect(organizerPage.getByText(/admin panel/i)).toBeVisible({ timeout: 10000 });
-		const joinCodeElement = await organizerPage.locator('.badge-accent.font-mono').first();
-		const joinCode = await joinCodeElement.textContent();
-		expect(joinCode).toBeTruthy();
-
-		// Get event slug from URL
-		const eventUrl = organizerPage.url();
-		const eventSlug = eventUrl.split('/events/')[1]?.split('/')[0];
-
-		// Enable voting and leaderboard via admin panel
-		await organizerPage.getByRole('button', { name: /edit event/i }).click();
-		await organizerPage.locator('#votable').check();
-		await organizerPage.locator('#leaderboard_enabled').check();
-		await organizerPage.locator('#demo_links_optional').check();
-
-		await Promise.all([
-			organizerPage.waitForResponse(
-				(r) => r.url().includes('/events/') && r.request().method() === 'PUT' && r.ok()
-			),
-			organizerPage.getByRole('button', { name: /update event/i }).click()
-		]);
-
-		await expect(organizerPage.getByText(/event updated/i)).toBeVisible({ timeout: 10000 });
-
-		// Create first project as organizer (need to attend first via UI)
-		await organizerPage.goto('/events/attend');
-		await organizerPage.locator('#join_code').fill(joinCode!);
-		await organizerPage.locator('#referral').fill('Organizer self-join');
-
-		await Promise.all([
-			organizerPage.waitForResponse(
-				(r) => r.url().includes('/attend') && r.request().method() === 'POST' && r.ok()
-			),
-			organizerPage.getByRole('button', { name: /join the event/i }).click()
-		]);
-
-		await expect(organizerPage.getByText(/joined event/i)).toBeVisible({ timeout: 10000 });
-
+		// Create first project as organizer via UI
 		await organizerPage.goto('/projects/create');
 		await expect(organizerPage.locator('#project_name')).toBeVisible({ timeout: 10000 });
 		await organizerPage.locator('#project_name').fill(`Project Alpha ${timestamp}`);
@@ -197,21 +163,32 @@ test.describe('Full User Journey', () => {
 			await logoutButton.click();
 		}
 		await organizerPage.context().close();
+		await organizerApi.dispose();
 
 		// ============================================
-		// PART 2: Attendee joins event and votes
+		// PART 2: Attendee selects event and votes
 		// ============================================
 		const attendeeEmail = `attendee+${timestamp}@test.local`;
-		const { token: attendeeToken, api: attendeeApi } = await createUserAndGetToken(
+		const { token: attendeeToken, api: attendeeApiBase } = await createUserAndGetToken(
 			attendeeEmail,
 			'Attendee User'
 		);
 
+		// Create authenticated API context
+		const attendeeApi = await createAuthedApiContext(attendeeToken);
+
 		const attendeePage = await createAuthenticatedPage(browser, attendeeToken, baseURL);
 
-		// Navigate to join link (simulating clicking join link)
-		await attendeePage.goto(`/events/attend?join_code=${joinCode}`);
-		await expect(attendeePage.getByText(/joined event/i)).toBeVisible({ timeout: 15000 });
+		// Navigate to home - should see EventSelector
+		await attendeePage.goto('/');
+
+		// Click on the event to attend it
+		await attendeePage.getByText(eventName).click();
+
+		// Should show success message or project submission wizard
+		await expect(
+			attendeePage.getByText(/joined event|welcome|create.*project/i).first()
+		).toBeVisible({ timeout: 15000 });
 
 		// Create a project as attendee
 		await attendeePage.goto('/projects/create');
@@ -240,35 +217,21 @@ test.describe('Full User Journey', () => {
 			attendeePage.getByText(/you can vote for|already voted|submit vote/i).first()
 		).toBeVisible({ timeout: 15000 });
 
-		// Vote for projects via API (UI voting is complex with selection state)
-		// Get event ID from the page URL or API
-		const eventIdResp = await attendeeApi.get(`${API_BASE_URL}/events/id/${eventSlug}`);
-		if (eventIdResp.ok()) {
-			const eventId = (await eventIdResp.text()).replace(/"/g, '');
-			
-			// Get projects for this event
-			const projResp = await attendeeApi.get(
-				`${API_BASE_URL}/events/${eventId}/projects?leaderboard=false`,
-				{ headers: { Authorization: `Bearer ${attendeeToken}` } }
+		// Vote for projects via API
+		const projResp = await attendeeApi.get(`/events/${eventId}/projects?leaderboard=false`);
+
+		if (projResp.ok()) {
+			const projects = await projResp.json();
+			// Find a project that isn't the attendee's own (should be Project Alpha or Beta)
+			const voteableProject = projects.find((p: any) =>
+				p.name.includes('Project Alpha') || p.name.includes('Project Beta')
 			);
-			
-			if (projResp.ok()) {
-				const projects = await projResp.json();
-				// Find a project that isn't the attendee's own (should be Project Alpha or Beta)
-				const voteableProject = projects.find((p: any) => 
-					p.name.includes('Project Alpha') || p.name.includes('Project Beta')
-				);
-				
-				if (voteableProject) {
-					const voteResp = await attendeeApi.post(`${API_BASE_URL}/events/vote`, {
-						headers: { 
-							Authorization: `Bearer ${attendeeToken}`,
-							'Content-Type': 'application/json'
-						},
-						data: { event: eventId, projects: [voteableProject.id] }
-					});
-					expect(voteResp.ok()).toBe(true);
-				}
+
+			if (voteableProject) {
+				const voteResp = await attendeeApi.post('/events/vote', {
+					data: { event: eventId, projects: [voteableProject.id] }
+				});
+				expect(voteResp.ok()).toBe(true);
 			}
 		}
 
@@ -281,19 +244,19 @@ test.describe('Full User Journey', () => {
 		await attendeePage.waitForResponse(
 			(r) => r.url().includes('/projects') && r.request().method() === 'GET'
 		);
-		
+
 		const projectLink = attendeePage.getByRole('link', { name: new RegExp(`Attendee Project ${timestamp}`) });
 		if (await projectLink.isVisible()) {
 			await projectLink.click();
-			
+
 			const editButton = attendeePage.getByRole('button', { name: /edit/i });
 			if (await editButton.isVisible()) {
 				await editButton.click();
-				
+
 				const descField = attendeePage.locator('#project_description, textarea[name="description"]').first();
 				if (await descField.isVisible()) {
 					await descField.fill('Updated project description');
-					
+
 					const saveButton = attendeePage.getByRole('button', { name: /save|update/i }).first();
 					if (await saveButton.isVisible()) {
 						await Promise.all([
@@ -314,10 +277,13 @@ test.describe('Full User Journey', () => {
 			await attendeeLogoutButton.click();
 		}
 		await attendeePage.context().close();
+		await attendeeApi.dispose();
+		await attendeeApiBase.dispose();
 
 		// ============================================
 		// PART 3: Organizer views admin and removes attendee
 		// ============================================
+		const organizerApi2 = await createAuthedApiContext(organizerToken);
 		const organizerPage2 = await createAuthenticatedPage(browser, organizerToken, baseURL);
 
 		await organizerPage2.goto(`/events/${eventSlug}`);
@@ -332,11 +298,11 @@ test.describe('Full User Journey', () => {
 		const removeButton = organizerPage2.getByRole('button', { name: /remove/i }).first();
 		if (await removeButton.isVisible()) {
 			await removeButton.click();
-			
+
 			// Wait for confirmation modal and click the confirm Remove button
 			const confirmRemoveButton = organizerPage2.locator('.modal, [class*="modal"]')
 				.getByRole('button', { name: /remove/i });
-			
+
 			await Promise.all([
 				organizerPage2.waitForResponse(
 					(r) => r.url().includes('/remove-attendee') && r.request().method() === 'POST' && r.ok()
@@ -352,5 +318,6 @@ test.describe('Full User Journey', () => {
 		await expect(organizerPage2.getByText(/admin panel/i)).toBeVisible({ timeout: 10000 });
 
 		await organizerPage2.context().close();
+		await organizerApi2.dispose();
 	});
 });

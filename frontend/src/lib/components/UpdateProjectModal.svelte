@@ -27,7 +27,8 @@
     preselectedProject,
     events,
     modal = $bindable(),
-  }: { preselectedProject: ProjectPrivate; events: Array<EventPublic>; modal?: Modal } = $props();
+    onProjectUpdated,
+  }: { preselectedProject: ProjectPrivate; events: Array<EventPublic>; modal?: Modal; onProjectUpdated?: () => void } = $props();
 
   let localModal: Modal = $state() as Modal;
   let deleteConfirmation: ConfirmationModal = $state() as ConfirmationModal;
@@ -104,6 +105,7 @@
     toast.success("Project updated successfully");
     await customInvalidateAll();
     localModal.closeModal();
+    onProjectUpdated?.();
   }
 </script>
 

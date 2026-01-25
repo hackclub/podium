@@ -34,6 +34,7 @@ dependencies = [
     "psycopg2-binary>=2.9.11",
     "asyncpg>=0.31.0",
     "sqlmodel>=0.0.31",
+    "beautifulsoup4>=4.13.4",
 ]
 
 [project.optional-dependencies]
@@ -67,6 +68,8 @@ dev = [
     "numpy>=1.24.0",
     "ty>=0.0.1a25",
     "locust>=2.42.3",
+    "textual>=3.0.0",
+    "tqdm>=4.67.0",
 ]
 
 [tool.pytest.ini_options]

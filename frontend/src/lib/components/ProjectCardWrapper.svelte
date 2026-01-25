@@ -2,26 +2,19 @@
   import ProjectCard from "./ProjectCard.svelte";
   import UpdateProjectModal from "./UpdateProjectModal.svelte";
   import Modal from "./Modal.svelte";
-  import type { ProjectPrivate, EventPrivate, Unified } from "$lib/client/types.gen";
-  import DOMPurify from "dompurify";
+  import type { ProjectPrivate, EventPrivate } from "$lib/client/types.gen";
+  import type { ValidationResult } from "$lib/validation";
 
   interface Props {
     project: ProjectPrivate;
     events: EventPrivate[];
-    projectQualityResults: Record<string, Unified>;
-    projectModalState: Record<string, Modal>;
-    formatReasons: (reasons: string) => string;
+    validationResults?: Record<string, ValidationResult>;
   }
 
-  let {
-    project,
-    events,
-    projectQualityResults,
-    projectModalState,
-    formatReasons,
-  }: Props = $props();
+  let { project, events, validationResults = {} }: Props = $props();
 
   let editModal: Modal;
+  let validationModal: Modal;
 </script>
 
 <div class="m-4">
@@ -53,102 +46,39 @@
           </span>
         </div>
 
-        <!-- Quality Status -->
+        <!-- Validation Status -->
         <div class="flex flex-col items-center">
           <span class="text-xs text-base-content/70 mb-1">Status</span>
-          {#each events as event}
-            {#if event.id === project.event_id}
-              {#if event.ysws_checks_enabled === false}
-                <span
-                  class="tooltip tooltip-bottom underline cursor-help badge badge-neutral text-sm px-3 py-1"
-                  data-tip="The event owner disabled automatic quality checks"
-                >
-                  N/A
-                </span>
-              {:else}
-                {@const result = projectQualityResults[project.id]}
-                {@const isReviewFactory = result && 'valid' in result}
-                {@const isValid = isReviewFactory ? (result.valid && result.image_valid) : (result as any)?.isValid}
-                <button
-                  class="badge text-sm px-3 py-1 underline cursor-pointer whitespace-nowrap {isValid
-                    ? 'badge-success'
-                    : 'badge-warning'}"
-                  onclick={() => {
-                    projectModalState[project.id].openModal();
-                  }}
-                  disabled={!result}
-                >
-                  {#if !result}
-                    <span class="loading loading-dots loading-xs"></span>
-                  {:else if isValid}
-                    ✅ Valid
-                  {:else}
-                    ❌ Invalid
-                  {/if}
-                </button>
-
-                {#if result}
-                  <!-- Quality Details Modal -->
-                  <Modal
-                    title="Project Quality"
-                    bind:this={projectModalState[project.id]}
-                  >
-                    {#if isReviewFactory}
-                      <div class="space-y-4">
-                        <!-- Quality Validation Section -->
-                        <div>
-                          <h3 class="font-semibold mb-2">Quality Validation</h3>
-                          <div class="flex items-center gap-2 mb-2">
-                            {#if result.valid}
-                              <span class="text-success">✅ Valid</span>
-                            {:else}
-                              <span class="text-error">❌ Invalid</span>
-                            {/if}
-                          </div>
-                          <p class="text-sm text-base-content/70">
-                            {result.reason}
-                          </p>
-                        </div>
-
-                        <!-- Image Validation Section -->
-                        <div>
-                          <h3 class="font-semibold mb-2">Image Validation</h3>
-                          <div class="flex items-center gap-2 mb-2">
-                            {#if result.image_valid}
-                              <span class="text-success">✅ Valid</span>
-                            {:else}
-                              <span class="text-error">❌ Invalid</span>
-                            {/if}
-                          </div>
-                          <p class="text-sm text-base-content/70">
-                            {#if result.image_valid}
-                              Image URL points to a valid image file
-                            {:else}
-                              Image URL does not point to a valid image file
-                            {/if}
-                          </p>
-                        </div>
-                      </div>
-                    {:else}
-                      <!-- Event Feature Validation -->
-                      <div class="space-y-4">
-                        <div class="flex items-center gap-2 mb-2">
-                          {#if (result as any).isValid}
-                            <span class="text-success text-lg">✅ {(result as any).message}</span>
-                          {:else}
-                            <span class="text-error text-lg">❌ Validation Failed</span>
-                          {/if}
-                        </div>
-                        <p class="text-sm text-base-content/70">
-                          {(result as any).message}
-                        </p>
-                      </div>
-                    {/if}
-                  </Modal>
-                {/if}
-              {/if}
+          <button
+            class="badge text-sm px-3 py-1 underline cursor-pointer whitespace-nowrap {validationResults[project.id]?.valid
+              ? 'badge-success'
+              : 'badge-warning'}"
+            onclick={() => validationModal?.openModal()}
+            disabled={!validationResults[project.id]}
+          >
+            {#if !validationResults[project.id]}
+              <span class="loading loading-dots loading-xs"></span>
+            {:else if validationResults[project.id].valid}
+              ✅ Valid
+            {:else}
+              ❌ Invalid
             {/if}
-          {/each}
+          </button>
+
+          {#if validationResults[project.id]}
+            <Modal title="Validation Details" bind:this={validationModal}>
+              <div class="space-y-4">
+                <div class="flex items-center gap-2 mb-2">
+                  {#if validationResults[project.id].valid}
+                    <span class="text-success text-lg">✅ Valid</span>
+                  {:else}
+                    <span class="text-error text-lg">❌ Invalid</span>
+                  {/if}
+                </div>
+                <p class="text-sm text-base-content/70">{validationResults[project.id].message}</p>
+              </div>
+            </Modal>
+          {/if}
         </div>
 
         <!-- Actions -->
