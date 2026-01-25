@@ -35,7 +35,7 @@ Key utilities:
 - `fixtures/auth.ts` — `test`, `authedPage`, `api` fixtures
 - `utils/waiters.ts` — `waitForApiOk()`, `clickAndWaitForApi()`
 - `utils/data.ts` — `unique(name, testInfo)`
-- `helpers/api.ts` — `createEvent()`, `createProject()`, etc.
+- `helpers/api.ts` — `createTestEvent()`, `attendEvent()`, `createProject()`, etc.
 
 ## Best Practices
 

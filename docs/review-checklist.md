@@ -1,24 +1,26 @@
-**Checklist of flows to check whenever major changes are made**
-(This is also a target for what our e2e playwright tests should cover)
+# Review Checklist
 
+Flows to verify after major changes (also target for e2e tests):
+
+## Core Flow
 - [ ] Register for a new account
 - [ ] Login using magic link
-- [ ] Create a new event
-- [ ] Create a project via the wizard (twice)
-    <!-- - Join event via wizard the first time using the join code -->
-    <!-- - Note: attend endpoint took a while -->
-- [ ] Enable voting and leaderboard via admin panel
-- [ ] Sign out
----
-- [ ] Navigate to join link and create a new account to test callback
-- [ ] Create a project
+- [ ] Select an official event from the list
+- [ ] Create a project via the wizard
+- [ ] View project validation result
+- [ ] Edit project if validation fails
+
+## Voting
 - [ ] Navigate to event ranking page
-- [ ] Rank projects
+- [ ] Vote for projects
 - [ ] View leaderboard
-- [ ] Update project
-- [ ] Sign out
----
-- [ ] Log into the account that owns the event
-- [ ] View admin leaderboard
-- [ ] Remove the second user
-- [ ] Reload 
+
+## Collaboration
+- [ ] Join existing project via join code
+- [ ] Verify collaborator appears on project
+
+## Admin
+- [ ] View admin panel for event
+- [ ] Toggle voting/leaderboard settings
+- [ ] View attendees list
+- [ ] Remove attendee
