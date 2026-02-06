@@ -3,6 +3,7 @@
   import type { ProjectCreate, EventPublic } from "$lib/client";
   import { toast } from "svelte-sonner";
   import { customInvalidateAll, handleError } from "$lib/misc";
+  import { asyncClick } from "$lib/actions/asyncClick";
   import Modal from "$lib/components/Modal.svelte";
   import { isValidItchUrl, isValidGitHubUrl } from "$lib/validation";
 
@@ -203,7 +204,7 @@
 
     <button
       class="btn btn-accent btn-lg mt-4 btn-block hover:btn-xl transition-all duration-300"
-      onclick={createProject}
+      use:asyncClick={createProject}
     >
       Ship it!
     </button>

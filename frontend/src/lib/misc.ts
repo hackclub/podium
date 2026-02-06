@@ -11,24 +11,36 @@ type ErrorWithDetail = {
 export function handleError(
   error: HTTPValidationError | ErrorWithDetail | Error | unknown,
 ) {
-  // If it's a FastAPI HTTPException, it will have a detail field. Same with validation errors.
   console.error("Error", error);
-  if (error && typeof error === "object" && "detail" in error) {
-    if (Array.isArray(error?.detail)) {
-      // const invalidFields = error.detail.map((e) => e.msg);
-      const invalidFields = error.detail.map(
-        (e) => `${e.loc.join(".")}: ${e.msg}`,
-      );
-      toast.error(invalidFields.join(" | "));
-    } else if (typeof error?.detail === "string") {
-      toast.error(error.detail);
+  if (error && typeof error === "object") {
+    if ("error" in error && typeof (error as any).error === "string") {
+      const msg = (error as any).error as string;
+      if (msg.toLowerCase().includes("rate limit")) {
+        toast.error("Too many requests. Please wait a moment and try again.");
+        return;
+      }
     }
+    if ("detail" in error) {
+      if (Array.isArray(error?.detail)) {
+        const invalidFields = (error as any).detail.map(
+          (e: any) => `${e.loc.join(".")}: ${e.msg}`,
+        );
+        toast.error(invalidFields.join(" | "));
+      } else if (typeof (error as any)?.detail === "string") {
+        const detail = (error as any).detail as string;
+        if (detail.toLowerCase().includes("rate limit")) {
+          toast.error("Too many requests. Please wait a moment and try again.");
+        } else {
+          toast.error(detail);
+        }
+      }
+      return;
+    }
+  }
+  if (error instanceof Error) {
+    toast.error(error.message);
   } else {
-    if (error instanceof Error) {
-      toast.error(error.message);
-    } else {
-      toast.error("An error occurred, check the console for more details");
-    }
+    toast.error("An error occurred, check the console for more details");
   }
 }
 

@@ -3,6 +3,7 @@
   import type { EventPublic, ProjectPublic } from "$lib/client";
   import { toast } from "svelte-sonner";
   import { customInvalidateAll, handleError } from "$lib/misc";
+  import { asyncClick } from "$lib/actions/asyncClick";
   import type { ProjectPrivate, ProjectUpdate } from "$lib/client/types.gen";
   import { onMount } from "svelte";
   import Modal from "$lib/components/Modal.svelte";
@@ -195,7 +196,7 @@
           min="0"
         />
 
-        <button class="btn btn-block mt-4 btn-primary" onclick={updateProject}>
+        <button class="btn btn-block mt-4 btn-primary" use:asyncClick={updateProject}>
           Update Project
         </button>
         <button

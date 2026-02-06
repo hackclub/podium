@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from sqlmodel import select
@@ -12,6 +12,7 @@ import httpx
 
 from podium.config import settings
 from podium.constants import BAD_AUTH
+from podium.limiter import limiter
 from podium.db.postgres import User, UserPrivate, get_session, scalar_one_or_none
 
 router = APIRouter(tags=["auth"])
@@ -75,7 +76,9 @@ async def send_magic_link(email: str, redirect: str = ""):
 
 
 @router.post("/request-login")
+@limiter.limit("30/minute")
 async def request_login(
+    request: Request,
     user: UserLoginPayload,
     redirect: Annotated[str, Query()],
     session: Annotated[AsyncSession, Depends(get_session)],
@@ -95,7 +98,9 @@ class AuthenticatedUser(BaseModel):
 
 
 @router.get("/verify")
+@limiter.limit("30/minute")
 async def verify_token(
+    request: Request,
     token: Annotated[str, Query()],
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> AuthenticatedUser:

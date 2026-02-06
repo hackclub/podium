@@ -35,6 +35,7 @@ dependencies = [
     "asyncpg>=0.31.0",
     "sqlmodel>=0.0.31",
     "beautifulsoup4>=4.13.4",
+    "slowapi>=0.1.9",
 ]
 
 [project.optional-dependencies]

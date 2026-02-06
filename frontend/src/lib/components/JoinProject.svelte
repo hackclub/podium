@@ -1,6 +1,7 @@
 <script lang="ts">
   import { toast } from "svelte-sonner";
   import { customInvalidateAll, handleError } from "$lib/misc";
+  import { asyncClick } from "$lib/actions/asyncClick";
 
   import { ProjectsService } from "$lib/client";
   import type { JoinProjectProjectsJoinPostData } from "$lib/client";
@@ -59,7 +60,7 @@
       placeholder="~4 character case-insensitive join code"
       class="input input-bordered w-full"
     />
-    <button class="btn-block btn btn-primary" onclick={joinProject}>
+    <button class="btn-block btn btn-primary" use:asyncClick={joinProject}>
       Join the development of something great!
     </button>
   </div>

@@ -6,12 +6,18 @@ from typing import AsyncIterator
 import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+
+from starlette.middleware.base import BaseHTTPMiddleware
+from podium.limiter import limiter, get_user_or_ip
 
 sentry_sdk.init(
     dsn=""
     if os.getenv("ENV_FOR_DYNACONF") == "development"
     else "https://489f4a109d07aeadfd13387bcd3197ab@o4508979744210944.ingest.de.sentry.io/4508979747553360",
     send_default_pii=True,
+    traces_sample_rate=1.0,
 )
 
 
@@ -28,6 +34,20 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+class SentryUserMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        user_key = get_user_or_ip(request)
+        if "@" in user_key:
+            sentry_sdk.set_user({"email": user_key})
+        else:
+            sentry_sdk.set_user({"ip_address": user_key})
+        return await call_next(request)
+
+
+app.add_middleware(SentryUserMiddleware)
 
 origins = ["*"]
 

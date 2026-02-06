@@ -3,6 +3,7 @@
   import type { UserUpdate } from "$lib/client";
   import { toast } from "svelte-sonner";
   import { handleError, invalidateUser } from "$lib/misc";
+  import { asyncClick } from "$lib/actions/asyncClick";
   import { fade } from "svelte/transition";
   import Modal from "$lib/components/Modal.svelte";
 
@@ -145,7 +146,7 @@
           class="input input-bordered w-full"
         />
 
-        <button class="btn btn-block mt-4 btn-primary" onclick={updateUser}>
+        <button class="btn btn-block mt-4 btn-primary" use:asyncClick={updateUser}>
           Update Profile
         </button>
       </fieldset>
