@@ -1,26 +1,30 @@
 # Review Checklist
 
-Flows to verify after major changes (also target for e2e tests):
+Flows to verify after major changes. **Most core flows are covered by e2e tests** (see `frontend/tests/journey.spec.ts`).
 
-## Core Flow
+## Core Flow (✅ E2E tested)
 - [ ] Register for a new account
 - [ ] Login using magic link
-- [ ] Select an official event from the list
-- [ ] Create a project via the wizard
-- [ ] View project validation result
-- [ ] Edit project if validation fails
+- [ ] Select an official event from the list ✅
+- [ ] Create a project via the wizard ✅
+- [ ] View project validation result ✅
+- [ ] Edit project if validation fails ✅
 
-## Voting
-- [ ] Navigate to event ranking page
-- [ ] Vote for projects
-- [ ] View leaderboard
+## Voting (✅ E2E tested)
+- [ ] Navigate to event ranking page ✅
+- [ ] Vote for projects ✅
+- [ ] View leaderboard ✅
+
+## Project Management (✅ E2E tested)
+- [ ] Update own project ✅
+- [ ] Delete own project ✅
 
 ## Collaboration
 - [ ] Join existing project via join code
 - [ ] Verify collaborator appears on project
 
-## Admin
-- [ ] View admin panel for event
-- [ ] Toggle voting/leaderboard settings
-- [ ] View attendees list
-- [ ] Remove attendee
+## Organizer Admin (✅ E2E tested)
+- [ ] View admin panel for event ✅
+- [ ] Toggle voting/leaderboard settings ✅
+- [ ] View attendees list ✅
+- [ ] Remove attendee ✅

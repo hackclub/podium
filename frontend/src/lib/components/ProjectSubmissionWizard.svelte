@@ -20,6 +20,7 @@
   import JoinProject from "./JoinProject.svelte";
   import type { ProjectPrivate, EventPrivate } from "$lib/client";
   import { validateProject } from "$lib/validation";
+  import { ProjectsService } from "$lib/client/sdk.gen";
   import CreateProject from "./CreateProject.svelte";
   import UpdateProjectModal from "./UpdateProjectModal.svelte";
   import Modal from "./Modal.svelte";
@@ -213,7 +214,9 @@
     }
   }
 
-  function handleProjectAction() {
+  async function handleProjectAction() {
+    // Refetch projects to ensure newly created projects are available
+    await refetchProjects();
     goToValidateProject();
   }
 
@@ -224,6 +227,20 @@
 
   function goBack() {
     setStep("chooseProject");
+  }
+
+  /**
+   * Refetch projects after creation or update.
+   * This ensures the wizard sees newly created projects.
+   */
+  async function refetchProjects() {
+    const { data, error } = await ProjectsService.getProjectsProjectsMineGet({
+      throwOnError: false,
+    });
+    if (!error && data) {
+      projects = data;
+      hasAutoValidated = false;  // Reset so validation runs again
+    }
   }
 </script>
 

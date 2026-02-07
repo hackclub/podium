@@ -1,45 +1,64 @@
 # Testing
 
-E2E tests using Playwright with worker-scoped authentication.
+E2E tests using Playwright. Tests focus on user-facing UI flows; API calls are used only for authentication and test infrastructure setup.
 
 ## Running Tests
 
 ```bash
 cd frontend && doppler run --config dev -- npx playwright test
 
-npx playwright test core.spec.ts  # specific file
-npx playwright test --ui          # UI mode
-npx playwright test --headed      # see browser
+npx playwright test journey.spec.ts  # specific file
+npx playwright test --ui             # UI mode
+npx playwright test --headed         # see browser
 ```
 
 Use `npx`, not `bunx`, for Playwright.
 
 ## How Auth Works
 
-Each Playwright worker gets a unique test user (`test+pw{workerIndex}@example.com`). JWT is obtained via the `/verify` endpoint and stored in localStorage. The token is reused across all tests in that worker.
+Tests create users on-the-fly via `/users/` endpoint, then get a JWT via `/verify` using a magic link token (created with `signMagicLinkToken()`). The JWT is stored in localStorage and reused for UI navigation.
 
-## Writing Tests
+## Test Structure
+
+Journey tests follow this pattern:
+
+1. **Setup phase (API only):**
+   - Create users and authenticate
+   - Create test events
+   - Set up projects or other test data
+
+2. **Testing phase (UI):**
+   - Navigate pages and interact with components
+   - Verify user flows work end-to-end
+   - All feature testing happens through the browser
+
+Example:
 
 ```typescript
-import { test, expect } from './fixtures/auth';
-import { unique } from './utils/data';
+// Setup: Create user and authenticate
+const { token } = await createUserAndGetToken(email, name);
+const page = await createAuthenticatedPage(browser, token, baseURL);
 
-test('example', async ({ authedPage, api }, testInfo) => {
-  const name = unique('Event', testInfo);  // collision-free names
-  // authedPage is pre-authenticated
-  // api is APIRequestContext for backend calls
-});
+// Test: User joins event via EventSelector
+await page.goto('/');
+await page.getByText(eventName).click();
+await expect(page.getByText(/joined/i)).toBeVisible();
+
+// Test: User creates project via ProjectSubmissionWizard
+await page.getByRole('button', { name: /create new project/i }).click();
+// ... fill form, wait for API response ...
 ```
 
-Key utilities:
-- `fixtures/auth.ts` — `test`, `authedPage`, `api` fixtures
-- `utils/waiters.ts` — `waitForApiOk()`, `clickAndWaitForApi()`
-- `utils/data.ts` — `unique(name, testInfo)`
-- `helpers/api.ts` — `createTestEvent()`, `attendEvent()`, `createProject()`, etc.
+## Key Patterns
+
+- **Authenticated pages:** Use `createAuthenticatedPage(browser, token, baseURL)` to set up localStorage with JWT
+- **Wait for API calls:** Use `page.waitForResponse()` to sync with backend
+- **Query selectors:** Prefer `getByRole()` for accessibility; use `getByText()` for content; avoid brittle selectors
+- **Test data:** Use timestamps in names (`projectName_${Date.now()}`) to avoid collisions
 
 ## Best Practices
 
-- Use `unique()` for entity names to avoid collisions
-- Wait for API responses with `clickAndWaitForApi()` or `waitForResponse()`
-- Prefer `getByRole()` or `data-testid` over text selectors
-- Add `.first()` for ambiguous selectors
+- **API only for infrastructure:** Limit API calls to auth, event/project setup, and test cleanup
+- **Test real user flows:** All features should be tested through the UI
+- **Wait for responses:** Always wait for the expected API call when testing form submissions
+- **Handle flakiness:** Use reasonable timeouts (10s-15s) and `.catch(() => {})` for non-critical waits
