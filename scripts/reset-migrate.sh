@@ -35,16 +35,22 @@ case "$1" in
   *)  error "Unknown option: $1. Use --sync <URL> or see docs/migrations/ for Airtable" ;;
 esac
 
+# Determine compose command (docker compose or podman compose)
+COMPOSE_CMD="docker compose"
+if ! $COMPOSE_CMD ps &>/dev/null; then
+  COMPOSE_CMD="podman compose"
+fi
+
 # Verify Docker is running
-docker compose ps --quiet podium-pg >/dev/null 2>&1 || error "Run 'docker compose up -d' first"
+if ! $COMPOSE_CMD ps 2>&1 | grep "podium-pg" | grep -q "Up"; then
+  error "Run '$COMPOSE_CMD up -d' first"
+fi
 
 # Reset database (terminate connections first to allow drop)
 info "Resetting database..."
-docker compose exec -T podium-pg psql -U postgres -c "
-  SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'podium' AND pid <> pg_backend_pid();
-  DROP DATABASE IF EXISTS podium;
-  CREATE DATABASE podium;
-"
+$COMPOSE_CMD exec -T podium-pg psql -U postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'podium' AND pid <> pg_backend_pid();"
+$COMPOSE_CMD exec -T podium-pg psql -U postgres -c "DROP DATABASE IF EXISTS podium;"
+$COMPOSE_CMD exec -T podium-pg psql -U postgres -c "CREATE DATABASE podium;"
 
 # Run migrations
 info "Running migrations..."
@@ -54,9 +60,11 @@ info "Running migrations..."
 if [[ "$MODE" == "sync" ]]; then
   info "Syncing from $SYNC_URL..."
   CLEAN_URL=$(echo "$SYNC_URL" | sed 's/+asyncpg//')
-  docker run --rm postgres:17 pg_dump "$CLEAN_URL" \
+  (docker run --rm postgres:17 pg_dump "$CLEAN_URL" \
     --data-only --disable-triggers --exclude-table=alembic_version \
-    | docker compose exec -T podium-pg psql -U postgres -d podium
+    || podman run --rm postgres:17 pg_dump "$CLEAN_URL" \
+    --data-only --disable-triggers --exclude-table=alembic_version) \
+    | $COMPOSE_CMD exec -T podium-pg psql -U postgres -d podium
 fi
 
 info "Done! Postgres: localhost:5432"

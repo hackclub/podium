@@ -228,7 +228,7 @@ class CreateEventScreen(ModalScreen[EventData | None]):
                     name=name,
                     slug=event_slug,
                     description=description,
-                    join_code=token_urlsafe(6)[:8],
+
                     feature_flags_csv=feature_flags,
                     votable=votable,
                     leaderboard_enabled=leaderboard,

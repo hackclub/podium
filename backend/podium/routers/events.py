@@ -279,13 +279,11 @@ async def create_test_event(
 
     base_slug = slugify(event_data.name)[:40]
     slug = f"{base_slug}-{token_urlsafe(4)}"
-    join_code = token_urlsafe(6)
 
     event = Event(
         name=event_data.name,
         slug=slug,
         description=event_data.description,
-        join_code=join_code,
         owner_id=user.id,
         votable=True,
         leaderboard_enabled=True,

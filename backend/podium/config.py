@@ -71,7 +71,8 @@ settings.validators.register(
         ),
         Validator(
             "active_event_series",
-            default="",
+            # default="",
+            must_exist=True,
         ),
         Validator(
             "database_url",
