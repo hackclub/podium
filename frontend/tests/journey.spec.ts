@@ -131,6 +131,7 @@ test.describe('Full User Journey', () => {
 		// Create projects as organizer via UI (wizard on home page)
 		// Test the full validation flow with a real playable itch.io game
 		await organizerPage.goto('/');
+		await organizerPage.waitForLoadState('networkidle');
 		// Wizard shows "Create New Project" button on the chooseProject step
 		await organizerPage.getByRole('button', { name: /create new project/i }).click({ timeout: 10000 });
 		await expect(organizerPage.locator('#project_name')).toBeVisible({ timeout: 10000 });
@@ -204,6 +205,7 @@ test.describe('Full User Journey', () => {
 
 		// Create a project as attendee via wizard on home page with validation
 		await attendeePage.goto('/');
+		await attendeePage.waitForLoadState('networkidle');
 		await attendeePage.getByRole('button', { name: /create new project/i }).click({ timeout: 10000 });
 		await expect(attendeePage.locator('#project_name')).toBeVisible({ timeout: 10000 });
 		await attendeePage.locator('#project_name').fill(`Attendee Project ${timestamp}`);
