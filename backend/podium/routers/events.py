@@ -120,26 +120,6 @@ async def attend_event(
     if user in event.attendees:
         return {"message": "Already attending this event", "event_id": str(event.id)}
 
-    user_stmt = (
-        select(User)
-        .where(User.id == user.id)
-        .options(selectinload(User.events_attending).selectinload(Event.projects))
-    )
-    full_user = await scalar_one_or_none(session, user_stmt)
-    if not full_user:
-        raise BAD_AUTH
-
-    for attending_event in full_user.events_attending:
-        if active_series in attending_event.feature_flags_list:
-            attending_event_with_attendees = await scalar_one_or_none(
-                session,
-                select(Event)
-                .where(Event.id == attending_event.id)
-                .options(selectinload(Event.attendees)),
-            )
-            if attending_event_with_attendees and user in attending_event_with_attendees.attendees:
-                attending_event_with_attendees.attendees.remove(user)
-
     event.attendees.append(user)
     await session.commit()
 

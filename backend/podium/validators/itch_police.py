@@ -22,7 +22,7 @@ def is_itch_url(url: str) -> bool:
     return bool(ITCH_URL_PATTERN.match(url))
 
 
-def is_playable(url: str, timeout: float = 10.0) -> bool:
+async def is_playable(url: str, timeout: float = 10.0) -> bool:
     """
     Check if an itch.io game is browser-playable.
 
@@ -34,8 +34,8 @@ def is_playable(url: str, timeout: float = 10.0) -> bool:
         True if the page contains a .game_frame element (browser-playable game)
     """
     try:
-        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
-            response = client.get(url)
+        async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+            response = await client.get(url)
             response.raise_for_status()
 
         soup = BeautifulSoup(response.content, "html.parser")

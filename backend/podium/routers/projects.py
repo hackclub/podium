@@ -20,6 +20,7 @@ from podium.db.postgres import (
     scalar_one_or_none,
 )
 from podium.routers.auth import get_current_user
+from podium.limiter import limiter, get_user_or_ip
 from podium.validators import is_itch_url, is_playable
 from podium.constants import BAD_AUTH, BAD_ACCESS
 
@@ -200,9 +201,11 @@ async def get_project_endpoint(
 
 
 @router.post("/validate")
+@limiter.limit("10/minute", key_func=get_user_or_ip)
 async def validate_project(
     project_id: Annotated[UUID, Query(description="Project ID to validate")],
     session: Annotated[AsyncSession, Depends(get_session)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> ValidationResult:
     """Validate a project's demo URL for itch.io browser playability."""
     project = await session.get(Project, project_id)
@@ -215,7 +218,7 @@ async def validate_project(
     if not is_itch_url(project.demo):
         return ValidationResult(valid=False, message="Demo URL must be an itch.io game page")
 
-    if is_playable(project.demo):
+    if await is_playable(project.demo):
         return ValidationResult(valid=True, message="Game is browser-playable")
     else:
         return ValidationResult(
