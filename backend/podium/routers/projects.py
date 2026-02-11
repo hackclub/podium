@@ -2,7 +2,7 @@ from secrets import token_urlsafe
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -203,6 +203,7 @@ async def get_project_endpoint(
 @router.post("/validate")
 @limiter.limit("10/minute", key_func=get_user_or_ip)
 async def validate_project(
+    request: Request,
     project_id: Annotated[UUID, Query(description="Project ID to validate")],
     session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
