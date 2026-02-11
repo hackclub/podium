@@ -114,7 +114,6 @@ async def attend_event(
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    print(f"[DEBUG attend_event] active_series={active_series!r}, event.feature_flags_csv={event.feature_flags_csv!r}, event.feature_flags_list={event.feature_flags_list!r}")
     if active_series not in event.feature_flags_list:
         raise HTTPException(status_code=400, detail=f"Event is not part of the active series (expected {active_series!r} in {event.feature_flags_list!r})")
 
@@ -258,7 +257,6 @@ async def create_test_event(
     if not active_series:
         raise HTTPException(status_code=400, detail="No active event series configured")
 
-    print(f"[DEBUG create_test_event] active_series={active_series!r}")
     base_slug = slugify(event_data.name)[:40]
     slug = f"{base_slug}-{token_urlsafe(4)}"
 
@@ -272,7 +270,6 @@ async def create_test_event(
         demo_links_optional=True,
         feature_flags_csv=active_series,
     )
-    print(f"[DEBUG create_test_event] created event with feature_flags_csv={event.feature_flags_csv!r}")
 
     session.add(event)
     await session.commit()
