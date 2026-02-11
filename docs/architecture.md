@@ -24,9 +24,13 @@ M2M relationships via junction tables:
 
 ## Event Series
 
-Events are grouped into series (e.g., "scrapyard-2025"). The `ACTIVE_EVENT_SERIES` config controls which events users can select. Events with matching `feature_flags_csv` appear in the event selector.
+Events are grouped into a **series** — a flagship event plus its satellites (e.g., "Scrapyard 2025"). Only one series is active at a time, controlled by `ACTIVE_EVENT_SERIES` in backend config. Events with matching `feature_flags_csv` appear in the event selector.
 
-Only one series is active at a time. Users can view past events but can only submit to the current series.
+Key rules:
+- **One event per user per series** — backend enforces; selecting a new event auto-switches
+- **Events are admin-created** — users select from a list, never create events
+- **All official events are equal** — no UI distinction between flagship and satellites
+- **Past series are read-only** — users can view but not edit old projects
 
 ## User Flow
 
