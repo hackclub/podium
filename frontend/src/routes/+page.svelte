@@ -19,6 +19,11 @@
     return projects.some((p) => p.event_id === event.id);
   });
 
+  // Keep global project state in sync
+  $effect(() => {
+    setHasProject(projects.length > 0);
+  });
+
   onMount(async () => {
     if (!getAuthenticatedUser().access_token) {
       loading = false;
@@ -39,9 +44,6 @@
       if (!projectsRes.error && projectsRes.data) {
         projects = projectsRes.data;
       }
-
-      // Update global project state for sidebar navigation
-      setHasProject(projects.length > 0);
     } catch (_) {}
 
     loading = false;

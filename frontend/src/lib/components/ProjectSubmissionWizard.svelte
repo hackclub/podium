@@ -63,7 +63,7 @@
     welcomeMessage?: string;
   }
 
-  let { flagshipEvents = [], projects = [], welcomeMessage }: Props = $props();
+  let { flagshipEvents = [], projects = $bindable([]), welcomeMessage }: Props = $props();
 
   let currentEvent = $state(flagshipEvents[0]);
   let validationResult = $state<any>(null); // Store full validation result
