@@ -1,14 +1,14 @@
 #!/bin/bash
-# Reset LOCAL Podium database (cannot affect production)
+# Reset Podium database
 #
-# This script only touches the local Docker Postgres container.
-# It uses `docker compose exec` and `doppler --config dev`.
+# Supports two modes:
+#   1. Local Docker Postgres (default if Docker is running)
+#   2. External Postgres via PODIUM_DATABASE_URL (auto-detected or --remote)
 #
 # Usage:
-#   ./scripts/reset-migrate.sh              # Empty local database with schema only
+#   ./scripts/reset-migrate.sh              # Reset database (empty, schema only)
 #   ./scripts/reset-migrate.sh --sync <URL> # Schema + copy data FROM a Postgres URL
-#
-# For Airtable migrations, see docs/migrations/airtable-to-postgres.md
+#   ./scripts/reset-migrate.sh --remote     # Force using PODIUM_DATABASE_URL instead of Docker
 
 set -e
 cd "$(dirname "$0")/.."
@@ -24,33 +24,69 @@ error() { echo -e "${RED}▶${NC} $1"; exit 1; }
 
 MODE="reset"
 SYNC_URL=""
+FORCE_REMOTE=false
 
-case "$1" in
-  --sync)
-    MODE="sync"
-    SYNC_URL="$2"
-    [[ -z "$SYNC_URL" ]] && error "--sync requires a Postgres URL"
-    ;;
-  "") MODE="reset" ;;
-  *)  error "Unknown option: $1. Use --sync <URL> or see docs/migrations/ for Airtable" ;;
-esac
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --sync)
+      MODE="sync"
+      SYNC_URL="$2"
+      [[ -z "$SYNC_URL" ]] && error "--sync requires a Postgres URL"
+      shift 2
+      ;;
+    --remote)
+      FORCE_REMOTE=true
+      shift
+      ;;
+    *)  error "Unknown option: $1. Use --remote, --sync <URL>, or no args for default" ;;
+  esac
+done
 
-# Determine compose command (docker compose or podman compose)
+# --- Determine whether to use Docker or external Postgres ---
+
+USE_DOCKER=false
 COMPOSE_CMD="docker compose"
-if ! $COMPOSE_CMD ps &>/dev/null; then
-  COMPOSE_CMD="podman compose"
+
+if [[ "$FORCE_REMOTE" == false ]]; then
+  if ! $COMPOSE_CMD ps &>/dev/null; then
+    COMPOSE_CMD="podman compose"
+  fi
+  if $COMPOSE_CMD ps 2>&1 | grep "podium-pg" | grep -q "Up"; then
+    USE_DOCKER=true
+  fi
 fi
 
-# Verify Docker is running
-if ! $COMPOSE_CMD ps 2>&1 | grep "podium-pg" | grep -q "Up"; then
-  error "Run '$COMPOSE_CMD up -d' first"
-fi
+if [[ "$USE_DOCKER" == false ]]; then
+  # Resolve PODIUM_DATABASE_URL (try Doppler, then env)
+  if [[ -z "$PODIUM_DATABASE_URL" ]]; then
+    PODIUM_DATABASE_URL=$(doppler secrets get PODIUM_DATABASE_URL --config dev --plain 2>/dev/null || true)
+  fi
+  [[ -z "$PODIUM_DATABASE_URL" ]] && error "No Docker container running and PODIUM_DATABASE_URL is not set.\nSet it via env or Doppler."
 
-# Reset database (terminate connections first to allow drop)
-info "Resetting database..."
-$COMPOSE_CMD exec -T podium-pg psql -U postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'podium' AND pid <> pg_backend_pid();"
-$COMPOSE_CMD exec -T podium-pg psql -U postgres -c "DROP DATABASE IF EXISTS podium;"
-$COMPOSE_CMD exec -T podium-pg psql -U postgres -c "CREATE DATABASE podium;"
+  # Convert async URL to plain psql-compatible URL
+  PSQL_URL=$(echo "$PODIUM_DATABASE_URL" | sed 's/+asyncpg//')
+
+  # Extract database name and base URL (without db name) for drop/create
+  DB_NAME=$(echo "$PSQL_URL" | sed -E 's|.*/([^?]+).*|\1|')
+  BASE_URL=$(echo "$PSQL_URL" | sed -E "s|/[^/?]+(\?.*)?$|/postgres\1|")
+
+  info "Using external Postgres (database: $DB_NAME)"
+
+  warn "This will DROP and recreate '$DB_NAME'. Press Enter to continue or Ctrl+C to abort."
+  read -r
+
+  info "Resetting database..."
+  psql "$BASE_URL" -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$DB_NAME' AND pid <> pg_backend_pid();" 2>/dev/null || true
+  psql "$BASE_URL" -c "DROP DATABASE IF EXISTS \"$DB_NAME\";"
+  psql "$BASE_URL" -c "CREATE DATABASE \"$DB_NAME\";"
+else
+  info "Using local Docker Postgres"
+
+  info "Resetting database..."
+  $COMPOSE_CMD exec -T podium-pg psql -U postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'podium' AND pid <> pg_backend_pid();"
+  $COMPOSE_CMD exec -T podium-pg psql -U postgres -c "DROP DATABASE IF EXISTS podium;"
+  $COMPOSE_CMD exec -T podium-pg psql -U postgres -c "CREATE DATABASE podium;"
+fi
 
 # Run migrations
 info "Running migrations..."
@@ -60,11 +96,21 @@ info "Running migrations..."
 if [[ "$MODE" == "sync" ]]; then
   info "Syncing from $SYNC_URL..."
   CLEAN_URL=$(echo "$SYNC_URL" | sed 's/+asyncpg//')
-  (docker run --rm postgres:17 pg_dump "$CLEAN_URL" \
-    --data-only --disable-triggers --exclude-table=alembic_version \
-    || podman run --rm postgres:17 pg_dump "$CLEAN_URL" \
-    --data-only --disable-triggers --exclude-table=alembic_version) \
-    | $COMPOSE_CMD exec -T podium-pg psql -U postgres -d podium
+  if [[ "$USE_DOCKER" == true ]]; then
+    (docker run --rm postgres:17 pg_dump "$CLEAN_URL" \
+      --data-only --disable-triggers --exclude-table=alembic_version \
+      || podman run --rm postgres:17 pg_dump "$CLEAN_URL" \
+      --data-only --disable-triggers --exclude-table=alembic_version) \
+      | $COMPOSE_CMD exec -T podium-pg psql -U postgres -d podium
+  else
+    pg_dump "$CLEAN_URL" \
+      --data-only --disable-triggers --exclude-table=alembic_version \
+      | psql "$PSQL_URL"
+  fi
 fi
 
-info "Done! Postgres: localhost:5432"
+if [[ "$USE_DOCKER" == true ]]; then
+  info "Done! Postgres: localhost:5432"
+else
+  info "Done! Using external database."
+fi
