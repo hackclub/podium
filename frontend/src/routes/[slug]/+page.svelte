@@ -24,7 +24,7 @@
 <main class="fixed inset-0 flex items-center justify-center px-4">
 	{#if eventTheme}
 		<div
-			class="relative w-full max-w-lg overflow-hidden rounded-lg border-4 border-white p-6 drop-shadow-md"
+			class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-white p-6 drop-shadow-md"
 			style="font-family: {eventTheme.font};"
 		>
 			<div
