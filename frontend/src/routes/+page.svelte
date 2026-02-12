@@ -3,6 +3,7 @@
 	import { events } from '$lib/data';
 	import { goto } from '$app/navigation';
 	import { fade } from 'svelte/transition';
+	import { onMount } from 'svelte';
 
 	let searchQuery = $state('');
 
@@ -11,11 +12,20 @@
 			data.friendlyName.toLowerCase().includes(searchQuery.toLowerCase())
 		)
 	);
+
+	onMount(() => {
+		const backgrounds = Object.values(theme).map((t) => t.background);
+		backgrounds.forEach((src) => {
+			const img = new Image();
+			img.src = src;
+		});
+	});
 </script>
 
-<div class="bg-[#111] min-h-screen relative">
+<div class="bg-[#111] min-h-screen relative" out:fade={{ duration: 150 }}>
 	<!-- Header -->
 	<div class="flex items-end gap-2 p-6 sticky">
+		<img src="/favicon.svg" alt="Podium" class="h-[32px]" />
 		<span class="text-white text-[32px] font-bold leading-none">Podium 2</span>
 		<span class="text-[#878787] text-[16px] leading-none pb-0.5">Vote @ your event</span>
 	</div>
