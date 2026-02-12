@@ -6,7 +6,7 @@
   interface Props {
     attendees: UserAttendee[];
     onRemoveAttendee: (userId: string) => Promise<void>;
-    event: EventPublic & { owned: boolean; partOfEvent: boolean; join_code?: string };
+    event: EventPublic & { owned: boolean; partOfEvent: boolean };
   }
 
   let { attendees, onRemoveAttendee, event }: Props = $props();
@@ -52,7 +52,7 @@
           </h3>
           <div class="text-xs">
             You can <a
-              href="/events/attend?join_code={event.join_code}&referral=Event%20Owner"
+              href="/events/attend?referral=Event%20Owner"
               class="link link-primary">join the event</a
             > if you wish to also be able to act as an attendee.
           </div>

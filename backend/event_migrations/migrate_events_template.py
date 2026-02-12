@@ -81,14 +81,6 @@ def slugify(text: str) -> str:
     return text.strip("-")
 
 
-def generate_join_code() -> str:
-    """Generate a random 4-character join code."""
-    import random
-    import string
-
-    return "".join(random.choices(string.ascii_uppercase + string.digits, k=4))
-
-
 def airtable_link(record_id: str, base_id: str, table_id: str) -> str:
     """Create a clickable Airtable link for a record."""
     return f"https://airtable.com/{base_id}/{table_id}/{record_id}"
@@ -251,7 +243,6 @@ def create_event(source_event: Dict[str, Any], owner_id: str) -> Optional[str]:
             ),
             "owner": [owner_id],
             "slug": slug,
-            "join_code": generate_join_code(),
         }
 
         record = events_table.create(event_record)

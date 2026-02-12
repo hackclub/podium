@@ -33,5 +33,4 @@ class Referral(SQLModel, table=True):
     user: "User" = Relationship(back_populates="referrals")
     event: "Event" = Relationship(back_populates="referrals")
 
-    # DEPRECATED: For migration from Airtable only. Remove after migration.
-    airtable_id: str | None = Field(default=None, max_length=32, unique=True, index=True)
+

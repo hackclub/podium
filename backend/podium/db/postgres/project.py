@@ -55,8 +55,6 @@ class Project(SQLModel, table=True):
     )
     votes: list["Vote"] = Relationship(back_populates="project")
 
-    # DEPRECATED: For migration from Airtable only. Remove after migration.
-    airtable_id: str | None = Field(default=None, max_length=32, unique=True, index=True)
 
 
 # =============================================================================

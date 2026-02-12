@@ -15,7 +15,6 @@ Usage:
 import asyncio
 import sys
 from secrets import token_urlsafe
-from datetime import date
 
 # Add parent to path for imports
 sys.path.insert(0, ".")

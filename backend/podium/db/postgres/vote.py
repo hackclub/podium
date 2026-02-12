@@ -35,5 +35,4 @@ class Vote(SQLModel, table=True):
     project: "Project" = Relationship(back_populates="votes")
     event: "Event" = Relationship(back_populates="votes")
 
-    # DEPRECATED: For migration from Airtable only. Remove after migration.
-    airtable_id: str | None = Field(default=None, max_length=32, unique=True, index=True)
+

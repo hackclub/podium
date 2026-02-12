@@ -58,8 +58,6 @@ class User(SQLModel, table=True):
         back_populates="collaborators", link_model=ProjectCollaboratorLink
     )
 
-    # DEPRECATED: For migration from Airtable only. Remove after migration.
-    airtable_id: str | None = Field(default=None, max_length=32, unique=True, index=True)
 
 
 # =============================================================================
