@@ -20,8 +20,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync
 ENV PATH="/app/.venv/bin:$PATH"
 
-RUN ["uv", "run", "--", "playwright", "install"]
-
 # Use Doppler to inject runtime secrets at container start. Ensure DOPPLER_TOKEN or an agent is available at runtime.
 ENTRYPOINT ["doppler", "run", "--"]
 CMD ["uv", "run", "python", "-m", "uvicorn", "podium.main:app", "--host", "0.0.0.0", "--port", "8000"]
