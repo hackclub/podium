@@ -52,8 +52,8 @@
   class="m-4"
 >
   <div
-    class="card card-sm bg-base-100 rounded transition-transform duration-200 border-solid border-base {isSelected
-      ? 'border-info scale-110 border-2'
+    class="card card-sm bg-base-100 rounded transition-transform duration-125 border-solid border-base {isSelected
+      ? 'border-info scale-105 border-2'
       : ''}"
   >
     <figure class="w-full relative">

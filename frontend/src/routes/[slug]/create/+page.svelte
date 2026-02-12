@@ -8,6 +8,7 @@
 	import Textarea from '$lib/forms/Textarea.svelte';
 	import FileDropZone from '$lib/forms/FileDropZone.svelte';
     import { fade } from 'svelte/transition';
+	import { goto } from "$app/navigation";
 
 	const slug = $derived(page.params.slug);
 	const eventData = $derived(events[slug]);
@@ -26,6 +27,7 @@
 
 	function handleSubmit() {
 		// TODO: wire up project creation
+		goto(`/${slug}/vote`)
 	}
 </script>
 

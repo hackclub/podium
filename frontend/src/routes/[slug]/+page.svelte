@@ -49,8 +49,9 @@
 
 				<button
                     type="button"
-					onclick={() => history.back()}
-					class="mt-1 w-fit text-md text-white/70 underline drop-shadow-md cursor-pointer"
+					onclick={() => goto('/')}
+					class="mt-1 w-fit text-md text-white/70 underline drop-shadow-md cursor-pointer transition-colors ease-in-out duration-125 hover:text-[var(--hover-color)]"
+					style="--hover-color: {eventTheme.selected};"
 				>
 					back
 				</button>
