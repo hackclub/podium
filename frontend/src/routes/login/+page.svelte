@@ -9,10 +9,11 @@
   import { handleError } from "$lib/misc";
   import type { UserSignup } from "$lib/client/types.gen";
   import { countries } from "countries-list";
+  import { asyncClick } from "$lib/actions/asyncClick";
   // rest is the extra props passed to the component
   let { ...rest } = $props();
 
-  let isLoading = $state(false);
+  let isVerifying = $state(false);
   let showSignupFields = $state(false);
   let expandedDueTo = "";
   let userInfo: UserSignup = $state({
@@ -34,19 +35,17 @@
     // console.debug("eitherLoginOrSignUp", showSignupFields);
     // If showSignupFields is true, the user is signing up and signupAndLogin should be called. Otherwise, the user is logging in and login should be called.
     if (!showSignupFields) {
-      login();
+      await login();
     } else {
-      signupAndLogin();
+      await signupAndLogin();
     }
   }
 
   async function checkUserExists(): Promise<boolean> {
-    isLoading = true;
     const { data, error: err } = await UsersService.userExistsUsersExistsGet({
       query: { email: userInfo.email },
       throwOnError: false,
     });
-    isLoading = false;
     if (err || !data) {
       handleError(err);
       return false;
@@ -62,10 +61,7 @@
 
   // Function to handle login
   async function login() {
-    isLoading = true;
-    // Stop immediately if no email was entered to avoid backend validation popups
     if (!userInfo.email || userInfo.email.trim() === "") {
-      isLoading = false;
       toast.error("Please enter your email address.");
       document.getElementById("email")?.focus();
       return;
@@ -79,16 +75,14 @@
         query: { redirect: redirectUrl ?? "" },
         throwOnError: false,
       });
-      isLoading = false;
       if (err) {
         handleError(err);
         return;
       }
-      toast.success(`Magic link sent to ${userInfo.email}`);
+      toast.success(`Magic link sent to ${userInfo.email}. Check your spam folder if you don't see it!`);
       // Clear field
       userInfo.email = "";
     } else {
-      isLoading = false;
       toast.error("You don't exist (yet)! Let's change that.");
       expandedDueTo = userInfo.email;
       showSignupFields = true;
@@ -97,9 +91,7 @@
 
   // Function to handle signup and login
   async function signupAndLogin() {
-    isLoading = true;
     if (!userInfo.email || userInfo.email.trim() === "") {
-      isLoading = false;
       toast.error("Please enter your email address.");
       document.getElementById("email")?.focus();
       return;
@@ -118,7 +110,6 @@
       throwOnError: false,
     });
     if (signupErr) {
-      isLoading = false;
       handleError(signupErr);
       return;
     }
@@ -129,7 +120,6 @@
       query: { redirect: redirectUrl ?? "" },
       throwOnError: false,
     });
-    isLoading = false;
     if (loginErr) {
       handleError(loginErr);
       return;
@@ -137,7 +127,7 @@
 
     showSignupFields = false;
     expandedDueTo = "";
-    toast.success(`Magic link sent to ${signupEmail}`);
+    toast.success(`Magic link sent to ${signupEmail}. Check your spam folder if you don't see it!`);
     // Reset values for the next signup attempt
     userInfo = {
       ...defaultUser,
@@ -146,9 +136,8 @@
 
   // Function to handle verification link
   async function verifyMagicLink(token: string) {
-    isLoading = true;
+    isVerifying = true;
     try {
-      // AuthService.verifyTokenVerifyGet({query: {token}} as VerifyTokenVerifyGetData).then((response) => {
       const { data, error: err } = await AuthService.verifyTokenVerifyGet({
         query: { token },
         throwOnError: false,
@@ -156,20 +145,15 @@
       if (err || !data) {
         handleError(err);
         return;
-      } else {
-        // Store the token in localStorage
-        localStorage.setItem("token", data.access_token);
-        // console.log('Token passed, set, and verified successfully', response);
-        // Just verify the new token since that will store it too. If this isn't valid, there's an issue since that means the server is returning a bad token.
-        await validateToken(data.access_token);
-        toast("Login successful");
-
-        // Redirect to the original URL if present
-        const target = redirectUrl && redirectUrl.trim() !== "" ? redirectUrl : "/";
-        await goto(target);
       }
+      localStorage.setItem("token", data.access_token);
+      await validateToken(data.access_token);
+      toast("Login successful");
+
+      const target = redirectUrl && redirectUrl.trim() !== "" ? redirectUrl : "/";
+      await goto(target);
     } finally {
-      isLoading = false;
+      isVerifying = false;
     }
   }
 
@@ -208,6 +192,11 @@
       >
         Go back to previous page
       </button>
+    </div>
+  {:else if isVerifying}
+    <div class="text-center">
+      <span class="loading loading-spinner loading-lg"></span>
+      <p class="mt-2">Verifying your magic link...</p>
     </div>
   {:else}
     <fieldset
@@ -363,8 +352,7 @@
       <div class="flex justify-center">
         <button
           class="btn btn-primary mt-4"
-          disabled={isLoading}
-          onclick={eitherLoginOrSignUp}
+          use:asyncClick={eitherLoginOrSignUp}
         >
           Login / Sign Up
         </button>

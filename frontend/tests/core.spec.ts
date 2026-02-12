@@ -1,59 +1,73 @@
 import { test, expect } from './fixtures/auth';
 import { unique } from './utils/data';
-import { clickAndWaitForApi } from './utils/waiters';
+import { createTestEvent, attendEvent } from './helpers/api';
 
 test.describe('Core Functionality', () => {
-	test('should create event', async ({ authedPage }, testInfo) => {
-		const eventName = unique('Test Event', testInfo);
+	test('should create test event and show it in official events list', async ({ authedApi }, testInfo) => {
+		const eventName = unique('Official Event', testInfo);
 
-		await authedPage.goto('/events/create');
-		await authedPage.locator('#event_name').fill(eventName);
-		await authedPage.locator('#event_description').fill('Test description');
-		await clickAndWaitForApi(authedPage, authedPage.getByRole('button', { name: /create event/i }), '/events', 'POST');
+		// Create test event via API (admin/test endpoint)
+		const event = await createTestEvent(authedApi, { name: eventName, description: 'Test event' });
 
-		await expect(authedPage.getByText('Event created successfully')).toBeVisible({ timeout: 10000 });
+		// Verify the event appears in official events list
+		const response = await authedApi.get('/events/official');
+		expect(response.ok()).toBe(true);
+		const events = await response.json();
+		expect(events.some((e: any) => e.name === eventName)).toBe(true);
 	});
 
-	test('should list owned events', async ({ authedPage }, testInfo) => {
-		const eventName = unique('List Test', testInfo);
+	test('should attend official event via API', async ({ authedApi }, testInfo) => {
+		const eventName = unique('Attend Test', testInfo);
 
-		await authedPage.goto('/events/create');
-		await authedPage.locator('#event_name').fill(eventName);
-		await authedPage.locator('#event_description').fill('Test');
-		await clickAndWaitForApi(authedPage, authedPage.getByRole('button', { name: /create event/i }), '/events', 'POST');
+		// Create test event via API
+		const event = await createTestEvent(authedApi, { name: eventName });
 
-		await authedPage.goto('/events');
-		await authedPage.waitForResponse(r => r.url().includes('/events') && r.request().method() === 'GET' && r.ok());
-		await expect(authedPage.getByRole('link', { name: eventName }).first()).toBeVisible({ timeout: 10000 });
+		// Attend the event
+		const attendResp = await attendEvent(authedApi, event.id);
+		expect(attendResp.message).toMatch(/joined|attending/i);
 	});
 
-	test('should view event details', async ({ authedPage }, testInfo) => {
+	test('should show project submission wizard after attending', async ({ authedPage, authedApi }, testInfo) => {
+		const eventName = unique('Wizard Test', testInfo);
+
+		// Create test event and attend via API
+		const event = await createTestEvent(authedApi, { name: eventName });
+		await attendEvent(authedApi, event.id);
+
+		// Navigate to home - should show project submission wizard
+		await authedPage.goto('/');
+
+		// Should see project submission wizard with event name and create/join buttons
+		await expect(
+			authedPage.getByRole('button', { name: /create.*project/i }).first()
+		).toBeVisible({ timeout: 10000 });
+	});
+
+	test('should see event details after attending', async ({ authedPage, authedApi }, testInfo) => {
 		const eventName = unique('Details Test', testInfo);
 
-		await authedPage.goto('/events/create');
-		await authedPage.locator('#event_name').fill(eventName);
-		await authedPage.locator('#event_description').fill('Test');
-		await clickAndWaitForApi(authedPage, authedPage.getByRole('button', { name: /create event/i }), '/events', 'POST');
+		// Create test event and attend via API
+		const event = await createTestEvent(authedApi, { name: eventName });
+		await attendEvent(authedApi, event.id);
 
-		await authedPage.goto('/events');
-		await authedPage.waitForResponse(r => r.url().includes('/events') && r.request().method() === 'GET' && r.ok());
-		await authedPage.getByRole('link', { name: eventName }).first().click();
+		// Navigate to event page
+		await authedPage.goto(`/events/${event.slug}`);
 
-		await expect(authedPage.getByText(/admin panel|manage event/i).first()).toBeVisible({ timeout: 10000 });
+		// Should see event name
+		await expect(authedPage.getByText(eventName).first()).toBeVisible({ timeout: 10000 });
 	});
 
-	test('should see leaderboard link', async ({ authedPage }, testInfo) => {
+	test('should see leaderboard link for attended event', async ({ authedPage, authedApi }, testInfo) => {
 		const eventName = unique('Leaderboard Test', testInfo);
 
-		await authedPage.goto('/events/create');
-		await authedPage.locator('#event_name').fill(eventName);
-		await authedPage.locator('#event_description').fill('Test');
-		await clickAndWaitForApi(authedPage, authedPage.getByRole('button', { name: /create event/i }), '/events', 'POST');
+		// Create test event and attend via API
+		const event = await createTestEvent(authedApi, { name: eventName });
+		await attendEvent(authedApi, event.id);
 
-		await authedPage.goto('/events');
-		await authedPage.waitForResponse(r => r.url().includes('/events') && r.request().method() === 'GET' && r.ok());
-		await authedPage.getByRole('link', { name: eventName }).first().click();
+		// Navigate to event page
+		await authedPage.goto(`/events/${event.slug}`);
 
+		// Should have leaderboard link
 		await expect(authedPage.locator('a[href*="/leaderboard"]').first()).toBeVisible({ timeout: 10000 });
 	});
 });

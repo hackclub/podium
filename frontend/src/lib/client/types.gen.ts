@@ -10,36 +10,9 @@ export type Body_remove_attendee_events_admin__event_id__remove_attendee_post = 
     user_id: string;
 };
 
-export type CheckStatus = {
-    check_id: string;
-    status: Status;
-    created_at: string;
-    started_at?: (string | null);
-    completed_at?: (string | null);
-    result?: (Unified | null);
-    error?: (string | null);
-};
-
 export type CreateVotes = {
     projects: Array<(string)>;
     event: string;
-};
-
-export type Demo = {
-    deployed: boolean;
-    functional: boolean;
-    quality_percent: number;
-    reasoning?: (string | null);
-};
-
-/**
- * Request body for creating an event.
- */
-export type EventCreate = {
-    name: string;
-    description?: string;
-    demo_links_optional?: boolean;
-    ysws_checks_enabled?: boolean;
 };
 
 /**
@@ -54,7 +27,6 @@ export type EventPrivate = {
     leaderboard_enabled: boolean;
     demo_links_optional: boolean;
     max_votes_per_user: number;
-    join_code: string;
     owner_id: string;
     ysws_checks_enabled: boolean;
 };
@@ -73,23 +45,9 @@ export type EventPublic = {
     max_votes_per_user: number;
 };
 
-/**
- * Request body for updating an event. All fields optional.
- */
-export type EventUpdate = {
-    name?: (string | null);
-    description?: (string | null);
-    votable?: (boolean | null);
-    leaderboard_enabled?: (boolean | null);
-    demo_links_optional?: (boolean | null);
-    ysws_checks_enabled?: (boolean | null);
-};
-
 export type HTTPValidationError = {
     detail?: Array<ValidationError>;
 };
-
-export type ProgramType = 'cli' | 'web' | 'desktop' | 'mobile' | 'other';
 
 /**
  * Request body for creating a project.
@@ -119,9 +77,6 @@ export type ProjectPrivate = {
     join_code: string;
     hours_spent: number;
     event_id: string;
-    cached_auto_quality?: ({
-    [key: string]: unknown;
-} | null);
 };
 
 /**
@@ -150,12 +105,6 @@ export type ProjectUpdate = {
     hours_spent?: (number | null);
 };
 
-export type Readme = {
-    features?: (Array<(string)> | null);
-    program_type?: (ProgramType | null);
-    reasoning?: (string | null);
-};
-
 export type ReferralResponse = {
     id: string;
     content: string;
@@ -163,23 +112,12 @@ export type ReferralResponse = {
     event_id: string;
 };
 
-export type Repo = {
-    github: boolean;
-    primary_language: string;
-    valid: boolean;
-    features?: (Array<(string)> | null);
-    reasoning?: (string | null);
-};
-
-export type Status = 'pending' | 'running' | 'completed' | 'failed';
-
-export type Unified = {
-    valid: boolean;
-    readme_result: Readme;
-    repo_result: Repo;
-    demo_result: Demo;
-    reason: string;
-    image_valid: boolean;
+/**
+ * Request body for creating a test event.
+ */
+export type TestEventCreate = {
+    name: string;
+    description?: string;
 };
 
 export type UserAttendee = {
@@ -191,7 +129,6 @@ export type UserAttendee = {
 };
 
 export type UserEvents = {
-    owned_events: Array<EventPrivate>;
     attending_events: Array<EventPublic>;
 };
 
@@ -264,6 +201,11 @@ export type ValidationError = {
     type: string;
 };
 
+export type ValidationResult = {
+    valid: boolean;
+    message: string;
+};
+
 export type VoteResponse = {
     id: string;
     voter_id: string;
@@ -292,6 +234,10 @@ export type VerifyTokenVerifyGetResponse = (AuthenticatedUser);
 
 export type VerifyTokenVerifyGetError = (HTTPValidationError);
 
+export type ListOfficialEventsEventsOfficialGetResponse = (Array<EventPublic>);
+
+export type ListOfficialEventsEventsOfficialGetError = unknown;
+
 export type GetEventEndpointEventsEventIdGetData = {
     path: {
         event_id: string;
@@ -302,55 +248,19 @@ export type GetEventEndpointEventsEventIdGetResponse = (EventPublic);
 
 export type GetEventEndpointEventsEventIdGetError = (HTTPValidationError);
 
-export type UpdateEventEventsEventIdPutData = {
-    body: EventUpdate;
-    path: {
-        event_id: string;
-    };
-};
-
-export type UpdateEventEventsEventIdPutResponse = (unknown);
-
-export type UpdateEventEventsEventIdPutError = (HTTPValidationError);
-
-export type DeleteEventEventsEventIdDeleteData = {
-    path: {
-        event_id: string;
-    };
-};
-
-export type DeleteEventEventsEventIdDeleteResponse = (unknown);
-
-export type DeleteEventEventsEventIdDeleteError = (HTTPValidationError);
-
 export type GetAttendingEventsEventsGetResponse = (UserEvents);
 
 export type GetAttendingEventsEventsGetError = unknown;
 
-export type CreateEventEventsPostData = {
-    body: EventCreate;
-};
-
-export type CreateEventEventsPostResponse = (unknown);
-
-export type CreateEventEventsPostError = (HTTPValidationError);
-
-export type AttendEventEventsAttendPostData = {
-    query: {
-        /**
-         * Event join code
-         */
-        join_code: string;
-        /**
-         * How did you hear about this event?
-         */
-        referral: string;
+export type AttendEventEventsEventIdAttendPostData = {
+    path: {
+        event_id: string;
     };
 };
 
-export type AttendEventEventsAttendPostResponse = (unknown);
+export type AttendEventEventsEventIdAttendPostResponse = (unknown);
 
-export type AttendEventEventsAttendPostError = (HTTPValidationError);
+export type AttendEventEventsEventIdAttendPostError = (HTTPValidationError);
 
 export type VoteEventsVotePostData = {
     body: CreateVotes;
@@ -385,6 +295,14 @@ export type GetAtIdEventsIdSlugGetData = {
 export type GetAtIdEventsIdSlugGetResponse = (string);
 
 export type GetAtIdEventsIdSlugGetError = (HTTPValidationError);
+
+export type CreateTestEventEventsTestCreatePostData = {
+    body: TestEventCreate;
+};
+
+export type CreateTestEventEventsTestCreatePostResponse = (EventPublic);
+
+export type CreateTestEventEventsTestCreatePostError = (HTTPValidationError);
 
 export type GetEventAdminEventsAdminEventIdGetData = {
     path: {
@@ -503,23 +421,18 @@ export type GetProjectEndpointProjectsProjectIdGetResponse = (ProjectPublic);
 
 export type GetProjectEndpointProjectsProjectIdGetError = (HTTPValidationError);
 
-export type StartProjectCheckProjectsCheckStartPostData = {
-    body: ProjectPublic;
-};
-
-export type StartProjectCheckProjectsCheckStartPostResponse = (CheckStatus);
-
-export type StartProjectCheckProjectsCheckStartPostError = (HTTPValidationError);
-
-export type PollProjectCheckProjectsCheckCheckIdGetData = {
-    path: {
-        check_id: string;
+export type ValidateProjectProjectsValidatePostData = {
+    query: {
+        /**
+         * Project ID to validate
+         */
+        project_id: string;
     };
 };
 
-export type PollProjectCheckProjectsCheckCheckIdGetResponse = (CheckStatus);
+export type ValidateProjectProjectsValidatePostResponse = (ValidationResult);
 
-export type PollProjectCheckProjectsCheckCheckIdGetError = (HTTPValidationError);
+export type ValidateProjectProjectsValidatePostError = (HTTPValidationError);
 
 export type UserExistsUsersExistsGetData = {
     query: {

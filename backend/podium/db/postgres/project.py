@@ -4,12 +4,10 @@ Project model and API schemas.
 A Project is a hackathon submission that belongs to an Event.
 """
 
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from pydantic import computed_field
-from sqlalchemy import Column
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel, Relationship
 
 from podium.db.postgres.links import ProjectCollaboratorLink
@@ -44,11 +42,6 @@ class Project(SQLModel, table=True):
     def points(self) -> int:
         """Vote count - computed from votes relationship."""
         return len(self.votes)
-
-    # Cached results from automated quality checks (JSONB for flexibility)
-    cached_auto_quality: dict[str, Any] | None = Field(
-        default=None, sa_column=Column(JSONB)
-    )
 
     # Foreign keys
     owner_id: UUID = Field(foreign_key="users.id")
@@ -90,7 +83,6 @@ class ProjectPrivate(ProjectPublic):
     join_code: str
     hours_spent: int
     event_id: UUID
-    cached_auto_quality: dict[str, Any] | None = None
 
 
 class ProjectCreate(SQLModel):

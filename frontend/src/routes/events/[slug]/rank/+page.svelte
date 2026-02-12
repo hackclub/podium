@@ -5,6 +5,7 @@
   import { EventsService } from "$lib/client/sdk.gen";
   import ProjectCard from "$lib/components/ProjectCard.svelte";
   import { customInvalidateAll, handleError } from "$lib/misc";
+  import { asyncClick } from "$lib/actions/asyncClick";
   import { goto } from "$app/navigation";
 
   const { data } = $props();
@@ -72,7 +73,7 @@
       {/each}
     </div>
     <!-- Not disabling if user has already voted since this is hidden then anyway. Also not disabling if projects is under toSelect since people can come back. -->
-    <button class="btn-block btn btn-warning mt-4" onclick={submitVote}
+    <button class="btn-block btn btn-warning mt-4" use:asyncClick={submitVote}
       >Submit Vote</button
     >
   </div>

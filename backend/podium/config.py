@@ -70,12 +70,9 @@ settings.validators.register(
             default=2880,
         ),
         Validator(
-            "review_factory_url",
-            default="https://review-factory-backend.hackclub.com",
-        ),
-        Validator(
-            "review_factory_token",
-            default="",
+            "active_event_series",
+            # default="",
+            must_exist=True,
         ),
         Validator(
             "database_url",

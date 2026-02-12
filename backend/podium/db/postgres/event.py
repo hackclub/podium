@@ -31,7 +31,8 @@ class Event(SQLModel, table=True):
     name: str = Field(max_length=255)
     slug: str = Field(max_length=50, unique=True, index=True)
     description: str = Field(default="")
-    join_code: str = Field(max_length=20, unique=True)
+    # TODO: Remove join_code after confirming it's fully unused. Currently optional so we don't yet need to drop the data before the DB with community events get phased out.
+    join_code: str | None = Field(default=None, max_length=20, unique=True)
 
     # Feature flags
     votable: bool = Field(default=False)
@@ -97,18 +98,8 @@ class EventPublic(SQLModel):
 class EventPrivate(EventPublic):
     """Private event info - visible to owner and attendees."""
 
-    join_code: str
     owner_id: UUID
     ysws_checks_enabled: bool
-
-
-class EventCreate(SQLModel):
-    """Request body for creating an event."""
-
-    name: str
-    description: str = ""
-    demo_links_optional: bool = False
-    ysws_checks_enabled: bool = False
 
 
 class EventUpdate(SQLModel):

@@ -10,7 +10,6 @@
     ReferralResponse,
   } from "$lib/client/types.gen";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
-  import UpdateEvent from "./UpdateEvent.svelte";
   import AttendeesTable from "./AttendeesTable.svelte";
   import AdminLeaderboard from "./AdminLeaderboard.svelte";
   import VotesTable from "./VotesTable.svelte";
@@ -145,66 +144,6 @@
     </div>
   {:else}
     <div class="space-y-6">
-      <!-- Event Management -->
-      <div class="card bg-base-200">
-        <div class="card-body">
-          <h2 class="card-title">Event Management</h2>
-          <UpdateEvent preselectedEvent={event} events={[event]} />
-        </div>
-      </div>
-
-      <!-- Join Code Display -->
-      <div class="card bg-base-200">
-        <div class="card-body">
-          <h2 class="card-title">Event Join Code</h2>
-          <div class="flex items-center gap-2">
-            <span class="badge badge-accent font-mono text-lg">
-              {event.join_code}
-            </span>
-            <button
-              class="btn btn-sm btn-outline"
-              onclick={() => {
-                navigator.clipboard.writeText(event.join_code);
-                toast.success("Join code copied to clipboard");
-              }}
-            >
-              Copy
-            </button>
-          </div>
-          <p class="text-sm text-base-content/70 mt-2">
-            Share this code with people who want to join your event.
-          </p>
-
-          <div class="divider my-2"></div>
-          <div class="space-y-2">
-            <p class="text-sm font-medium">Share join link with attendees:</p>
-            <div class="flex items-center gap-2">
-              <input
-                type="text"
-                readonly
-                value={`${window.location.origin}/events/attend?join_code=${event.join_code}`}
-                class="input input-bordered input-sm flex-1 font-mono text-xs"
-              />
-              <button
-                class="btn btn-sm btn-outline"
-                onclick={() => {
-                  navigator.clipboard.writeText(
-                    `${window.location.origin}/events/attend?join_code=${event.join_code}`,
-                  );
-                  toast.success("Join link copied to clipboard");
-                }}
-              >
-                Copy Link
-              </button>
-            </div>
-            <p class="text-xs text-base-content/60">
-              When someone clicks this link, they will be automatically added to
-              the event. To edit it, contact us.
-            </p>
-          </div>
-        </div>
-      </div>
-
       <!-- Attendees Table -->
       <AttendeesTable {attendees} onRemoveAttendee={removeAttendee} {event} />
 

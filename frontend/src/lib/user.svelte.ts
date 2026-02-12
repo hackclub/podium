@@ -1,6 +1,7 @@
 import { client, UsersService } from "$lib/client/sdk.gen";
 import { AuthService } from "$lib/client/sdk.gen";
 import type { AuthenticatedUser, UserPrivate } from "./client";
+import { resetProjectState } from "$lib/project-state.svelte";
 
 export const defaultUser: UserPrivate = {
   id: "",
@@ -28,6 +29,7 @@ export function setAuthenticatedUser(newUser: AuthenticatedUser) {
 export function signOut() {
   user = defaultAuthenticatedUser;
   localStorage.removeItem("token");
+  resetProjectState();
   client.setConfig({
     headers: {
       Authorization: "",

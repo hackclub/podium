@@ -1,5 +1,6 @@
 .vercel
-backups/
+backups/*
+!backups/README.md
 tmp/
 quality_check_results/
 sample_projects.csv

@@ -3,7 +3,9 @@
   import type { ProjectCreate, EventPublic } from "$lib/client";
   import { toast } from "svelte-sonner";
   import { customInvalidateAll, handleError } from "$lib/misc";
+  import { asyncClick } from "$lib/actions/asyncClick";
   import Modal from "$lib/components/Modal.svelte";
+  import { isValidItchUrl, isValidGitHubUrl } from "$lib/validation";
 
   // Accept callback prop for when project is successfully created
   // Accept optional event to pre-fill and hide the event selector
@@ -32,6 +34,18 @@
     preselectedEvent || events.find((e) => e.id === project.event_id),
   );
   let demoLinksOptional = $derived(selectedEvent?.demo_links_optional || false);
+
+  // Real-time validation warnings (soft, non-blocking)
+  let demoWarning = $derived(
+    project.demo?.trim() && !isValidItchUrl(project.demo)
+      ? "Demo should be an itch.io game URL (e.g., username.itch.io/game-name)"
+      : null
+  );
+  let repoWarning = $derived(
+    project.repo?.trim() && !isValidGitHubUrl(project.repo)
+      ? "Repository should be a GitHub or Gitee URL"
+      : null
+  );
 
 
   async function fetchEvents() {
@@ -145,8 +159,11 @@
       bind:value={project.demo}
       placeholder="Demo URL"
       class="input input-bordered w-full"
+      class:input-warning={demoWarning}
     />
-    {#if demoLinksOptional}
+    {#if demoWarning}
+      <div class="text-sm text-warning mt-1">{demoWarning}</div>
+    {:else if demoLinksOptional}
       <div class="text-sm text-base-content/70 mt-1">
         Demo links are optional for this event. Your project won't be marked as
         invalid if only the demo link fails validation.
@@ -169,7 +186,11 @@
       bind:value={project.repo}
       placeholder="Repository URL"
       class="input input-bordered w-full"
+      class:input-warning={repoWarning}
     />
+    {#if repoWarning}
+      <div class="text-sm text-warning mt-1">{repoWarning}</div>
+    {/if}
 
     <label class="label" for="hours_spent">Rough estimate of hours spent</label>
     <input
@@ -183,7 +204,7 @@
 
     <button
       class="btn btn-accent btn-lg mt-4 btn-block hover:btn-xl transition-all duration-300"
-      onclick={createProject}
+      use:asyncClick={createProject}
     >
       Ship it!
     </button>

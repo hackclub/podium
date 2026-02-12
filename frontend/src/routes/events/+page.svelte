@@ -1,11 +1,5 @@
-<svelte:options runes />
-
 <script lang="ts">
-  import UpdateEvent from "$lib/components/event-admin/UpdateEvent.svelte";
-  import { EventsService } from "$lib/client";
   import type { PageData } from "./$types";
-  import { handleError } from "$lib/misc";
-  import { toast } from "svelte-sonner";
 
   let { data }: { data: PageData } = $props();
 </script>
@@ -14,7 +8,7 @@
   <!-- Events you're attending -->
   <div class="card bg-base-100 shadow-lg">
     <div class="card-body">
-      <h2 class="card-title text-xl mb-4">Events You're Attending</h2>
+      <h2 class="card-title text-xl mb-4">Your Events</h2>
       <p class="text-base-content/70 mb-4">
         Click on an event's name to view the event page, the leaderboard, or to
         vote on projects.
@@ -50,64 +44,12 @@
       {:else}
         <div class="text-center py-8">
           <p class="text-base-content/70 mb-4">
-            You're not attending any events yet.
+            You're not attending any events yet. Select an event from the
+            homepage to get started.
           </p>
-          <a href="/events/attend" class="btn btn-primary">Attend an Event</a>
+          <a href="/" class="btn btn-primary">Go to Homepage</a>
         </div>
       {/if}
     </div>
   </div>
-
-  <!-- Owned Events - only show if user has owned events -->
-  {#if data.events.owned_events.length > 0}
-    <div class="card bg-base-100 shadow-lg">
-      <div class="card-body">
-        <h2 class="card-title text-xl mb-4">Events You Own</h2>
-        <p class="text-base-content/70 mb-4">
-          Click on an event's name to view the event page, the leaderboard, or
-          to vote on projects.
-        </p>
-        <div class="overflow-x-auto">
-          <table class="table table-zebra w-full">
-            <thead>
-              <tr>
-                <th>Event Name</th>
-                <th>Description</th>
-                <th>Join Code</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {#each data.events.owned_events as event}
-                <tr>
-                  <td>
-                    <a
-                      href={`/events/${event.slug}`}
-                      class="link link-primary font-medium"
-                    >
-                      {event.name}
-                    </a>
-                  </td>
-                  <td class="max-w-md">
-                    <p class="truncate">{event.description}</p>
-                  </td>
-                  <td>
-                    <span class="badge badge-accent font-mono">
-                      {event.join_code}
-                    </span>
-                  </td>
-                  <td>
-                    <UpdateEvent
-                      preselectedEvent={event}
-                      events={data.events.owned_events}
-                    />
-                  </td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  {/if}
 </div>

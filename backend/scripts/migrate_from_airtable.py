@@ -298,8 +298,6 @@ async def migrate_projects(session: AsyncSession) -> None:
             description=fields.get("description", ""),
             join_code=join_code,
             hours_spent=fields.get("hours_spent") or 0,
-            points=fields.get("points") or 0,
-            cached_auto_quality=fields.get("cached_auto_quality"),
             owner_id=owner_uuid,
             event_id=event_uuid,
         )

@@ -15,10 +15,7 @@ dependencies = [
     "pyjwt (>=2.10.1,<3.0.0)",
     "passlib[bcrypt] (>=1.7.4,<2.0.0)",
     "sentry-sdk[fastapi] (>=2.22.0,<3.0.0)",
-    # "playwright (>=1.51.0,<2.0.0)",
-    # "browser-use @ git+https://github.com/browser-use/browser-use.git@main",
     "httpx>=0.28.1,<0.29.0",
-    "steel-sdk (>=0.1.0,<0.2.0)",
     "python-slugify>=8.0.4,<9.0.0",
     "fastapi-cache2[memcache] (>=0.2.2,<0.3.0)",
     "langchain-openai (>=0.3.27,<0.4.0)",
@@ -34,6 +31,8 @@ dependencies = [
     "psycopg2-binary>=2.9.11",
     "asyncpg>=0.31.0",
     "sqlmodel>=0.0.31",
+    "beautifulsoup4>=4.13.4",
+    "slowapi>=0.1.9",
 ]
 
 [project.optional-dependencies]
@@ -55,18 +54,15 @@ lint.extend-select= ["FIX002"]
 
 [dependency-groups]
 dev = [
-    "browser-use>=0.5.11",
-    "loguru>=0.7.3",
-    "pyngrok>=7.3.0",
     "pytest>=8.4.1",
     "pytest-asyncio>=1.1.0",
-    "python-decouple>=3.8",
     "ruff>=0.12.7",
-    "steel-sdk>=0.1.0",
     "matplotlib>=3.7.0",
     "numpy>=1.24.0",
     "ty>=0.0.1a25",
     "locust>=2.42.3",
+    "textual>=3.0.0",
+    "tqdm>=4.67.0",
 ]
 
 [tool.pytest.ini_options]

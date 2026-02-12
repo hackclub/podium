@@ -28,6 +28,7 @@ Docs should be:
 - **Easy to edit** — plain Markdown, no complex formatting
 
 Temporary docs (migrations, one-off playbooks) go in `docs/migrations/` and get deleted when complete.
+Do not create summary documents of your actions unless the user specifically requests it.
 
 # Quick Reference
 
