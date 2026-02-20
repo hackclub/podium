@@ -1,0 +1,143 @@
+# Global image settings
+image:
+  registry: ghcr.io
+  # Set to your image org/repo prefix, e.g. "ghcr.io/hackclub/podium"
+  repository: ""
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+
+# Ingress (Traefik)
+ingress:
+  enabled: true
+  host: podium.example.com
+  # Set to your Traefik entrypoint name (commonly "web" or "websecure")
+  entryPoint: websecure
+  tls:
+    enabled: true
+    # Leave empty to use Traefik's default cert resolver
+    certResolver: ""
+    secretName: ""
+
+# --- Services ---
+
+gateway:
+  enabled: false  # dev-only; Traefik routes directly to services in production
+  replicaCount: 2
+  port: 3000
+  image:
+    repository: ""
+    tag: ""
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+authService:
+  replicaCount: 2
+  port: 8001
+  image:
+    repository: "hackclub/podium/auth-service"
+    tag: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+eventsService:
+  replicaCount: 2
+  port: 8002
+  image:
+    repository: "hackclub/podium/events-service"
+    tag: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+projectsService:
+  replicaCount: 2
+  port: 8003
+  image:
+    repository: "hackclub/podium/projects-service"
+    tag: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+frontend:
+  replicaCount: 2
+  port: 3000
+  image:
+    repository: "hackclub/podium/frontend"
+    tag: ""
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# --- Application config (non-secret) ---
+config:
+  nodeEnv: production
+  # Public URL of the app (used by services for CORS, redirects, etc.)
+  productionUrl: "https://podium.example.com"
+  publicApiUrl: "https://podium.example.com/api"
+
+  # JWT
+  jwtAlgorithm: HS256
+  jwtExpireMinutes: "2880"
+
+  # Kafka broker endpoint (e.g. kafka.kafka.svc.cluster.local:9092)
+  kafkaBroker: "kafka.kafka.svc.cluster.local:9092"
+
+  # PostgreSQL endpoints (assumes a HA cluster with separate RW/RO/R endpoints)
+  databaseUrlRW: "postgresql://podium:podium@postgresql-cluster-rw.postgresql.svc.cluster.local:5432/podium"
+  databaseUrlRO: "postgresql://podium:podium@postgresql-cluster-ro.postgresql.svc.cluster.local:5432/podium"
+  databaseUrlR:  "postgresql://podium:podium@postgresql-cluster-r.postgresql.svc.cluster.local:5432/podium"
+
+  # AWS SES
+  awsRegion: "us-east-1"
+  sesFromEmail: "noreply@example.com"
+
+  # Cloudflare R2
+  r2BucketName: "podium-screenshots"
+  r2PublicUrl: ""
+
+  # Optional: active event series slug
+  activeEventSeries: ""
+  enableTestEndpoints: "false"
+
+# --- Secrets (fill these in or use an external secret manager) ---
+# All values here end up in a Kubernetes Secret.
+secrets:
+  # PostgreSQL password (injected into the DB URLs above at runtime)
+  dbPassword: ""
+
+  # JWT signing secret
+  jwtSecret: ""
+
+  # AWS credentials (for SES email)
+  awsAccessKeyId: ""
+  awsSecretAccessKey: ""
+
+  # Cloudflare R2 credentials
+  r2AccountId: ""
+  r2AccessKeyId: ""
+  r2SecretAccessKey: ""

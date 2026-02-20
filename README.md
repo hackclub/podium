@@ -19,15 +19,11 @@ See [docs/architecture.md](docs/architecture.md) for system details.
 ## Development
 
 ```bash
-# Start Postgres
+cp .env.example .env
+
 docker compose up -d
 
-# Backend
-cd backend && doppler run --config dev -- uv run alembic upgrade head
-cd backend && doppler run --config dev -- uv run podium
-
-# Frontend (separate terminal)
-cd frontend && bun dev
+./dev.sh
 ```
 
 See [docs/local-dev.md](docs/local-dev.md) for full setup.

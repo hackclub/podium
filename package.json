@@ -1,0 +1,24 @@
+{
+  "name": "podium",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n GATE,AUTH,EVNT,PROJ,WEB -c green,cyan,magenta,blue,yellow \"pnpm --filter podium-gateway dev\" \"pnpm --filter podium-auth-service start:dev\" \"pnpm --filter podium-events-service start:dev\" \"pnpm --filter podium-projects-service start:dev\" \"PUBLIC_API_URL=http://localhost:3000/api pnpm --filter podium-frontend dev\"",
+    "build": "pnpm --filter @podium/shared build && pnpm --filter podium-auth-service build && pnpm --filter podium-events-service build && pnpm --filter podium-projects-service build && pnpm --filter podium-frontend build",
+    "install:all": "pnpm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@datadog/native-appsec",
+      "@datadog/native-iast-taint-tracking",
+      "@datadog/native-metrics",
+      "@datadog/pprof",
+      "@nestjs/core",
+      "@sentry/cli",
+      "dd-trace",
+      "esbuild"
+    ]
+  }
+}

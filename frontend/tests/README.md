@@ -6,24 +6,22 @@
 
 **Stop running dev servers first:**
 ```bash
-pkill -f podium; pkill -f "vite|bun.*dev"
+pkill -f "nest|node.*gateway"; pkill -f "vite|bun.*dev"
 ```
 
 **Run all tests:**
 ```bash
 cd frontend
-doppler run --config dev -- bun run test:e2e
+bun run test:e2e
 ```
 
 ## Commands
 
 ```bash
-doppler run --config dev -- bun run test:e2e                        # All tests (~1-2 min)
-doppler run --config dev -- bun run test:e2e:ui                     # UI mode
-doppler run --config dev -- bunx playwright test tests/auth.spec.ts  # Specific file
+bun run test:e2e                        # All tests (~1-2 min)
+bun run test:e2e:ui                     # UI mode
+bunx playwright test tests/auth.spec.ts  # Specific file
 ```
-
-**Note:** Doppler provides JWT secret to tests AND backend (backend runs with nested `doppler run`)
 
 ## Performance
 
@@ -33,18 +31,15 @@ doppler run --config dev -- bunx playwright test tests/auth.spec.ts  # Specific 
 
 ## Setup
 
-**Local:** Doppler CLI must be logged in (`doppler login`) and configured for the project (`doppler setup`)
-
-**CI/CD:** Add `DOPPLER_TOKEN` to GitHub repository secrets
+Environment variables are loaded from your `.env` file in the project root.
 
 ## Architecture
 
 - Backend: Port 8000 (started by Playwright)
 - Frontend: Port 4173 (started by Playwright)
 - NOT using Vercel deployments
-- Doppler injects all required env vars
 
-**Important:** Stop any running dev servers before running tests (they will conflict on ports 8000/5173)
+**Important:** Stop any running dev servers before running tests (they will conflict on ports)
 
 ## Files
 

@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "podium.fullname" . }}-config
+  labels:
+    {{- include "podium.labels" . | nindent 4 }}
+data:
+  NODE_ENV: {{ .Values.config.nodeEnv | quote }}
+  PODIUM_PRODUCTION_URL: {{ .Values.config.productionUrl | quote }}
+  PUBLIC_API_URL: {{ .Values.config.publicApiUrl | quote }}
+
+  PODIUM_JWT_ALGORITHM: {{ .Values.config.jwtAlgorithm | quote }}
+  PODIUM_JWT_EXPIRE_MINUTES: {{ .Values.config.jwtExpireMinutes | quote }}
+
+  KAFKA_BROKER: {{ .Values.config.kafkaBroker | quote }}
+
+  PODIUM_DATABASE_URL_RW: {{ .Values.config.databaseUrlRW | quote }}
+  PODIUM_DATABASE_URL_RO: {{ .Values.config.databaseUrlRO | quote }}
+  PODIUM_DATABASE_URL_R: {{ .Values.config.databaseUrlR | quote }}
+
+  AWS_REGION: {{ .Values.config.awsRegion | quote }}
+  SES_FROM_EMAIL: {{ .Values.config.sesFromEmail | quote }}
+
+  R2_BUCKET_NAME: {{ .Values.config.r2BucketName | quote }}
+  R2_PUBLIC_URL: {{ .Values.config.r2PublicUrl | quote }}
+
+  PODIUM_ACTIVE_EVENT_SERIES: {{ .Values.config.activeEventSeries | quote }}
+  PODIUM_ENABLE_TEST_ENDPOINTS: {{ .Values.config.enableTestEndpoints | quote }}
+
+  # Internal service URLs (used by the gateway)
+  AUTH_SERVICE_URL: "http://{{ include "podium.fullname" . }}-auth:{{ .Values.authService.port }}"
+  EVENTS_SERVICE_URL: "http://{{ include "podium.fullname" . }}-events:{{ .Values.eventsService.port }}"
+  PROJECTS_SERVICE_URL: "http://{{ include "podium.fullname" . }}-projects:{{ .Values.projectsService.port }}"
+  FRONTEND_URL: "http://{{ include "podium.fullname" . }}-frontend:{{ .Values.frontend.port }}"

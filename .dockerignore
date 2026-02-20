@@ -1,0 +1,35 @@
+**/.git
+**/.gitignore
+**/.env
+**/.env.*
+!**/.env.example
+
+# Build outputs (rebuilt inside Docker)
+**/dist
+**/build
+**/.svelte-kit
+
+# Node modules (reinstalled inside Docker)
+**/node_modules
+
+# Dev / test artifacts
+**/coverage
+**/.nyc_output
+**/playwright-report
+**/test-results
+
+# Misc
+**/*.md
+**/.DS_Store
+**/.vscode
+**/.idea
+**/tmp
+**/logs
+
+# Helm / docs (not needed in images)
+helm/
+docs/
+scripts/
+backups/
+agent-plans/
+mathesar-local-dev/

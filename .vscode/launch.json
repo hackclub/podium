@@ -1,29 +1,7 @@
 {
   "version": "0.2.0",
-  "inputs": [
-    {
-      "id": "doppler_environment",
-      // To manaully run a command with doppler (backend): doppler run --config prd -- uv run ...
-      "description": "Select Doppler environment",
-      "type": "pickString",
-      "options": [
-        {
-          "label": "Development",
-          "value": "dev"
-        },
-        {
-          "label": "Production",
-          "value": "prd"
-        }
-      ],
-      "default": "dev"
-    }
-  ],
   "configurations": [
     {
-      // To run bun dev in prod mode:
-      // MacOS/Linux: NODE_ENV=production bun run dev
-      // Windows (powershell): $env:NODE_ENV="production"; bun run dev; $env:NODE_ENV=""
       "name": "frontend",
       "type": "node-terminal",
       "request": "launch",
@@ -31,23 +9,45 @@
       "cwd": "${workspaceFolder}/frontend"
     },
     {
-      "name": "FastAPI",
-      "type": "debugpy",
+      "name": "All Services",
+      "type": "node-terminal",
       "request": "launch",
-      "module": "uvicorn",
-      "args": ["podium.main:app", "--reload"],
-      // Alternative: doppler run --config ${input:doppler_environment} -- uv run uvicorn podium.main:app
-      "env": {
-        "DOPPLER_ENV": "${input:doppler_environment}"
-      },
-      "cwd": "${workspaceFolder}/backend",
-      "justMyCode": true
+      "command": "./dev.sh",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Gateway",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pnpm --filter podium-gateway dev",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Auth Service",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pnpm --filter podium-auth-service start:dev",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Events Service",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pnpm --filter podium-events-service start:dev",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Projects Service",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pnpm --filter podium-projects-service start:dev",
+      "cwd": "${workspaceFolder}"
     }
   ],
   "compounds": [
     {
       "name": "dev",
-      "configurations": ["frontend", "FastAPI"]
+      "configurations": ["All Services"]
     }
   ]
 }

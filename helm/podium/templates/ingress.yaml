@@ -1,0 +1,59 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "podium.fullname" . }}
+  labels:
+    {{- include "podium.labels" . | nindent 4 }}
+  annotations:
+    {{- if .Values.ingress.tls.enabled }}
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    {{- end }}
+spec:
+  ingressClassName: traefik
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host }}
+      secretName: {{ default (printf "%s-cert" (include "podium.fullname" .)) .Values.ingress.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /api/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "podium.fullname" . }}-auth
+                port:
+                  number: {{ .Values.authService.port }}
+          - path: /api/users
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "podium.fullname" . }}-auth
+                port:
+                  number: {{ .Values.authService.port }}
+          - path: /api/events
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "podium.fullname" . }}-events
+                port:
+                  number: {{ .Values.eventsService.port }}
+          - path: /api/projects
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "podium.fullname" . }}-projects
+                port:
+                  number: {{ .Values.projectsService.port }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "podium.fullname" . }}-frontend
+                port:
+                  number: {{ .Values.frontend.port }}
+{{- end }}

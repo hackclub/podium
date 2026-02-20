@@ -13,7 +13,7 @@ export class AuthService {
     public static requestLoginRequestLoginPost<ThrowOnError extends boolean = false>(options: OptionsLegacyParser<RequestLoginRequestLoginPostData, ThrowOnError>) {
         return (options?.client ?? client).post<RequestLoginRequestLoginPostResponse, RequestLoginRequestLoginPostError, ThrowOnError>({
             ...options,
-            url: '/request-login'
+            url: '/auth/request-login'
         });
     }
     
@@ -24,7 +24,7 @@ export class AuthService {
     public static verifyTokenVerifyGet<ThrowOnError extends boolean = false>(options: OptionsLegacyParser<VerifyTokenVerifyGetData, ThrowOnError>) {
         return (options?.client ?? client).get<VerifyTokenVerifyGetResponse, VerifyTokenVerifyGetError, ThrowOnError>({
             ...options,
-            url: '/verify'
+            url: '/auth/verify'
         });
     }
     

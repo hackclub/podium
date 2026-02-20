@@ -1,20 +1,21 @@
 # Commands
 
 ```bash
-# Lint/typecheck (run before committing)
-cd backend && uv run ruff check --fix && cd ../frontend && bun run svelte-check
+# Setup
+cp .env.example .env                             # Create .env file with your settings
+
+# Typecheck
+pnpm --filter @podium/shared build && cd frontend && bun run svelte-check
 
 # E2E tests (use npx, not bunx)
-cd frontend && doppler run --config dev -- npx playwright test
+cd frontend && npx playwright test
 
 # Run locally
-doppler run --config dev -- uv run podium        # backend/
-bun dev                                           # frontend/
+./dev.sh                                         # Runs all services + frontend
 
 # Database
-docker compose up -d                              # Start Postgres + NocoDB
-doppler run --config dev -- uv run alembic upgrade head  # Run migrations (backend/)
-./scripts/reset-migrate.sh                        # Reset local DB
+docker compose up -d                              # Start Kafka
+pnpm --filter @podium/shared db:push              # Push schema to DB (dev)
 ```
 
 # Documentation
@@ -32,7 +33,7 @@ Do not create summary documents of your actions unless the user specifically req
 
 # Quick Reference
 
-- **Stack:** SvelteKit (Svelte 5) + FastAPI + async PostgreSQL
+- **Stack:** SvelteKit (Svelte 5) + NestJS microservices + PostgreSQL (Drizzle ORM)
 - **Auth:** Magic link via Loops API
-- **Models:** `backend/podium/db/postgres/` (User, Event, Project, Vote, Referral)
+- **Architecture:** Gateway + 3 services (Auth, Events, Projects) + Kafka for async events
 - **API client:** Regenerate with `cd frontend && bun run openapi-ts`

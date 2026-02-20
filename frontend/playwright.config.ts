@@ -36,29 +36,44 @@ export default defineConfig({
 
 	webServer: isExternal ? undefined : [
 		{
-			// Backend runs with Doppler for secrets management
-			// Use --preserve-env to allow CI to override PODIUM_DATABASE_URL
-			command: 'cd ../backend && doppler run --project podium --config dev --preserve-env=PODIUM_DATABASE_URL -- uv run podium --log-level warning',
-			port: 8000,
+			command: 'cd .. && pnpm --filter podium-gateway dev',
+			port: 3000,
 			timeout: 120000,
 			reuseExistingServer: true,
 			stdout: 'pipe',
-			stderr: 'pipe',
-			env: {
-				PYTHONIOENCODING: 'utf-8',
-				PYTHONWARNINGS: 'ignore',
-				// Pass through PODIUM_DATABASE_URL if set (for CI)
-				...(process.env.PODIUM_DATABASE_URL && { PODIUM_DATABASE_URL: process.env.PODIUM_DATABASE_URL })
-			}
+			stderr: 'pipe'
 		},
 		{
-			// Use dev server (preview has CORS issues with client auth headers)
+			command: 'cd ../packages/auth-service && pnpm start:dev',
+			port: 8001,
+			timeout: 120000,
+			reuseExistingServer: true,
+			stdout: 'pipe',
+			stderr: 'pipe'
+		},
+		{
+			command: 'cd ../packages/events-service && pnpm start:dev',
+			port: 8002,
+			timeout: 120000,
+			reuseExistingServer: true,
+			stdout: 'pipe',
+			stderr: 'pipe'
+		},
+		{
+			command: 'cd ../packages/projects-service && pnpm start:dev',
+			port: 8003,
+			timeout: 120000,
+			reuseExistingServer: true,
+			stdout: 'pipe',
+			stderr: 'pipe'
+		},
+		{
 			command: 'bun dev --port 4173',
 			port: 4173,
 			timeout: 120000,
 			reuseExistingServer: true,
 			env: {
-				PUBLIC_API_URL: 'http://127.0.0.1:8000'
+				PUBLIC_API_URL: 'http://127.0.0.1:3000/api'
 			}
 		}
 	],

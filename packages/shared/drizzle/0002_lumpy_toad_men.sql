@@ -1,0 +1,1 @@
+ALTER TABLE "events" ADD COLUMN "voting_closed" boolean DEFAULT false NOT NULL;

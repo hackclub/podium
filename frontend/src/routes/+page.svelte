@@ -1,23 +1,37 @@
 <script lang="ts">
-	import { theme } from '$lib/theme';
-	import { events } from '$lib/data';
+	import { eventToTheme } from '$lib/theme';
+	import { getOfficialEvents, type ApiEvent } from '$lib/api';
 	import { goto } from '$app/navigation';
 	import { fade } from 'svelte/transition';
 	import { onMount } from 'svelte';
 
 	let searchQuery = $state('');
+	let events: ApiEvent[] = $state([]);
+	let loading = $state(true);
+	let error = $state('');
 
 	let filteredEvents = $derived(
-		Object.entries(events).filter(([_, data]) =>
-			data.friendlyName.toLowerCase().includes(searchQuery.toLowerCase())
+		events.filter((e) =>
+			e.name.toLowerCase().includes(searchQuery.toLowerCase())
 		)
 	);
 
-	onMount(() => {
-		const backgrounds = Object.values(theme).map((t) => t.background);
-		backgrounds.forEach((src) => {
-			const img = new Image();
-			img.src = src;
+	onMount(async () => {
+		try {
+			events = await getOfficialEvents();
+		} catch (e: any) {
+			error = e.message || 'Failed to load events';
+		} finally {
+			loading = false;
+		}
+
+		// Preload background images
+		events.forEach((e) => {
+			const t = eventToTheme(e);
+			if (t.background) {
+				const img = new Image();
+				img.src = t.background;
+			}
 		});
 	});
 </script>
@@ -47,22 +61,27 @@
 			/>
 		</label>
 
-		{#each filteredEvents as [slug, data], i (i)}
-			{@const t = theme[data.theme]}
-			{#if t}
+		{#if loading}
+			<p class="text-white/60 text-center py-8">Loading events...</p>
+		{:else if error}
+			<p class="text-red-400 text-center py-8">{error}</p>
+		{:else if filteredEvents.length === 0}
+			<p class="text-white/60 text-center py-8">No events found</p>
+		{:else}
+			{#each filteredEvents as event, i (event.id)}
+				{@const t = eventToTheme(event)}
 				<div
 					in:fade|global={{ duration: 100, delay: i * 15 }}
 					out:fade|global={{ duration: 100 }}
 					class="group flex h-[120px] w-full items-end justify-between overflow-hidden rounded-md bg-cover bg-center p-4 select-none cursor-pointer transition-all duration-200 hover:ring-2 hover:ring-white hover:ring-offset-2 hover:ring-offset-[#303030]"
 					style="background-image: url({t.background});"
-					onclick={() => goto(`/${slug}`)}
-					onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goto(`/${slug}`); } }}
+					onclick={() => goto(`/${event.slug}`)}
+					onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goto(`/${event.slug}`); } }}
 					role="button"
 					tabindex="0"
-					key={i}
 				>
 					<div class="flex items-center justify-center h-full">
-						<t.logo satellite={data.satellite} />
+						<t.logo satellite={event.name.replace(/^campfire\s*/i, '')} />
 					</div>
 
 					<div
@@ -72,8 +91,8 @@
 						Vote →
 					</div>
 				</div>
-			{/if}
-		{/each}
+			{/each}
+		{/if}
 	</div>
 
 	<!-- Footer -->

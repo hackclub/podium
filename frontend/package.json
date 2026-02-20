@@ -1,5 +1,5 @@
 {
-  "name": "podium",
+  "name": "podium-frontend",
   "version": "0.0.1",
   "type": "module",
   "scripts": {
@@ -14,6 +14,7 @@
     "@hey-api/openapi-ts": "^0.60.1",
     "@playwright/test": "^1.54.0",
     "@sveltejs/adapter-auto": "^3.0.0",
+    "@sveltejs/adapter-node": "^5.0.0",
     "@sveltejs/adapter-static": "^3.0.8",
     "@sveltejs/adapter-vercel": "^5.5.2",
     "@sveltejs/kit": "^2.0.0",
@@ -32,6 +33,7 @@
   },
   "dependencies": {
     "@hey-api/client-fetch": "^0.5.7",
+    "dd-trace": "^5.0.0",
     "@sentry/sveltekit": "^9.5.0",
     "@tailwindcss/vite": "^4.1.4",
     "@types/node": "^25.0.3",

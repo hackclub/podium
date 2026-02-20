@@ -1,0 +1,72 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "podium.fullname" . }}-events
+  labels:
+    {{- include "podium.labels" . | nindent 4 }}
+    app.kubernetes.io/component: events-service
+spec:
+  replicas: {{ .Values.eventsService.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "podium.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: events-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "podium.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: events-service
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: events-service
+          image: {{ include "podium.image" (dict "root" . "svc" .Values.eventsService "name" "events-service") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.eventsService.port }}
+              protocol: TCP
+          env:
+            {{- include "podium.commonEnv" . | nindent 12 }}
+            - name: KAFKA_BROKER
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "podium.fullname" . }}-config
+                  key: KAFKA_BROKER
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.eventsService.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "podium.fullname" . }}-events
+  labels:
+    {{- include "podium.labels" . | nindent 4 }}
+    app.kubernetes.io/component: events-service
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: {{ include "podium.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: events-service
+  ports:
+    - name: http
+      port: {{ .Values.eventsService.port }}
+      targetPort: http
+      protocol: TCP
