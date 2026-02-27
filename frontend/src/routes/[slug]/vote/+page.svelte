@@ -4,7 +4,7 @@
 	import { getContext } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { EventTheme } from '$lib/theme';
-	import { getEventProjects, getMyVotes, vote as submitVote, attendEvent, type ApiProject, type ApiEvent } from '$lib/api';
+	import { getEventProjects, getMyVotes, vote as submitVote, attendEvent, getCurrentUser, type ApiProject, type ApiEvent } from '$lib/api';
 	import { isLoggedIn } from '$lib/auth';
 	import ProfileGate from '$lib/forms/ProfileGate.svelte';
 	import Button from '$lib/forms/Button.svelte';
@@ -31,6 +31,7 @@
 	let expandedId: string | null = $state(null);
 	const showLeaderboard = $derived((eventData as ApiEvent | null)?.leaderboard_enabled ?? false);
 	const isFlagship = $derived((eventData as ApiEvent | null)?.feature_flags_csv?.includes('flagship') ?? false);
+	let isSuperadmin = $state(false);
 
 	// Multi-vote state
 	let selectedIds = $state(new Set<string>());
@@ -84,6 +85,9 @@
 					getMyVotes(eventId).then((ids) => {
 						votedIds = new Set(ids);
 					}).catch(() => {}),
+					getCurrentUser().then((u) => {
+						isSuperadmin = u.is_superadmin;
+					}).catch(() => {}),
 				);
 			}
 			Promise.all(promises).finally(() => {
@@ -96,7 +100,7 @@
 {#if eventTheme}
 <ProfileGate {eventTheme}>
 <main class="flex flex-1 items-center justify-center px-4 py-12">
-	{#if showLeaderboard}
+	{#if showLeaderboard && (!isFlagship || isSuperadmin)}
 			<div
 				class="relative w-full max-w-2xl overflow-hidden rounded-2xl border-4 border-white px-6 py-6 drop-shadow-md"
 				style="font-family: {eventTheme.font};"

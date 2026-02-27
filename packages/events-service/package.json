@@ -24,6 +24,7 @@
     "dd-trace": "^5.0.0",
     "class-validator": "^0.14.1",
     "drizzle-orm": "^0.38.0",
+    "ioredis": "^5.4.0",
     "kafkajs": "^2.2.4",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",

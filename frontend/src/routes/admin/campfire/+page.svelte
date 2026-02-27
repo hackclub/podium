@@ -9,7 +9,9 @@
 		adminSyncCampfireEvent,
 		adminSyncAllCampfireEvents,
 		adminSyncProjectsToAirtable,
-		type CockpitEvent
+		adminValidateItchGames,
+		type CockpitEvent,
+		type ItchValidationResult
 	} from '$lib/api';
 
 	let events: CockpitEvent[] = $state([]);
@@ -21,6 +23,8 @@
 	// Bulk operation progress
 	let bulkOp = $state<{ type: 'import' | 'sync'; current: number; total: number; currentName: string } | null>(null);
 	let airtableSyncing = $state(false);
+	let itchValidating = $state(false);
+	let itchResults = $state<ItchValidationResult[] | null>(null);
 
 	const filtered = $derived(
 		events.filter((e) => {
@@ -34,7 +38,7 @@
 	const notImportedActiveCount = $derived(
 		events.filter((e) => e.status === 'Active' && !e.already_imported).length
 	);
-	const isBusy = $derived(busy !== null || bulkOp !== null || airtableSyncing);
+	const isBusy = $derived(busy !== null || bulkOp !== null || airtableSyncing || itchValidating);
 	const bulkProgress = $derived(bulkOp ? Math.round((bulkOp.current / bulkOp.total) * 100) : 0);
 
 	onMount(async () => {
@@ -74,9 +78,15 @@
 		busy = cockpitEvent.id;
 		try {
 			const result = await adminSyncCampfireEvent(cockpitEvent.id);
-			toast.success(
-				`Updated "${cockpitEvent.displayName}" — ${result.attendees_synced} new attendees`
-			);
+			if (result.disabled) {
+				toast.warning(
+					`"${cockpitEvent.displayName}" disabled — no longer active in Cockpit`
+				);
+			} else {
+				toast.success(
+					`Updated "${cockpitEvent.displayName}" — ${result.attendees_synced} new attendees`
+				);
+			}
 		} catch (e: any) {
 			toast.error(e.message || 'Update failed');
 		} finally {
@@ -142,6 +152,27 @@
 		}
 	}
 
+	async function validateItch() {
+		if (isBusy) return;
+		itchValidating = true;
+		itchResults = null;
+		try {
+			const result = await adminValidateItchGames();
+			itchResults = result.results;
+			if (result.not_playable > 0) {
+				toast.warning(
+					`${result.playable} playable, ${result.not_playable} not playable out of ${result.total} itch.io links`
+				);
+			} else {
+				toast.success(`All ${result.total} itch.io links are playable`);
+			}
+		} catch (e: any) {
+			toast.error(e.message || 'Itch.io validation failed');
+		} finally {
+			itchValidating = false;
+		}
+	}
+
 	async function syncAll() {
 		if (isBusy) return;
 		const toSync = events.filter((e) => e.already_imported);
@@ -150,26 +181,42 @@
 			return;
 		}
 
-		bulkOp = { type: 'sync', current: 0, total: toSync.length, currentName: 'all events' };
+		let successCount = 0;
+		let disabledCount = 0;
+		let errorCount = 0;
+		let totalSynced = 0;
 
-		try {
-			const result = await adminSyncAllCampfireEvents();
-			bulkOp = null;
+		bulkOp = { type: 'sync', current: 0, total: toSync.length, currentName: '' };
 
-			const successCount = result.results.filter((r) => !r.error).length;
-			const errorCount = result.results.filter((r) => r.error).length;
-			const totalSynced = result.results.reduce((sum, r) => sum + r.synced, 0);
-
-			if (errorCount > 0) {
-				toast.warning(
-					`Updated ${successCount} events (${totalSynced} new attendees, ${errorCount} errors). POC/RM set as admins.`
-				);
-			} else {
-				toast.success(`Updated ${successCount} events — ${totalSynced} new attendees. POC/RM set as admins.`);
+		for (let i = 0; i < toSync.length; i++) {
+			const ce = toSync[i];
+			bulkOp = { type: 'sync', current: i, total: toSync.length, currentName: ce.displayName };
+			try {
+				const result = await adminSyncCampfireEvent(ce.id);
+				if (result.disabled) {
+					disabledCount++;
+				} else {
+					successCount++;
+					totalSynced += result.attendees_synced;
+				}
+			} catch {
+				errorCount++;
 			}
-		} catch (e: any) {
-			bulkOp = null;
-			toast.error(e.message || 'Bulk sync failed');
+		}
+
+		bulkOp = null;
+
+		const parts = [`Updated ${successCount} events — ${totalSynced} new attendees`];
+		if (disabledCount > 0) parts.push(`${disabledCount} disabled`);
+		if (errorCount > 0) parts.push(`${errorCount} errors`);
+		parts.push('POC/RM set as admins.');
+
+		if (errorCount > 0) {
+			toast.warning(parts.join(', '));
+		} else if (disabledCount > 0) {
+			toast.warning(parts.join(', '));
+		} else {
+			toast.success(parts.join('. '));
 		}
 	}
 </script>
@@ -183,6 +230,14 @@
 			</p>
 		</div>
 		<div class="flex gap-3 items-center">
+			<button
+				type="button"
+				class="px-4 py-2 rounded-md text-sm font-medium transition-colors bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+				disabled={isBusy}
+				onclick={validateItch}
+			>
+				{itchValidating ? 'Checking itch.io links...' : 'Validate Itch Games'}
+			</button>
 			<button
 				type="button"
 				class="px-4 py-2 rounded-md text-sm font-medium transition-colors bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -254,22 +309,14 @@
 					{/if}
 				</p>
 				<p class="text-xs text-white/40">
-					{#if bulkOp.type === 'sync'}
-						{bulkOp.total} events
-					{:else}
-						{bulkOp.current} / {bulkOp.total}
-					{/if}
+					{bulkOp.current} / {bulkOp.total}
 				</p>
 			</div>
 			<div class="h-2 rounded-full bg-white/10 overflow-hidden">
-				{#if bulkOp.type === 'sync'}
-					<div class="h-full rounded-full bg-blue-500 animate-pulse" style="width: 100%"></div>
-				{:else}
-					<div
-						class="h-full rounded-full transition-all duration-300 bg-green-500"
-						style="width: {bulkProgress}%"
-					></div>
-				{/if}
+				<div
+					class="h-full rounded-full transition-all duration-300 {bulkOp.type === 'sync' ? 'bg-blue-500' : 'bg-green-500'}"
+					style="width: {bulkProgress}%"
+				></div>
 			</div>
 		</div>
 	{/if}
@@ -367,5 +414,82 @@
 			Showing {filtered.length} of {events.length} events
 			({importedCount} imported)
 		</p>
+	{/if}
+
+	{#if itchResults}
+		{@const notPlayable = itchResults.filter((r) => !r.playable)}
+		{@const playableResults = itchResults.filter((r) => r.playable)}
+		<div class="mt-8">
+			<div class="flex items-center justify-between mb-4">
+				<h2 class="text-xl font-bold text-white">Itch.io Validation Results</h2>
+				<button
+					type="button"
+					class="text-xs text-white/40 hover:text-white"
+					onclick={() => (itchResults = null)}
+				>
+					Dismiss
+				</button>
+			</div>
+
+			{#if notPlayable.length > 0}
+				<div class="mb-4">
+					<h3 class="text-sm font-medium text-red-400 mb-2">Not Playable ({notPlayable.length})</h3>
+					<div class="overflow-x-auto">
+						<table class="w-full text-sm">
+							<thead>
+								<tr class="text-left text-white/40 border-b border-white/10">
+									<th class="pb-2 pr-4">Project</th>
+									<th class="pb-2 pr-4">Event</th>
+									<th class="pb-2 pr-4">URL</th>
+									<th class="pb-2">Reason</th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each notPlayable as r}
+									<tr class="border-b border-white/5">
+										<td class="py-2 pr-4 text-white">{r.project_name}</td>
+										<td class="py-2 pr-4 text-white/60">{r.event_slug}</td>
+										<td class="py-2 pr-4">
+											<a href={r.demo_url} target="_blank" rel="noopener" class="text-blue-400 hover:underline text-xs truncate max-w-[200px] inline-block">{r.demo_url}</a>
+										</td>
+										<td class="py-2 text-red-400/80 text-xs">{r.reason}</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			{/if}
+
+			{#if playableResults.length > 0}
+				<details class="group">
+					<summary class="text-sm font-medium text-green-400 mb-2 cursor-pointer">
+						Playable ({playableResults.length}) — click to expand
+					</summary>
+					<div class="overflow-x-auto">
+						<table class="w-full text-sm">
+							<thead>
+								<tr class="text-left text-white/40 border-b border-white/10">
+									<th class="pb-2 pr-4">Project</th>
+									<th class="pb-2 pr-4">Event</th>
+									<th class="pb-2">URL</th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each playableResults as r}
+									<tr class="border-b border-white/5">
+										<td class="py-2 pr-4 text-white">{r.project_name}</td>
+										<td class="py-2 pr-4 text-white/60">{r.event_slug}</td>
+										<td class="py-2">
+											<a href={r.demo_url} target="_blank" rel="noopener" class="text-blue-400 hover:underline text-xs">{r.demo_url}</a>
+										</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				</details>
+			{/if}
+		</div>
 	{/if}
 </div>

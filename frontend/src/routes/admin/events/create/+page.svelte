@@ -1,7 +1,15 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { adminCreateEvent } from '$lib/api';
+	import { getContext, onMount } from 'svelte';
+	import { adminCreateEvent, type ApiUser } from '$lib/api';
 	import { defaultThemes } from '$lib/theme';
+
+	const getAdminUser = getContext<() => ApiUser | null>('adminUser');
+	onMount(() => {
+		if (!getAdminUser()?.is_superadmin) {
+			goto('/admin');
+		}
+	});
 
 	let name = $state('');
 	let slug = $state('');

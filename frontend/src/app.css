@@ -106,6 +106,14 @@
 }
 
 @font-face {
+  font-family: "DREAM PLANNER";
+  src: url("/assets/fonts/dreamplanner.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: "Phantom Sans";
   src:
     url("/assets/fonts/Regular.woff") format("woff"),

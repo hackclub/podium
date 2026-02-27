@@ -40,7 +40,7 @@
 	<!-- Header -->
 	<div class="flex items-end gap-2 p-6 sticky">
 		<img src="/favicon.svg" alt="Podium" class="h-[32px]" />
-		<span class="text-white text-[32px] font-bold leading-none">Podium 2</span>
+		<span class="text-white text-[32px] font-bold leading-none">Podium Pro Max</span>
 		<span class="text-[#878787] text-[16px] leading-none pb-0.5">Vote @ your event</span>
 	</div>
 
@@ -96,7 +96,8 @@
 	</div>
 
 	<!-- Footer -->
-	<div class="fixed bottom-6 left-6">
-		<span class="text-[16px] font-bold text-[#878787]">About Podium</span>
+	<div class="fixed bottom-6 left-6 flex items-center gap-4">
+		<a href="https://hack-club-hq.gitbook.io/campfire/campfire" target="_blank" rel="noopener noreferrer" class="text-[16px] font-bold text-[#878787] hover:text-white transition-colors">Podium Guide</a>
+		<a href="/admin/login" class="text-[16px] font-bold text-[#878787] hover:text-white transition-colors">POC Login</a>
 	</div>
 </div>

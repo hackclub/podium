@@ -28,6 +28,7 @@ import {
   IsArray,
   ValidateNested,
   Min,
+  Matches,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -83,6 +84,9 @@ class CreateProjectDto {
 
   @IsString()
   @IsNotEmpty()
+  @Matches(/^https?:\/\/github\.com\/[a-zA-Z0-9\-_.]+\/[a-zA-Z0-9\-_.]+\/?$/, {
+    message: 'repo must be a valid GitHub repository URL (e.g. https://github.com/user/repo)',
+  })
   repo!: string;
 
   @IsString()

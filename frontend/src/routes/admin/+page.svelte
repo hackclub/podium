@@ -1,16 +1,22 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { adminListEvents, type ApiAdminEvent } from '$lib/api';
+	import { onMount, getContext } from 'svelte';
+	import { adminListEvents, type ApiAdminEvent, type ApiUser } from '$lib/api';
+
+	const getAdminUser = getContext<() => ApiUser | null>('adminUser');
 
 	let events: ApiAdminEvent[] = $state([]);
 	let loading = $state(true);
 	let error = $state('');
 	let search = $state('');
-	let statusFilter = $state<'all' | 'enabled' | 'disabled'>('all');
+	let statusFilter = $state<'all' | 'enabled' | 'disabled'>('enabled');
 	let typeFilter = $state<'all' | 'campfire' | 'other'>('all');
+
+	const isSuperadmin = $derived(getAdminUser()?.is_superadmin ?? false);
 
 	const filtered = $derived(
 		events.filter((e) => {
+			// Hide flagship events from non-superadmins
+			if (!isSuperadmin && e.feature_flags_csv?.includes('flagship')) return false;
 			if (search) {
 				const q = search.toLowerCase();
 				if (!e.name.toLowerCase().includes(q) && !e.slug.toLowerCase().includes(q)) {
@@ -39,12 +45,14 @@
 <div class="max-w-4xl">
 	<div class="flex items-center justify-between mb-6">
 		<h1 class="text-3xl font-bold text-white">Events</h1>
-		<a
-			href="/admin/events/create"
-			class="px-4 py-2 bg-white text-[#111] rounded-md text-sm font-medium hover:bg-white/90 transition-colors"
-		>
-			Create Event
-		</a>
+		{#if getAdminUser()?.is_superadmin}
+			<a
+				href="/admin/events/create"
+				class="px-4 py-2 bg-white text-[#111] rounded-md text-sm font-medium hover:bg-white/90 transition-colors"
+			>
+				Create Event
+			</a>
+		{/if}
 	</div>
 
 	{#if !loading && !error && events.length > 0}

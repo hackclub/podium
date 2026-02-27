@@ -120,7 +120,7 @@
 </script>
 
 <div class="flex flex-col gap-3">
-	<p class="text-lg text-white/80 drop-shadow-md">Teammates (optional)</p>
+	<p class="text-lg text-white/80 drop-shadow-md">Teammates (your must add all teammates)</p>
 
 	{#each entries as entry, i}
 		<div class="rounded-xl border-2 border-white/30 p-3 flex flex-col gap-2">

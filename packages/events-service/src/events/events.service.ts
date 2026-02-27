@@ -9,10 +9,12 @@ import { ConfigService } from '@nestjs/config';
 import { eq, and, sql, inArray } from 'drizzle-orm';
 import { Subject, Observable } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
+import type Redis from 'ioredis';
 import {
   DRIZZLE_RW,
   DRIZZLE_RO,
   DRIZZLE_R,
+  REDIS,
   type Database,
   type User,
   events,
@@ -23,6 +25,7 @@ import {
   projectCollaborators,
   getMaxVotesPerUser,
   getFeatureFlagsList,
+  PlatformSettingsService,
 } from '@podium/shared';
 
 function mapEventPublic(e: any) {
@@ -56,6 +59,14 @@ export class EventsService {
   private readonly airtableBaseId: string;
   private readonly airtableTableId: string;
 
+  /** Cached Cockpit scan counts: slug → counts. Refreshed every 2 minutes. */
+  private cockpitScanCache: {
+    data: Map<string, { checkin_count: number; scanned_day1_count: number; scanned_day2_count: number; scanned_either_day_count: number }>;
+    fetchedAt: number;
+  } | null = null;
+  private cockpitScanCachePromise: Promise<void> | null = null;
+  private static readonly SCAN_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+
   /** SSE subject — emits { eventId, data } whenever stage flags change. */
   private readonly stageChange$ = new Subject<{ eventId: string; data: any }>();
 
@@ -67,11 +78,16 @@ export class EventsService {
     );
   }
 
+  private static readonly DASHBOARD_CACHE_KEY = 'podium:campfire-dashboard';
+  private static readonly DASHBOARD_CACHE_TTL = 300; // 5 minutes
+
   constructor(
     @Inject(DRIZZLE_RW) private readonly dbRw: Database,
     @Inject(DRIZZLE_RO) private readonly dbRo: Database,
     @Inject(DRIZZLE_R) private readonly dbR: Database,
+    @Inject(REDIS) private readonly redis: Redis,
     private readonly config: ConfigService,
+    private readonly platformSettings: PlatformSettingsService,
   ) {
     this.activeEventSeries = config.get<string>(
       'PODIUM_ACTIVE_EVENT_SERIES',
@@ -338,10 +354,12 @@ export class EventsService {
 
       filtered = rows.filter(
         (r) =>
-          r.event.owner_id === user.id ||
-          r.event.poc_id === user.id ||
-          r.event.rm_id === user.id ||
-          (user.is_admin && attendingEventIds.has(r.event.id)),
+          // Flagship events are superadmin-only
+          !getFeatureFlagsList(r.event).includes('flagship') &&
+          (r.event.owner_id === user.id ||
+            r.event.poc_id === user.id ||
+            r.event.rm_id === user.id ||
+            (user.is_admin && attendingEventIds.has(r.event.id))),
       );
     }
 
@@ -498,6 +516,14 @@ export class EventsService {
       throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
     }
 
+    // POC/RM cannot delete events
+    if (
+      !user.is_superadmin &&
+      (event.poc_id === user.id || event.rm_id === user.id)
+    ) {
+      throw new ForbiddenException('POC/RM cannot delete events');
+    }
+
     if (
       getFeatureFlagsList(event).includes('campfire') &&
       !user.is_superadmin
@@ -529,10 +555,26 @@ export class EventsService {
   }
 
   async adminGetAttendees(eventId: string) {
-    const attendeeRows = await this.dbRo.query.eventAttendees.findMany({
-      where: eq(eventAttendees.event_id, eventId),
-      with: { user: true },
-    });
+    const [attendeeRows, ownerRows, collabRows] = await Promise.all([
+      this.dbRo.query.eventAttendees.findMany({
+        where: eq(eventAttendees.event_id, eventId),
+        with: { user: true },
+      }),
+      this.dbRo
+        .select({ owner_id: projects.owner_id })
+        .from(projects)
+        .where(eq(projects.event_id, eventId)),
+      this.dbRo
+        .select({ user_id: projectCollaborators.user_id })
+        .from(projectCollaborators)
+        .innerJoin(projects, eq(projects.id, projectCollaborators.project_id))
+        .where(eq(projects.event_id, eventId)),
+    ]);
+
+    const shippedIds = new Set([
+      ...ownerRows.map((r) => r.owner_id),
+      ...collabRows.map((r) => r.user_id),
+    ]);
 
     return attendeeRows
       .filter((row) => row.user)
@@ -543,6 +585,7 @@ export class EventsService {
         display_name: row.user.display_name,
         first_name: row.user.first_name,
         last_name: row.user.last_name,
+        has_project: shippedIds.has(row.user.id),
       }));
   }
 
@@ -770,6 +813,152 @@ export class EventsService {
     return { message: 'Points updated' };
   }
 
+  // ── Campfire Dashboard (superadmin) ────────────────────────────────
+
+  async getCampfireDashboard() {
+    // Check Redis cache first
+    try {
+      const cached = await this.redis.get(EventsService.DASHBOARD_CACHE_KEY);
+      if (cached) return JSON.parse(cached);
+    } catch {
+      // Redis unavailable — fall through to live query
+    }
+
+    // Fetch all campfire events with counts in a single query
+    const campfireRows = await this.dbR
+      .select({
+        event: events,
+        attendee_count: sql<number>`(SELECT count(*) FROM event_attendees WHERE event_attendees.event_id = "events"."id")`.mapWith(Number),
+        project_count: sql<number>`(SELECT count(*) FROM projects WHERE projects.event_id = "events"."id")`.mapWith(Number),
+        shipper_count: sql<number>`(
+          SELECT count(DISTINCT u) FROM (
+            SELECT owner_id AS u FROM projects WHERE projects.event_id = "events"."id"
+            UNION
+            SELECT pc.user_id AS u FROM project_collaborators pc
+              JOIN projects p ON pc.project_id = p.id
+              WHERE p.event_id = "events"."id"
+          ) sub
+        )`.mapWith(Number),
+      })
+      .from(events);
+
+    // Filter to campfire events in JS, excluding flagship and disabled events
+    const campfireEvents = campfireRows.filter((r) => {
+      const flags = getFeatureFlagsList(r.event);
+      return flags.includes('campfire') && !flags.includes('flagship') && r.event.enabled;
+    });
+
+    if (campfireEvents.length === 0) {
+      return {
+        total_shippers: 0,
+        total_projects: 0,
+        total_attendees: 0,
+        total_checkins: 0,
+        total_scanned_either_day: 0,
+        events: [],
+      };
+    }
+
+    const eventIds = campfireEvents.map((r) => r.event.id);
+
+    // Count unique users who shipped (owners + collaborators) across all campfire events
+    const idList = sql.join(eventIds.map((id) => sql`${id}`), sql`, `);
+    const [shipperRow] = await this.dbR
+      .select({
+        count: sql<number>`(
+          SELECT count(DISTINCT u) FROM (
+            SELECT owner_id AS u FROM projects WHERE event_id IN (${idList})
+            UNION
+            SELECT pc.user_id AS u FROM project_collaborators pc
+              JOIN projects p ON pc.project_id = p.id
+              WHERE p.event_id IN (${idList})
+          ) sub
+        )`.mapWith(Number),
+      })
+      .from(sql`(SELECT 1) AS dummy`);
+
+    // Fetch scan counts from Cockpit (cached, aggregate only — no PII exposed)
+    const scanCountsBySlug = await this.getCockpitScanCounts();
+
+    const totalShippers = shipperRow?.count ?? 0;
+    const totalProjects = campfireEvents.reduce((s, r) => s + r.project_count, 0);
+    const totalAttendees = campfireEvents.reduce((s, r) => s + r.attendee_count, 0);
+
+    const eventsData = campfireEvents.map((r) => {
+      const scan = scanCountsBySlug.get(r.event.slug);
+      return {
+        id: r.event.id,
+        name: r.event.name,
+        slug: r.event.slug,
+        attendee_count: r.attendee_count,
+        project_count: r.project_count,
+        shipper_count: r.shipper_count,
+        ship_rate: (scan?.scanned_either_day_count ?? 0) > 0
+          ? Math.round((r.shipper_count / (scan?.scanned_either_day_count ?? 0)) * 1000) / 10
+          : 0,
+        checkin_count: scan?.checkin_count ?? 0,
+        scanned_day1_count: scan?.scanned_day1_count ?? 0,
+        scanned_day2_count: scan?.scanned_day2_count ?? 0,
+        scanned_either_day_count: scan?.scanned_either_day_count ?? 0,
+      };
+    });
+
+    // Sort by ship rate descending for "best performing"
+    eventsData.sort((a, b) => b.ship_rate - a.ship_rate);
+
+    const totalCheckins = eventsData.reduce((s, e) => s + e.checkin_count, 0);
+    const totalScannedEitherDay = eventsData.reduce((s, e) => s + e.scanned_either_day_count, 0);
+
+    const result = {
+      total_shippers: totalShippers,
+      total_projects: totalProjects,
+      total_attendees: totalAttendees,
+      total_checkins: totalCheckins,
+      total_scanned_either_day: totalScannedEitherDay,
+      events: eventsData,
+    };
+
+    // Cache in Redis for 5 minutes
+    try {
+      await this.redis.set(
+        EventsService.DASHBOARD_CACHE_KEY,
+        JSON.stringify(result),
+        'EX',
+        EventsService.DASHBOARD_CACHE_TTL,
+      );
+    } catch {
+      // Redis unavailable — continue without caching
+    }
+
+    return result;
+  }
+
+  // ── Public Dashboard (no auth, numbers + event names only) ─────────
+
+  async getPublicDashboard() {
+    const dashboard = await this.getCampfireDashboard();
+
+    return {
+      total_shippers: dashboard.total_shippers,
+      total_projects: dashboard.total_projects,
+      total_attendees: dashboard.total_attendees,
+      total_checkins: dashboard.total_checkins,
+      total_scanned_either_day: dashboard.total_scanned_either_day,
+      events: dashboard.events.map((e: any) => ({
+        name: e.name,
+        slug: e.slug,
+        attendee_count: e.attendee_count,
+        project_count: e.project_count,
+        shipper_count: e.shipper_count,
+        ship_rate: e.ship_rate,
+        checkin_count: e.checkin_count,
+        scanned_day1_count: e.scanned_day1_count,
+        scanned_day2_count: e.scanned_day2_count,
+        scanned_either_day_count: e.scanned_either_day_count,
+      })),
+    };
+  }
+
   // ── Campfire (superadmin) methods ───────────────────────────────────
 
   private assertSuperadmin(user: User) {
@@ -779,6 +968,71 @@ export class EventsService {
     if (!this.cockpitApiKey) {
       throw new HttpException('Cockpit API key not configured', HttpStatus.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  /**
+   * Returns cached Cockpit scan counts (slug → aggregate counts).
+   * Refreshes at most once every 2 minutes. Concurrent callers share the same fetch.
+   */
+  private async getCockpitScanCounts(): Promise<
+    Map<string, { checkin_count: number; scanned_day1_count: number; scanned_day2_count: number; scanned_either_day_count: number }>
+  > {
+    const now = Date.now();
+    if (this.cockpitScanCache && now - this.cockpitScanCache.fetchedAt < EventsService.SCAN_CACHE_TTL_MS) {
+      return this.cockpitScanCache.data;
+    }
+
+    if (!this.cockpitApiKey) return new Map();
+
+    // Coalesce concurrent requests into a single fetch
+    if (!this.cockpitScanCachePromise) {
+      this.cockpitScanCachePromise = (async () => {
+        try {
+          const cockpitEvents = await this.cockpitFetch('/events');
+          const results = new Map<string, { checkin_count: number; scanned_day1_count: number; scanned_day2_count: number; scanned_either_day_count: number }>();
+
+          const fetches = cockpitEvents.map(async (ce: any) => {
+            try {
+              const data = await this.cockpitFetch(
+                `/events/${encodeURIComponent(ce.id)}/participants`,
+              );
+              const participants: any[] = data.participants || [];
+              let checkins = 0;
+              let day1 = 0;
+              let day2 = 0;
+              let eitherDay = 0;
+              for (const p of participants) {
+                if (p.checkinCompleted) checkins++;
+                const s1 = !!p.scanned;
+                const s2 = !!p.scannedDay2;
+                if (s1) day1++;
+                if (s2) day2++;
+                if (s1 || s2) eitherDay++;
+              }
+              results.set(this.cockpitSlug(ce), {
+                checkin_count: checkins,
+                scanned_day1_count: day1,
+                scanned_day2_count: day2,
+                scanned_either_day_count: eitherDay,
+              });
+            } catch {
+              // Skip individual event on error
+            }
+          });
+          await Promise.all(fetches);
+
+          this.cockpitScanCache = { data: results, fetchedAt: Date.now() };
+        } catch {
+          // Cockpit entirely unavailable — cache empty map so we don't retry immediately
+          this.cockpitScanCache = { data: new Map(), fetchedAt: Date.now() };
+        } finally {
+          this.cockpitScanCachePromise = null;
+        }
+      })();
+    }
+
+    await this.cockpitScanCachePromise;
+    return this.cockpitScanCache?.data ?? new Map();
   }
 
   private async cockpitFetch(path: string) {
@@ -841,7 +1095,8 @@ export class EventsService {
 
     const { pocId, rmId } = await this.resolvePocRmIds(cockpitEvent);
 
-    // Create the Podium event
+    // Create the Podium event (enable if Cockpit status is Active)
+    const isActive = !cockpitEvent.status || cockpitEvent.status === 'Active';
     const [event] = await this.dbRw
       .insert(events)
       .values({
@@ -850,6 +1105,7 @@ export class EventsService {
         description: `${cockpitEvent.format || ''} event in ${cockpitEvent.city || cockpitEvent.country || 'TBD'}`.trim(),
         feature_flags_csv: 'campfire',
         theme_name: 'campfire',
+        enabled: isActive,
         owner_id: ownerId,
         poc_id: pocId,
         rm_id: rmId,
@@ -886,6 +1142,24 @@ export class EventsService {
       throw new HttpException('Event not found in Podium — import it first', HttpStatus.NOT_FOUND);
     }
 
+    // If cockpit event is no longer active, disable the Podium event
+    if (cockpitEvent.status && cockpitEvent.status !== 'Active') {
+      if (existing.enabled) {
+        await this.dbRw
+          .update(events)
+          .set({ enabled: false })
+          .where(eq(events.id, existing.id));
+      }
+      return {
+        message: `Event disabled (Cockpit status: ${cockpitEvent.status})`,
+        event_id: existing.id,
+        slug: existing.slug,
+        attendees_synced: 0,
+        disabled: true,
+        admins: [],
+      };
+    }
+
     // Ensure RM/POC are still admins
     const adminEmails = this.collectAdminEmails(cockpitEvent);
     for (const email of adminEmails) {
@@ -898,11 +1172,11 @@ export class EventsService {
       }
     }
 
-    // Update POC/RM IDs on the event
+    // Update POC/RM IDs on the event and ensure enabled for active events
     const { pocId, rmId } = await this.resolvePocRmIds(cockpitEvent);
     await this.dbRw
       .update(events)
-      .set({ poc_id: pocId, rm_id: rmId })
+      .set({ poc_id: pocId, rm_id: rmId, enabled: true })
       .where(eq(events.id, existing.id));
 
     // Sync participants non-destructively (add new, update existing user data, never remove)
@@ -941,6 +1215,22 @@ export class EventsService {
       throw new HttpException('No matching Cockpit event found', HttpStatus.NOT_FOUND);
     }
 
+    // If cockpit event is no longer active, disable the Podium event
+    if (match.status !== 'Active') {
+      if (podiumEvent.enabled) {
+        await this.dbRw
+          .update(events)
+          .set({ enabled: false })
+          .where(eq(events.id, podiumEvent.id));
+      }
+      return {
+        message: `Event disabled (Cockpit status: ${match.status})`,
+        event_id: podiumEvent.id,
+        attendees_synced: 0,
+        disabled: true,
+      };
+    }
+
     // Fetch participants
     const data = await this.cockpitFetch(
       `/events/${encodeURIComponent(match.id)}/participants`,
@@ -960,11 +1250,11 @@ export class EventsService {
       }
     }
 
-    // Update POC/RM IDs on the event
+    // Update POC/RM IDs on the event and ensure enabled for active events
     const { pocId, rmId } = await this.resolvePocRmIds(cockpitEvent);
     await this.dbRw
       .update(events)
-      .set({ poc_id: pocId, rm_id: rmId })
+      .set({ poc_id: pocId, rm_id: rmId, enabled: true })
       .where(eq(events.id, podiumEvent.id));
 
     // Sync participants non-destructively
@@ -982,17 +1272,35 @@ export class EventsService {
 
     const cockpitEvents = await this.cockpitFetch('/events');
     const podiumEvents = await this.dbRo.query.events.findMany();
-    const importedSlugs = new Set(podiumEvents.map((e) => e.slug));
+    const slugToEvent = new Map(podiumEvents.map((e) => [e.slug, e]));
 
     // Only sync events that are already imported
     const toSync = cockpitEvents.filter(
-      (ce: any) => importedSlugs.has(this.cockpitSlug(ce)),
+      (ce: any) => slugToEvent.has(this.cockpitSlug(ce)),
     );
 
-    const results: { id: string; name: string; synced: number; error?: string }[] = [];
+    const results: { id: string; name: string; synced: number; disabled?: boolean; error?: string }[] = [];
 
     for (const ce of toSync) {
       try {
+        // If cockpit event is no longer active, disable the Podium event
+        if (ce.status !== 'Active') {
+          const podiumEvent = slugToEvent.get(this.cockpitSlug(ce))!;
+          if (podiumEvent.enabled) {
+            await this.dbRw
+              .update(events)
+              .set({ enabled: false })
+              .where(eq(events.id, podiumEvent.id));
+          }
+          results.push({
+            id: ce.id,
+            name: ce.displayName || ce.name,
+            synced: 0,
+            disabled: true,
+          });
+          continue;
+        }
+
         const result = await this.syncCampfireEvent(ce.id, user);
         results.push({
           id: ce.id,
@@ -1009,8 +1317,9 @@ export class EventsService {
       }
     }
 
+    const disabledCount = results.filter((r) => r.disabled).length;
     return {
-      message: `Synced ${results.length} events`,
+      message: `Synced ${results.length} events${disabledCount > 0 ? ` (${disabledCount} disabled)` : ''}`,
       results,
     };
   }
@@ -1454,6 +1763,142 @@ export class EventsService {
     };
     console.log('[airtable-sync] Done:', JSON.stringify(result));
     return result;
+  }
+
+  // ── Platform settings (superadmin) ─────────────────────────────────
+
+  async getPlatformSettings() {
+    return this.platformSettings.getAll();
+  }
+
+  async updatePlatformSettings(data: {
+    github_validation_enabled?: boolean;
+    itch_validation_enabled?: boolean;
+  }) {
+    if (data.github_validation_enabled !== undefined) {
+      await this.platformSettings.set('github_validation_enabled', data.github_validation_enabled);
+    }
+    if (data.itch_validation_enabled !== undefined) {
+      await this.platformSettings.set('itch_validation_enabled', data.itch_validation_enabled);
+    }
+    return this.platformSettings.getAll();
+  }
+
+  // ── Itch.io validation ─────────────────────────────────────────────
+
+  async validateItchGames(user: User) {
+    this.assertSuperadmin(user);
+
+    // Get all campfire events
+    const allEvents = await this.dbRo.query.events.findMany();
+    const campfireEventIds = allEvents
+      .filter((e) => e.feature_flags_csv.includes('campfire'))
+      .map((e) => e.id);
+
+    if (campfireEventIds.length === 0) {
+      return { message: 'No campfire events found', results: [] };
+    }
+
+    // Get all projects with demo URLs for those events
+    const allProjects = await this.dbRo.query.projects.findMany({
+      where: inArray(projects.event_id, campfireEventIds),
+      with: { event: true },
+    });
+
+    const withDemo = allProjects.filter((p) => p.demo && p.demo.trim());
+
+    // Filter to itch.io URLs only
+    const itchProjects = withDemo.filter((p) => {
+      try {
+        const host = new URL(p.demo).hostname;
+        return host === 'itch.io' || host.endsWith('.itch.io');
+      } catch {
+        return false;
+      }
+    });
+
+    console.log(
+      `[itch-validate] ${itchProjects.length} itch.io links across ${campfireEventIds.length} campfire events`,
+    );
+
+    const DELAY_MS = 2000; // 2s between requests — well under itch.io limits
+    const results: {
+      project_id: string;
+      project_name: string;
+      event_slug: string;
+      demo_url: string;
+      playable: boolean;
+      reason: string;
+    }[] = [];
+
+    for (let i = 0; i < itchProjects.length; i++) {
+      const p = itchProjects[i];
+      const { playable, reason } = await this.checkItchPlayable(p.demo);
+
+      results.push({
+        project_id: p.id,
+        project_name: p.name,
+        event_slug: (p as any).event?.slug ?? 'unknown',
+        demo_url: p.demo,
+        playable,
+        reason,
+      });
+
+      console.log(
+        `[itch-validate] [${i + 1}/${itchProjects.length}] ${p.name} — ${playable ? 'PLAYABLE' : 'NOT PLAYABLE'} (${reason})`,
+      );
+
+      // Rate limit — don't hammer itch.io
+      if (i < itchProjects.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
+      }
+    }
+
+    const playableCount = results.filter((r) => r.playable).length;
+    const notPlayableCount = results.filter((r) => !r.playable).length;
+
+    return {
+      message: `Checked ${results.length} itch.io links: ${playableCount} playable, ${notPlayableCount} not playable`,
+      total: results.length,
+      playable: playableCount,
+      not_playable: notPlayableCount,
+      results,
+    };
+  }
+
+  private async checkItchPlayable(
+    url: string,
+  ): Promise<{ playable: boolean; reason: string }> {
+    try {
+      const resp = await fetch(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PodiumValidator/1.0)' },
+        redirect: 'follow',
+        signal: AbortSignal.timeout(15_000),
+      });
+
+      if (!resp.ok) {
+        return { playable: false, reason: `HTTP ${resp.status}` };
+      }
+
+      const html = await resp.text();
+
+      // .game_frame is the iframe wrapper itch.io uses for browser-playable games
+      if (html.includes('class="game_frame"') || html.includes("class='game_frame'") || html.includes('id="game_drop"')) {
+        return { playable: true, reason: 'playable' };
+      }
+
+      // Download-only pages have upload buttons
+      if (html.includes('class="upload"') || html.includes("class='upload'")) {
+        return { playable: false, reason: 'download-only (no browser embed)' };
+      }
+
+      return { playable: false, reason: 'no game_frame found' };
+    } catch (err: any) {
+      if (err?.name === 'TimeoutError' || err?.name === 'AbortError') {
+        return { playable: false, reason: 'timeout' };
+      }
+      return { playable: false, reason: `error: ${err?.message ?? err}` };
+    }
   }
 
   // ── Test methods ───────────────────────────────────────────────────

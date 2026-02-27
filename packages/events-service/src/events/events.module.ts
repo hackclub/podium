@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { PlatformSettingsService } from '@podium/shared';
 import { EventsController } from './events.controller';
 import { EventsService } from './events.service';
 
@@ -27,7 +28,7 @@ import { EventsService } from './events.service';
     ]),
   ],
   controllers: [EventsController],
-  providers: [EventsService],
+  providers: [EventsService, PlatformSettingsService],
   exports: [EventsService],
 })
 export class EventsModule {}

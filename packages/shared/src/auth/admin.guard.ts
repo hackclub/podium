@@ -8,7 +8,7 @@ import {
 import { eq, and, or } from 'drizzle-orm';
 import { DRIZZLE } from '../db/drizzle.module';
 import { type Database } from '../db/client';
-import { events, eventAttendees } from '../db/schema';
+import { events, eventAttendees, getFeatureFlagsList } from '../db/schema';
 
 @Injectable()
 export class AdminGuard implements CanActivate {
@@ -33,6 +33,12 @@ export class AdminGuard implements CanActivate {
       const event = await this.db.query.events.findFirst({
         where: eq(events.id, eventId),
       });
+
+      // Flagship events are superadmin-only
+      if (event && getFeatureFlagsList(event).includes('flagship')) {
+        throw new ForbiddenException('Superadmin access required for flagship events');
+      }
+
       if (
         event &&
         (event.owner_id === user.id ||

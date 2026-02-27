@@ -13,14 +13,19 @@
 	let searchQuery = $state('');
 	let addEmail = $state('');
 	let adding = $state(false);
+	let shippedFilter = $state<'all' | 'shipped' | 'not_shipped'>('all');
 
 	let filtered = $derived(
-		attendees.filter((a) =>
-			`${a.first_name} ${a.last_name} ${a.email} ${a.display_name}`
+		attendees.filter((a) => {
+			if (shippedFilter === 'shipped' && !a.has_project) return false;
+			if (shippedFilter === 'not_shipped' && a.has_project) return false;
+			return `${a.first_name} ${a.last_name} ${a.email} ${a.display_name}`
 				.toLowerCase()
-				.includes(searchQuery.toLowerCase())
-		)
+				.includes(searchQuery.toLowerCase());
+		})
 	);
+
+	const shippedCount = $derived(attendees.filter((a) => a.has_project).length);
 
 	onMount(async () => {
 		try {
@@ -103,12 +108,43 @@
 			</button>
 		</form>
 
-		<input
-			type="text"
-			bind:value={searchQuery}
-			placeholder="Search attendees..."
-			class="w-full mb-4 px-3 py-2 rounded-md bg-white/10 text-white border border-white/20 outline-none focus:border-white/40 text-sm placeholder:text-white/30"
-		/>
+		<div class="flex items-center gap-3 mb-4">
+			<input
+				type="text"
+				bind:value={searchQuery}
+				placeholder="Search attendees..."
+				class="flex-1 px-3 py-2 rounded-md bg-white/10 text-white border border-white/20 outline-none focus:border-white/40 text-sm placeholder:text-white/30"
+			/>
+			<div class="flex gap-1 bg-white/5 rounded-md p-0.5">
+				<button
+					type="button"
+					class="px-3 py-1.5 rounded text-xs transition-colors {shippedFilter === 'all'
+						? 'bg-white/10 text-white'
+						: 'text-white/40 hover:text-white'}"
+					onclick={() => (shippedFilter = 'all')}
+				>
+					All
+				</button>
+				<button
+					type="button"
+					class="px-3 py-1.5 rounded text-xs transition-colors {shippedFilter === 'shipped'
+						? 'bg-white/10 text-white'
+						: 'text-white/40 hover:text-white'}"
+					onclick={() => (shippedFilter = 'shipped')}
+				>
+					Shipped ({shippedCount})
+				</button>
+				<button
+					type="button"
+					class="px-3 py-1.5 rounded text-xs transition-colors {shippedFilter === 'not_shipped'
+						? 'bg-white/10 text-white'
+						: 'text-white/40 hover:text-white'}"
+					onclick={() => (shippedFilter = 'not_shipped')}
+				>
+					Not shipped
+				</button>
+			</div>
+		</div>
 
 		{#if filtered.length === 0}
 			<p class="text-white/60 text-center py-12">No attendees found</p>
@@ -116,14 +152,19 @@
 			<div class="flex flex-col gap-2">
 				{#each filtered as attendee}
 					<div class="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10">
-						<div>
-							<p class="text-white text-sm">
-								{attendee.first_name} {attendee.last_name}
-								{#if attendee.display_name}
-									<span class="text-white/40">({attendee.display_name})</span>
-								{/if}
-							</p>
-							<p class="text-white/40 text-xs">{attendee.email}</p>
+						<div class="flex items-center gap-2">
+							<div>
+								<p class="text-white text-sm">
+									{attendee.first_name} {attendee.last_name}
+									{#if attendee.display_name}
+										<span class="text-white/40">({attendee.display_name})</span>
+									{/if}
+								</p>
+								<p class="text-white/40 text-xs">{attendee.email}</p>
+							</div>
+							{#if attendee.has_project}
+								<span class="px-2 py-0.5 rounded bg-green-500/20 text-green-400 text-xs">Shipped</span>
+							{/if}
 						</div>
 						<button
 							type="button"

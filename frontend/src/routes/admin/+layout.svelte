@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { onMount } from 'svelte';
+	import { onMount, setContext } from 'svelte';
 	import { getCurrentUser, type ApiUser } from '$lib/api';
 	import { isLoggedIn, clearToken } from '$lib/auth';
 	import '../../app.css';
@@ -10,6 +10,9 @@
 
 	let user: ApiUser | null = $state(null);
 	let loading = $state(true);
+
+	const adminUser = $derived({ current: user });
+	setContext('adminUser', () => adminUser.current);
 
 	const isLoginPage = $derived(page.url.pathname === '/admin/login');
 
@@ -84,18 +87,32 @@
 				>
 					Events
 				</a>
+				{#if user?.is_superadmin}
 				<a
 					href="/admin/events/create"
 					class="px-3 py-2 rounded-md text-sm transition-colors {currentPath === '/admin/events/create' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}"
 				>
 					+ Create Event
 				</a>
-				{#if user?.is_superadmin}
+			{/if}
+			{#if user?.is_superadmin}
+					<a
+						href="/admin/dashboard"
+						class="px-3 py-2 rounded-md text-sm transition-colors {currentPath === '/admin/dashboard' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}"
+					>
+						Dashboard
+					</a>
 					<a
 						href="/admin/campfire"
 						class="px-3 py-2 rounded-md text-sm transition-colors {currentPath === '/admin/campfire' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}"
 					>
 						Campfire Job
+					</a>
+					<a
+						href="/admin/settings"
+						class="px-3 py-2 rounded-md text-sm transition-colors {currentPath === '/admin/settings' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}"
+					>
+						Platform Settings
 					</a>
 				{/if}
 			</nav>

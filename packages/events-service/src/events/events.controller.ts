@@ -10,14 +10,13 @@ import {
   UseGuards,
   Inject,
   HttpCode,
-  ParseUUIDPipe,
   Sse,
 } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { Observable } from 'rxjs';
 import { User, JwtAuthGuard, AdminGuard, SuperAdminGuard, CurrentUser } from '@podium/shared';
 import { EventsService } from './events.service';
-import { IsArray, IsString, IsUUID, IsOptional, IsEmail, IsInt, Min, ValidateIf } from 'class-validator';
+import { IsArray, IsString, IsUUID, IsOptional, IsEmail, IsInt, IsBoolean, Min, ValidateIf } from 'class-validator';
 
 class CreateVotesDto {
   @IsArray()
@@ -99,6 +98,16 @@ class AdminCreateEventDto {
   rm_id?: string | null;
 }
 
+class UpdatePlatformSettingsDto {
+  @IsOptional()
+  @IsBoolean()
+  github_validation_enabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  itch_validation_enabled?: boolean;
+}
+
 @Controller('events')
 export class EventsController {
   constructor(
@@ -167,6 +176,21 @@ export class EventsController {
     return this.eventsService.adminCreateEvent(body, user);
   }
 
+  // ── Campfire Dashboard (superadmin) ─────────────────────────────
+
+  @Get('admin/campfire/dashboard')
+  @UseGuards(JwtAuthGuard, SuperAdminGuard)
+  async getCampfireDashboard() {
+    return this.eventsService.getCampfireDashboard();
+  }
+
+  // ── Public Dashboard (no auth, numbers + event names only) ─────
+
+  @Get('public/dashboard')
+  async getPublicDashboard() {
+    return this.eventsService.getPublicDashboard();
+  }
+
   // ── Campfire (superadmin) endpoints ─────────────────────────────
 
   @Get('admin/campfire/events')
@@ -217,6 +241,26 @@ export class EventsController {
     return this.eventsService.syncAllProjectsToAirtable(user);
   }
 
+  @Post('admin/campfire/validate-itch')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async validateItchGames(@CurrentUser() user: User) {
+    return this.eventsService.validateItchGames(user);
+  }
+
+  // ── Platform Settings (superadmin) ──────────────────────────────
+
+  @Get('admin/platform-settings')
+  @UseGuards(JwtAuthGuard, SuperAdminGuard)
+  async getPlatformSettings() {
+    return this.eventsService.getPlatformSettings();
+  }
+
+  @Put('admin/platform-settings')
+  @UseGuards(JwtAuthGuard, SuperAdminGuard)
+  async updatePlatformSettings(@Body() body: UpdatePlatformSettingsDto) {
+    return this.eventsService.updatePlatformSettings(body);
+  }
+
   @Get('admin/:event_id')
   @UseGuards(JwtAuthGuard, AdminGuard)
   async adminGetEvent(@Param('event_id') eventId: string) {
@@ -259,8 +303,8 @@ export class EventsController {
   @Delete('admin/:event_id/attendees/:user_id')
   @UseGuards(JwtAuthGuard, AdminGuard)
   async adminRemoveAttendee(
-    @Param('event_id', ParseUUIDPipe) eventId: string,
-    @Param('user_id', ParseUUIDPipe) userId: string,
+    @Param('event_id') eventId: string,
+    @Param('user_id') userId: string,
   ) {
     return this.eventsService.adminRemoveAttendee(eventId, userId);
   }

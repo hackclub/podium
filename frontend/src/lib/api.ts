@@ -379,6 +379,7 @@ export type ApiAttendee = {
 	display_name: string;
 	first_name: string;
 	last_name: string;
+	has_project: boolean;
 };
 
 export function adminGetAttendees(eventId: string) {
@@ -457,6 +458,79 @@ export function adminDeleteProject(projectId: string) {
 
 // ── Campfire (superadmin) ───────────────────────────────────────────
 
+// ── Campfire Dashboard (superadmin) ─────────────────────────────
+
+export type CampfireDashboardEvent = {
+	id: string;
+	name: string;
+	slug: string;
+	attendee_count: number;
+	project_count: number;
+	shipper_count: number;
+	ship_rate: number;
+	checkin_count: number;
+	scanned_day1_count: number;
+	scanned_day2_count: number;
+	scanned_either_day_count: number;
+};
+
+export type CampfireDashboard = {
+	total_shippers: number;
+	total_projects: number;
+	total_attendees: number;
+	total_checkins: number;
+	total_scanned_either_day: number;
+	events: CampfireDashboardEvent[];
+};
+
+export function adminGetCampfireDashboard() {
+	return apiFetch<CampfireDashboard>('/events/admin/campfire/dashboard');
+}
+
+export type PublicDashboardEvent = {
+	name: string;
+	slug: string;
+	attendee_count: number;
+	project_count: number;
+	shipper_count: number;
+	ship_rate: number;
+	checkin_count: number;
+	scanned_day1_count: number;
+	scanned_day2_count: number;
+	scanned_either_day_count: number;
+};
+
+export type PublicDashboard = {
+	total_shippers: number;
+	total_projects: number;
+	total_attendees: number;
+	total_checkins: number;
+	total_scanned_either_day: number;
+	events: PublicDashboardEvent[];
+};
+
+export function getPublicDashboard() {
+	return apiFetch<PublicDashboard>('/events/public/dashboard');
+}
+
+// ── Platform Settings (superadmin) ─────────────────────────────────
+
+export type PlatformSettings = {
+	github_validation_enabled: boolean;
+	itch_validation_enabled: boolean;
+};
+
+export function adminGetPlatformSettings() {
+	return apiFetch<PlatformSettings>('/events/admin/platform-settings');
+}
+
+export function adminUpdatePlatformSettings(data: Partial<PlatformSettings>) {
+	return apiFetch<PlatformSettings>('/events/admin/platform-settings', {
+		method: 'PUT',
+		body: JSON.stringify(data),
+	});
+}
+
 export type CockpitEvent = {
 	id: string;
 	name: string;
@@ -499,6 +573,7 @@ export function adminSyncCampfireEvent(cockpitEventId: string) {
 		event_id: string;
 		slug: string;
 		attendees_synced: number;
+		disabled?: boolean;
 		admins: string[];
 	}>('/events/admin/campfire/sync', {
 		method: 'POST',
@@ -509,7 +584,7 @@ export function adminSyncCampfireEvent(cockpitEventId: string) {
 export function adminSyncAllCampfireEvents() {
 	return apiFetch<{
 		message: string;
-		results: { id: string; name: string; synced: number; error?: string }[];
+		results: { id: string; name: string; synced: number; disabled?: boolean; error?: string }[];
 	}>('/events/admin/campfire/sync-all', {
 		method: 'POST'
 	});
@@ -522,6 +597,27 @@ export function adminSyncProjectsToAirtable() {
 		total: number;
 		errors?: string[];
 	}>('/events/admin/campfire/sync-airtable', {
+		method: 'POST'
+	});
+}
+
+export type ItchValidationResult = {
+	project_id: string;
+	project_name: string;
+	event_slug: string;
+	demo_url: string;
+	playable: boolean;
+	reason: string;
+};
+
+export function adminValidateItchGames() {
+	return apiFetch<{
+		message: string;
+		total: number;
+		playable: number;
+		not_playable: number;
+		results: ItchValidationResult[];
+	}>('/events/admin/campfire/validate-itch', {
 		method: 'POST'
 	});
 }

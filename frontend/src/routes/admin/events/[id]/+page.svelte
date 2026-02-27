@@ -1,15 +1,23 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
-	import { adminGetEvent, adminUpdateEvent, adminDeleteEvent, adminSyncFromCockpit, adminSyncEventToAirtable, type ApiAdminEvent } from '$lib/api';
+	import { onMount, getContext } from 'svelte';
+	import { adminGetEvent, adminUpdateEvent, adminDeleteEvent, adminSyncFromCockpit, adminSyncEventToAirtable, type ApiAdminEvent, type ApiUser } from '$lib/api';
 	import { toast } from 'svelte-sonner';
+
+	const getAdminUser = getContext<() => ApiUser | null>('adminUser');
 
 	const eventId = $derived(page.params.id ?? '');
 
 	let event: ApiAdminEvent | null = $state(null);
 	const isCampfire = $derived((event as ApiAdminEvent | null)?.feature_flags_csv?.includes('campfire') ?? false);
 	const isFlagship = $derived((event as ApiAdminEvent | null)?.feature_flags_csv?.includes('flagship') ?? false);
+	const isPocOrRm = $derived.by(() => {
+		const u = getAdminUser();
+		if (!u || !event) return false;
+		if (u.is_superadmin) return false;
+		return event.poc_id === u.id || event.rm_id === u.id;
+	});
 	let loading = $state(true);
 	let error = $state('');
 	let saving = $state(false);
@@ -350,19 +358,21 @@
 		</div>
 
 		<!-- Danger Zone -->
-		<div class="p-6 rounded-lg border border-red-500/30 bg-red-500/5">
-			<h2 class="text-lg font-medium text-red-400 mb-4">Danger Zone</h2>
-			{#if error}
-				<p class="text-red-400 text-sm mb-3">{error}</p>
-			{/if}
-			<button
-				type="button"
-				onclick={handleDelete}
-				disabled={deleting}
-				class="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-md text-sm hover:bg-red-500/30 transition-colors disabled:opacity-50"
-			>
-				{deleting ? 'Deleting...' : confirmDelete ? 'Click again to confirm deletion' : 'Delete Event'}
-			</button>
-		</div>
+		{#if !isPocOrRm}
+			<div class="p-6 rounded-lg border border-red-500/30 bg-red-500/5">
+				<h2 class="text-lg font-medium text-red-400 mb-4">Danger Zone</h2>
+				{#if error}
+					<p class="text-red-400 text-sm mb-3">{error}</p>
+				{/if}
+				<button
+					type="button"
+					onclick={handleDelete}
+					disabled={deleting}
+					class="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-md text-sm hover:bg-red-500/30 transition-colors disabled:opacity-50"
+				>
+					{deleting ? 'Deleting...' : confirmDelete ? 'Click again to confirm deletion' : 'Delete Event'}
+				</button>
+			</div>
+		{/if}
 	</div>
 {/if}
