@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "emails:compile": "node scripts/compile-emails.mjs",
     "build": "nest build",
     "start": "node dist/main",
     "start:dev": "nest start --watch",
@@ -11,7 +10,6 @@
     "start:prod": "node dist/main"
   },
   "dependencies": {
-    "@aws-sdk/client-ses": "^3.992.0",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.0.0",

@@ -3,9 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { randomInt } from 'crypto';
 import { eq, lt } from 'drizzle-orm';
-import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import { DRIZZLE_RW, type Database, adminOtps } from '@podium/shared';
-import { magicLinkHtml, adminOtpHtml } from '../emails/templates';
 
 @Injectable()
 export class AuthService {
@@ -14,8 +12,8 @@ export class AuthService {
   private readonly accessTokenExpireMinutes: number;
   private readonly magicLinkExpireMinutes = 15;
   private readonly productionUrl: string;
-  private readonly sesFromEmail: string;
-  private readonly sesClient: SESClient | null;
+  private readonly loopsApiKey: string;
+  private readonly loopsTransactionalId: string;
 
   private readonly OTP_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -34,23 +32,11 @@ export class AuthService {
       'PODIUM_PRODUCTION_URL',
       'http://localhost:3000',
     )!;
-    this.sesFromEmail = config.get<string>('SES_FROM_EMAIL', '')!;
-
-    const awsRegion = config.get<string>('AWS_REGION', '');
-    const awsKeyId = config.get<string>('AWS_ACCESS_KEY_ID', '');
-    const awsSecret = config.get<string>('AWS_SECRET_ACCESS_KEY', '');
-
-    if (awsRegion && awsKeyId && awsSecret && this.sesFromEmail) {
-      this.sesClient = new SESClient({
-        region: awsRegion,
-        credentials: {
-          accessKeyId: awsKeyId,
-          secretAccessKey: awsSecret,
-        },
-      });
-    } else {
-      this.sesClient = null;
-    }
+    this.loopsApiKey = config.get<string>('LOOPS_API_KEY', '')!;
+    this.loopsTransactionalId = config.get<string>(
+      'LOOPS_TRANSACTIONAL_ID',
+      'cmm6wsr5z78c70i122rftcbr1',
+    )!;
   }
 
   createAccessToken(
@@ -64,33 +50,35 @@ export class AuthService {
     );
   }
 
-  private async sendEmail(
+  private async sendLoopsEmail(
     to: string,
-    subject: string,
-    htmlBody: string,
-    textBody: string,
+    link: string,
   ): Promise<void> {
-    if (!this.sesClient) {
-      console.log('[WARNING] SES not configured. Email not sent.');
+    if (!this.loopsApiKey) {
+      console.log('[WARNING] Loops API key not configured. Email not sent.');
       return;
     }
 
     try {
-      await this.sesClient.send(
-        new SendEmailCommand({
-          Source: this.sesFromEmail,
-          Destination: { ToAddresses: [to] },
-          Message: {
-            Subject: { Data: subject, Charset: 'UTF-8' },
-            Body: {
-              Html: { Data: htmlBody, Charset: 'UTF-8' },
-              Text: { Data: textBody, Charset: 'UTF-8' },
-            },
-          },
+      const res = await fetch('https://app.loops.so/api/v1/transactional', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.loopsApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          transactionalId: this.loopsTransactionalId,
+          email: to,
+          dataVariables: { link },
         }),
-      );
+      });
+
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`Loops API ${res.status}: ${body}`);
+      }
     } catch (err: any) {
-      console.error('[SES] Failed to send email:', err?.message);
+      console.error('[Loops] Failed to send email:', err?.message);
       throw new HttpException(
         'Failed to send auth email',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -114,14 +102,7 @@ export class AuthService {
 
     console.log(`Magic link for ${email}: ${magicLink}`);
 
-    const htmlBody = magicLinkHtml.replaceAll('{{MAGIC_LINK}}', magicLink);
-
-    await this.sendEmail(
-      email,
-      'Your Podium magic link',
-      htmlBody,
-      `Sign in to Podium:\n\n${magicLink}\n\nThis link expires in 15 minutes.`,
-    );
+    await this.sendLoopsEmail(email, magicLink);
   }
 
   verifyMagicLinkToken(token: string): { email: string; tokenType: string } {
@@ -152,14 +133,7 @@ export class AuthService {
   async sendOtpEmail(email: string, code: string): Promise<void> {
     console.log(`Admin OTP for ${email}: ${code}`);
 
-    const htmlBody = adminOtpHtml.replaceAll('{{OTP_CODE}}', code);
-
-    await this.sendEmail(
-      email,
-      `Your Podium admin code: ${code}`,
-      htmlBody,
-      `Your Podium admin login code is: ${code}\n\nIt expires in 5 minutes.`,
-    );
+    await this.sendLoopsEmail(email, code);
   }
 
   async generateOtp(email: string): Promise<string> {
