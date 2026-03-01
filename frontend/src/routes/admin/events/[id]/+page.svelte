@@ -316,6 +316,19 @@
 					class="w-5 h-5 rounded cursor-pointer"
 				/>
 			</label>
+
+			<label class="flex items-center justify-between cursor-pointer">
+				<div>
+					<span class="text-sm text-white/80">Disable Itch.io Verifications</span>
+					<p class="text-xs text-white/40">Skip itch.io URL and playability checks for this event</p>
+				</div>
+				<input
+					type="checkbox"
+					checked={event.itch_verification_disabled}
+					onchange={() => toggleField('itch_verification_disabled', !event!.itch_verification_disabled)}
+					class="w-5 h-5 rounded cursor-pointer"
+				/>
+			</label>
 		</div>
 
 		<!-- Navigation -->

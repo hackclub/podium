@@ -215,7 +215,8 @@ export class ProjectsService {
     }
 
     // Validate itch.io demo link if provided
-    if (data.demo && data.demo.trim()) {
+    // Skip itch checks entirely if disabled for this specific event
+    if (data.demo && data.demo.trim() && !event.itch_verification_disabled) {
       if (!isItchUrl(data.demo)) {
         throw new HttpException(
           'Demo URL must be an itch.io game page (e.g. https://username.itch.io/game)',

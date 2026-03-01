@@ -114,6 +114,7 @@ export type ApiEvent = {
 	leaderboard_enabled: boolean;
 	demo_links_optional: boolean;
 	ysws_checks_enabled: boolean;
+	itch_verification_disabled: boolean;
 	max_votes_per_user: number;
 	feature_flags_csv: string;
 	theme_name: string;
@@ -343,6 +344,7 @@ export function adminUpdateEvent(
 		leaderboard_enabled: boolean;
 		demo_links_optional: boolean;
 		ysws_checks_enabled: boolean;
+		itch_verification_disabled: boolean;
 		feature_flags_csv: string;
 		theme_name: string;
 		theme_background: string;

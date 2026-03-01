@@ -5,10 +5,10 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
-import { eq, and, or } from 'drizzle-orm';
+import { eq, or } from 'drizzle-orm';
 import { DRIZZLE } from '../db/drizzle.module';
 import { type Database } from '../db/client';
-import { events, eventAttendees, getFeatureFlagsList } from '../db/schema';
+import { events, getFeatureFlagsList } from '../db/schema';
 
 @Injectable()
 export class AdminGuard implements CanActivate {
@@ -46,18 +46,6 @@ export class AdminGuard implements CanActivate {
           event.rm_id === user.id)
       ) {
         return true;
-      }
-      // Allow is_admin users who are attendees of this event
-      if (user.is_admin) {
-        const attendee = await this.db.query.eventAttendees.findFirst({
-          where: and(
-            eq(eventAttendees.event_id, eventId),
-            eq(eventAttendees.user_id, user.id),
-          ),
-        });
-        if (attendee) {
-          return true;
-        }
       }
       throw new ForbiddenException('Admin access required');
     }

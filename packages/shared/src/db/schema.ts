@@ -42,6 +42,7 @@ export const events = pgTable('events', {
   leaderboard_enabled: boolean('leaderboard_enabled').notNull().default(false),
   demo_links_optional: boolean('demo_links_optional').notNull().default(false),
   ysws_checks_enabled: boolean('ysws_checks_enabled').notNull().default(false),
+  itch_verification_disabled: boolean('itch_verification_disabled').notNull().default(false),
   feature_flags_csv: varchar('feature_flags_csv', { length: 500 }).notNull().default(''),
   theme_name: varchar('theme_name', { length: 50 }).notNull().default('campfire'),
   theme_background: text('theme_background').notNull().default(''),

@@ -41,6 +41,7 @@ function mapEventPublic(e: any) {
     demo_links_optional: e.demo_links_optional,
     max_votes_per_user: getMaxVotesPerUser(),
     ysws_checks_enabled: e.ysws_checks_enabled,
+    itch_verification_disabled: e.itch_verification_disabled,
     feature_flags_csv: e.feature_flags_csv,
     theme_name: e.theme_name,
     theme_background: e.theme_background,
@@ -366,22 +367,13 @@ export class EventsService {
 
     let filtered = rows;
     if (!user.is_superadmin) {
-      // For non-superadmins, check if user owns or attends the event
-      const attendingEventIds = new Set(
-        (await this.dbRo.query.eventAttendees.findMany({
-          where: eq(eventAttendees.user_id, user.id),
-          columns: { event_id: true },
-        })).map((a) => a.event_id),
-      );
-
       filtered = rows.filter(
         (r) =>
           // Flagship events are superadmin-only
           !getFeatureFlagsList(r.event).includes('flagship') &&
           (r.event.owner_id === user.id ||
             r.event.poc_id === user.id ||
-            r.event.rm_id === user.id ||
-            (user.is_admin && attendingEventIds.has(r.event.id))),
+            r.event.rm_id === user.id),
       );
     }
 
@@ -485,7 +477,7 @@ export class EventsService {
 
     const allowedFields = [
       'name', 'slug', 'description', 'enabled', 'votable', 'voting_closed', 'leaderboard_enabled',
-      'demo_links_optional', 'ysws_checks_enabled', 'feature_flags_csv',
+      'demo_links_optional', 'ysws_checks_enabled', 'itch_verification_disabled', 'feature_flags_csv',
       'theme_name', 'theme_background', 'theme_font', 'theme_primary', 'theme_selected',
       'poc_id', 'rm_id',
     ];

@@ -43,18 +43,6 @@ export class AdminService {
     ) {
       return event;
     }
-    // Allow is_admin users who are attendees of this event
-    if (user.is_admin) {
-      const attendee = await this.dbRo.query.eventAttendees.findFirst({
-        where: and(
-          eq(eventAttendees.event_id, eventId),
-          eq(eventAttendees.user_id, user.id),
-        ),
-      });
-      if (attendee) {
-        return event;
-      }
-    }
     throw BAD_ACCESS;
   }
 
@@ -84,6 +72,7 @@ export class AdminService {
       owner_id: event.owner_id,
       feature_flags_csv: event.feature_flags_csv,
       ysws_checks_enabled: event.ysws_checks_enabled,
+      itch_verification_disabled: event.itch_verification_disabled,
       theme_name: event.theme_name,
       theme_background: event.theme_background,
       theme_font: event.theme_font,
