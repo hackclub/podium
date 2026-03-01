@@ -17,7 +17,7 @@ import { ClientKafka } from '@nestjs/microservices';
 import { Observable } from 'rxjs';
 import { User, JwtAuthGuard, OptionalJwtAuthGuard, AdminGuard, SuperAdminGuard, CurrentUser } from '@podium/shared';
 import { EventsService } from './events.service';
-import { IsArray, IsString, IsUUID, IsOptional, IsEmail, IsInt, IsBoolean, Min, ValidateIf } from 'class-validator';
+import { IsArray, IsString, IsUUID, IsOptional, IsEmail, IsInt, Min, ValidateIf } from 'class-validator';
 
 class CreateVotesDto {
   @IsArray()
@@ -97,16 +97,6 @@ class AdminCreateEventDto {
   @ValidateIf((o) => o.rm_id !== null)
   @IsUUID('4')
   rm_id?: string | null;
-}
-
-class UpdatePlatformSettingsDto {
-  @IsOptional()
-  @IsBoolean()
-  github_validation_enabled?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  itch_validation_enabled?: boolean;
 }
 
 @Controller('events')
@@ -248,20 +238,6 @@ export class EventsController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   async validateItchGames(@CurrentUser() user: User) {
     return this.eventsService.validateItchGames(user);
-  }
-
-  // ── Platform Settings (superadmin) ──────────────────────────────
-
-  @Get('admin/platform-settings')
-  @UseGuards(JwtAuthGuard, SuperAdminGuard)
-  async getPlatformSettings() {
-    return this.eventsService.getPlatformSettings();
-  }
-
-  @Put('admin/platform-settings')
-  @UseGuards(JwtAuthGuard, SuperAdminGuard)
-  async updatePlatformSettings(@Body() body: UpdatePlatformSettingsDto) {
-    return this.eventsService.updatePlatformSettings(body);
   }
 
   @Get('admin/:event_id')

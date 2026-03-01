@@ -13,6 +13,7 @@ import {
   eventAttendees,
   getMaxVotesPerUser,
   BAD_ACCESS,
+  PlatformSettingsService,
 } from '@podium/shared';
 
 @Injectable()
@@ -21,6 +22,7 @@ export class AdminService {
     @Inject(DRIZZLE_RW) private readonly dbRw: Database,
     @Inject(DRIZZLE_RO) private readonly dbRo: Database,
     @Inject(DRIZZLE_R) private readonly dbR: Database,
+    private readonly platformSettings: PlatformSettingsService,
   ) {}
 
   private async getOwnedEvent(eventId: string, user: User) {
@@ -184,5 +186,24 @@ export class AdminService {
       user_id: r.user_id,
       event_id: r.event_id,
     }));
+  }
+
+  // ── Platform Settings ───────────────────────────────────────────────
+
+  async getPlatformSettings() {
+    return this.platformSettings.getAll();
+  }
+
+  async updatePlatformSettings(data: {
+    github_validation_enabled?: boolean;
+    itch_validation_enabled?: boolean;
+  }) {
+    if (data.github_validation_enabled !== undefined) {
+      await this.platformSettings.set('github_validation_enabled', data.github_validation_enabled);
+    }
+    if (data.itch_validation_enabled !== undefined) {
+      await this.platformSettings.set('itch_validation_enabled', data.itch_validation_enabled);
+    }
+    return this.platformSettings.getAll();
   }
 }
