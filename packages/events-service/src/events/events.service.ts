@@ -107,7 +107,9 @@ export class EventsService {
       .from(events)
       .where(eq(events.enabled, true));
 
-    return rows.map((r) => mapEventPublic(r.event));
+    return rows
+      .filter((r) => !getFeatureFlagsList(r.event).includes('flagship'))
+      .map((r) => mapEventPublic(r.event));
   }
 
   async getEventById(eventId: string) {
@@ -115,7 +117,7 @@ export class EventsService {
       where: eq(events.id, eventId),
     });
 
-    if (!row) {
+    if (!row || getFeatureFlagsList(row).includes('flagship')) {
       throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
     }
     return mapEventPublic(row);
@@ -323,7 +325,7 @@ export class EventsService {
     const event = await this.dbRo.query.events.findFirst({
       where: eq(events.slug, slug),
     });
-    if (!event) {
+    if (!event || getFeatureFlagsList(event).includes('flagship')) {
       throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
     }
     return { id: event.id };
