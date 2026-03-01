@@ -284,7 +284,7 @@ export function verifyAdminOtp(email: string, code: string) {
 	return apiFetch<{
 		access_token: string;
 		token_type: string;
-		user: { id: string; email: string; display_name: string; first_name: string; is_admin: boolean };
+		user: { id: string; email: string; display_name: string; is_admin: boolean };
 	}>('/auth/admin/verify-otp', {
 		method: 'POST',
 		body: JSON.stringify({ email, code })

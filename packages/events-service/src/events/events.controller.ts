@@ -11,6 +11,7 @@ import {
   Inject,
   HttpCode,
   Sse,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { Observable } from 'rxjs';
@@ -305,10 +306,11 @@ export class EventsController {
   @Delete('admin/:event_id/attendees/:user_id')
   @UseGuards(JwtAuthGuard, AdminGuard)
   async adminRemoveAttendee(
-    @Param('event_id') eventId: string,
-    @Param('user_id') userId: string,
+    @Param('event_id', ParseUUIDPipe) eventId: string,
+    @Param('user_id', ParseUUIDPipe) userId: string,
+    @CurrentUser() user: User,
   ) {
-    return this.eventsService.adminRemoveAttendee(eventId, userId);
+    return this.eventsService.adminRemoveAttendee(eventId, userId, user);
   }
 
   @Post('admin/:event_id/sync-cockpit')

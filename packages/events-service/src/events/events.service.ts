@@ -660,12 +660,29 @@ export class EventsService {
       user_id: user.id,
       email: user.email,
       display_name: user.display_name,
-      first_name: user.first_name,
-      last_name: user.last_name,
+      has_project: false,
     };
   }
 
-  async adminRemoveAttendee(eventId: string, userId: string) {
+  async adminRemoveAttendee(eventId: string, userId: string, caller: User) {
+    // Only RM, owner, admins, and superadmins can remove attendees — not POC
+    if (!caller.is_superadmin && !caller.is_admin) {
+      const event = await this.dbRw.query.events.findFirst({
+        where: eq(events.id, eventId),
+        columns: { owner_id: true, rm_id: true, poc_id: true },
+      });
+      if (!event) {
+        throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
+      }
+      const isPocOnly =
+        event.poc_id === caller.id &&
+        event.owner_id !== caller.id &&
+        event.rm_id !== caller.id;
+      if (isPocOnly) {
+        throw new ForbiddenException('POCs cannot remove attendees');
+      }
+    }
+
     await this.dbRw
       .delete(eventAttendees)
       .where(
