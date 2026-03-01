@@ -126,13 +126,10 @@
 							<p class="text-white/60 text-sm">{project.description}</p>
 
 							<div class="flex flex-col gap-1.5">
-								{#if project.owner_name || project.owner_email}
+								{#if project.owner_name}
 									<div class="text-sm text-white/50">
 										<span class="text-white/30">Submitted by</span>
-										<span class="text-white/70">{project.owner_name || project.owner_email}</span>
-										{#if project.owner_name && project.owner_email}
-											<span class="text-white/30">({project.owner_email})</span>
-										{/if}
+										<span class="text-white/70">{project.owner_name}</span>
 									</div>
 								{/if}
 
@@ -140,7 +137,7 @@
 									<div class="text-sm text-white/50">
 										<span class="text-white/30">Teammates:</span>
 										{#each project.collaborators as collab, ci}
-											<span class="text-white/70">{collab.display_name || collab.email}</span>{#if ci < project.collaborators.length - 1}<span class="text-white/30">,</span>{/if}
+											<span class="text-white/70">{collab.display_name}</span>{#if ci < project.collaborators.length - 1}<span class="text-white/30">,</span>{/if}
 										{/each}
 									</div>
 								{/if}

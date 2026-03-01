@@ -65,7 +65,7 @@ export type ApiUser = {
 	is_superadmin: boolean;
 	has_address: boolean;
 	has_dob: boolean;
-	phone: string;
+	has_phone: boolean;
 };
 
 export function getCurrentUser() {
@@ -163,7 +163,6 @@ export function vote(eventId: string, projectIds: string[]) {
 export type ApiProjectCollaborator = {
 	user_id: string;
 	display_name: string;
-	email: string;
 };
 
 export type ApiProject = {
@@ -176,7 +175,6 @@ export type ApiProject = {
 	points: number;
 	owner_id: string;
 	owner_name: string;
-	owner_email: string;
 	collaborators: ApiProjectCollaborator[];
 };
 
@@ -260,6 +258,17 @@ export function updateProject(
 
 export function deleteProject(projectId: string) {
 	return apiFetch(`/projects/${projectId}`, { method: 'DELETE' });
+}
+
+export function ownerAddCollaborator(projectId: string, data: TeammateData) {
+	return apiFetch<ApiProjectCollaborator>(`/projects/${projectId}/collaborators`, {
+		method: 'POST',
+		body: JSON.stringify(data)
+	});
+}
+
+export function ownerRemoveCollaborator(projectId: string, userId: string) {
+	return apiFetch(`/projects/${projectId}/collaborators/${userId}`, { method: 'DELETE' });
 }
 
 // ── Admin Auth ─────────────────────────────────────────────────────────
@@ -377,8 +386,6 @@ export type ApiAttendee = {
 	user_id: string;
 	email: string;
 	display_name: string;
-	first_name: string;
-	last_name: string;
 	has_project: boolean;
 };
 
@@ -422,8 +429,6 @@ export type ApiEventStats = {
 		user_id: string;
 		email: string;
 		display_name: string;
-		first_name: string;
-		last_name: string;
 		has_project: boolean;
 	}[];
 	leaderboard: {

@@ -19,7 +19,7 @@
 	let deletingId: string | null = $state(null);
 
 	// Teammate editing state
-	let editCollaborators: { user_id: string; display_name: string; email: string }[] = $state([]);
+	let editCollaborators: { user_id: string; display_name: string; email?: string }[] = $state([]);
 	let teammateEmail = $state('');
 	let lookingUpTeammate = $state(false);
 	let teammateError = $state('');
@@ -75,10 +75,6 @@
 		if (!email || !email.includes('@')) return;
 		teammateError = '';
 
-		if (editCollaborators.some((c) => c.email === email)) {
-			teammateError = 'Already a teammate';
-			return;
-		}
 		if (pendingTeammates.some((t) => t.email === email)) {
 			teammateError = 'Already added';
 			return;
@@ -238,7 +234,7 @@
 									<div class="flex flex-col gap-1.5">
 										{#each editCollaborators as collab}
 											<div class="flex items-center justify-between bg-white/5 rounded px-2.5 py-1.5">
-												<span class="text-white/70 text-sm">{collab.display_name || collab.email}</span>
+												<span class="text-white/70 text-sm">{collab.display_name}</span>
 												<button
 													type="button"
 													onclick={() => removeCollaborator(collab.user_id)}
@@ -366,13 +362,10 @@
 								<p class="text-white/60 text-sm">{project.description}</p>
 
 								<div class="flex flex-col gap-1.5">
-									{#if project.owner_name || project.owner_email}
+									{#if project.owner_name}
 										<div class="text-sm text-white/50">
 											<span class="text-white/30">Submitted by</span>
-											<span class="text-white/70">{project.owner_name || project.owner_email}</span>
-											{#if project.owner_name && project.owner_email}
-												<span class="text-white/30">({project.owner_email})</span>
-											{/if}
+											<span class="text-white/70">{project.owner_name}</span>
 										</div>
 									{/if}
 
@@ -380,7 +373,7 @@
 										<div class="text-sm text-white/50">
 											<span class="text-white/30">Teammates:</span>
 											{#each project.collaborators as collab, ci}
-												<span class="text-white/70">{collab.display_name || collab.email}</span>{#if ci < project.collaborators.length - 1}<span class="text-white/30">,</span>{/if}
+												<span class="text-white/70">{collab.display_name}</span>{#if ci < project.collaborators.length - 1}<span class="text-white/30">,</span>{/if}
 											{/each}
 										</div>
 									{/if}

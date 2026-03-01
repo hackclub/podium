@@ -43,10 +43,9 @@
 		}
 		try {
 			const user = await getCurrentUser();
-			if (!user.has_address || !user.has_dob || !user.first_name || !user.phone) {
+			if (!user.has_address || !user.has_dob || !user.first_name || !user.has_phone) {
 				firstName = user.first_name || '';
 				lastName = user.last_name || '';
-				phone = user.phone || '';
 				needsProfile = true;
 			}
 		} catch {
@@ -71,7 +70,7 @@
 				country,
 				dob,
 			});
-			if (updated.has_address && updated.has_dob && updated.first_name && updated.phone) {
+			if (updated.has_address && updated.has_dob && updated.first_name && updated.has_phone) {
 				needsProfile = false;
 			}
 		} catch (e: any) {

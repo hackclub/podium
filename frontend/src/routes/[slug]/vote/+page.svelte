@@ -4,7 +4,7 @@
 	import { getContext } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { EventTheme } from '$lib/theme';
-	import { getEventProjects, getMyVotes, vote as submitVote, attendEvent, getCurrentUser, type ApiProject, type ApiEvent } from '$lib/api';
+	import { getEventProjects, getMyVotes, vote as submitVote, attendEvent, getCurrentUser, getMyProjects, type ApiProject, type ApiEvent } from '$lib/api';
 	import { isLoggedIn } from '$lib/auth';
 	import ProfileGate from '$lib/forms/ProfileGate.svelte';
 	import Button from '$lib/forms/Button.svelte';
@@ -32,6 +32,7 @@
 	const showLeaderboard = $derived((eventData as ApiEvent | null)?.leaderboard_enabled ?? false);
 	const isFlagship = $derived((eventData as ApiEvent | null)?.feature_flags_csv?.includes('flagship') ?? false);
 	let isSuperadmin = $state(false);
+	let hasOwnedProject = $state(false);
 
 	// Multi-vote state
 	let selectedIds = $state(new Set<string>());
@@ -85,8 +86,10 @@
 					getMyVotes(eventId).then((ids) => {
 						votedIds = new Set(ids);
 					}).catch(() => {}),
-					getCurrentUser().then((u) => {
+					getCurrentUser().then(async (u) => {
 						isSuperadmin = u.is_superadmin;
+						const ps = await getMyProjects();
+						hasOwnedProject = ps.some((p) => p.event_id === eventId && p.owner_id === u.id);
 					}).catch(() => {}),
 				);
 			}
@@ -99,7 +102,16 @@
 
 {#if eventTheme}
 <ProfileGate {eventTheme}>
-<main class="flex flex-1 items-center justify-center px-4 py-12">
+<main class="flex flex-1 flex-col items-center justify-center px-4 py-12">
+	{#if hasOwnedProject && (eventData?.votable || eventData?.voting_closed)}
+		<a
+			href="/{slug}/team"
+			class="mb-4 text-sm text-white/70 underline drop-shadow-md cursor-pointer transition-colors ease-in-out duration-125 hover:text-[var(--hover-color)]"
+			style="--hover-color: {eventTheme.selected}; font-family: {eventTheme.font};"
+		>
+			Manage teammates
+		</a>
+	{/if}
 	{#if showLeaderboard && (!isFlagship || isSuperadmin)}
 			<div
 				class="relative w-full max-w-2xl overflow-hidden rounded-2xl border-4 border-white px-6 py-6 drop-shadow-md"
@@ -170,10 +182,10 @@
 												</div>
 											{/if}
 
-											{#if project.owner_name || project.owner_email}
+											{#if project.owner_name}
 												<div class="text-sm text-white/50 drop-shadow-md">
 													<span class="text-white/30">Submitted by</span>
-													<span class="text-white/70">{project.owner_name || project.owner_email}</span>
+													<span class="text-white/70">{project.owner_name}</span>
 												</div>
 											{/if}
 
@@ -181,7 +193,7 @@
 												<div class="text-sm text-white/50 drop-shadow-md">
 													<span class="text-white/30">Teammates:</span>
 													{#each project.collaborators as collab, ci}
-														<span class="text-white/70">{collab.display_name || collab.email}</span>{#if ci < project.collaborators.length - 1}<span class="text-white/30">,</span>{/if}
+														<span class="text-white/70">{collab.display_name}</span>{#if ci < project.collaborators.length - 1}<span class="text-white/30">,</span>{/if}
 													{/each}
 												</div>
 											{/if}

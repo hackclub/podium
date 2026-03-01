@@ -531,7 +531,6 @@ export class ProjectsService {
         description: projects.description,
         owner_id: projects.owner_id,
         owner_name: users.display_name,
-        owner_email: users.email,
         event_id: projects.event_id,
         points: sql<number>`(SELECT count(*) FROM votes WHERE votes.project_id = "projects"."id")`.mapWith(Number),
       })
@@ -555,12 +554,11 @@ export class ProjectsService {
       }
     }
 
-    // Fetch collaborators
+    // Fetch collaborators — only return display_name (no email PII for participants)
     const collabRows = await this.dbRo
       .select({
         user_id: users.id,
         display_name: users.display_name,
-        email: users.email,
       })
       .from(projectCollaborators)
       .innerJoin(users, eq(projectCollaborators.user_id, users.id))
@@ -739,6 +737,147 @@ export class ProjectsService {
     }
 
     await this.assertEventLeadership(project.event_id, user);
+
+    await this.dbRw
+      .delete(projectCollaborators)
+      .where(
+        and(
+          eq(projectCollaborators.project_id, projectId),
+          eq(projectCollaborators.user_id, userId),
+        ),
+      );
+
+    return { message: 'Collaborator removed' };
+  }
+
+  async ownerAddCollaborator(
+    projectId: string,
+    data: {
+      email: string;
+      first_name?: string;
+      last_name?: string;
+      phone?: string;
+      street_1?: string;
+      street_2?: string;
+      city?: string;
+      state?: string;
+      zip_code?: string;
+      country?: string;
+      dob?: string;
+    },
+    user: User,
+  ) {
+    const project = await this.dbRw.query.projects.findFirst({
+      where: eq(projects.id, projectId),
+    });
+    if (!project) {
+      throw new HttpException('Project not found', HttpStatus.NOT_FOUND);
+    }
+    if (project.owner_id !== user.id) {
+      throw BAD_ACCESS;
+    }
+
+    const event = await this.dbRw.query.events.findFirst({
+      where: eq(events.id, project.event_id),
+    });
+    if (!event) {
+      throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
+    }
+    if (!event.votable && !event.voting_closed) {
+      throw new HttpException(
+        'Teammates can only be edited after submissions close',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    if (!user.is_superadmin && getFeatureFlagsList(event).includes('flagship')) {
+      throw new HttpException('Project not found', HttpStatus.NOT_FOUND);
+    }
+
+    const email = data.email.trim().toLowerCase();
+    if (email === user.email) {
+      throw new HttpException('Cannot add yourself as a collaborator', HttpStatus.BAD_REQUEST);
+    }
+
+    let teammate = await this.dbRw.query.users.findFirst({
+      where: eq(users.email, email),
+    });
+
+    if (!teammate) {
+      const [created] = await this.dbRw
+        .insert(users)
+        .values({
+          email,
+          first_name: data.first_name || email.split('@')[0],
+          last_name: data.last_name ?? '',
+          display_name: data.first_name || email.split('@')[0],
+          phone: data.phone ?? '',
+          street_1: data.street_1 ?? '',
+          street_2: data.street_2 ?? '',
+          city: data.city ?? '',
+          state: data.state ?? '',
+          zip_code: data.zip_code ?? '',
+          country: data.country ?? '',
+          dob: data.dob ?? null,
+        })
+        .returning();
+      teammate = created;
+    } else {
+      const updates: Record<string, any> = {};
+      if (!teammate.first_name && data.first_name) updates.first_name = data.first_name;
+      if (!teammate.last_name && data.last_name) updates.last_name = data.last_name;
+      if (!teammate.phone && data.phone) updates.phone = data.phone;
+      if (!teammate.street_1 && data.street_1) updates.street_1 = data.street_1;
+      if (!teammate.street_2 && data.street_2) updates.street_2 = data.street_2;
+      if (!teammate.city && data.city) updates.city = data.city;
+      if (!teammate.state && data.state) updates.state = data.state;
+      if (!teammate.zip_code && data.zip_code) updates.zip_code = data.zip_code;
+      if (!teammate.country && data.country) updates.country = data.country;
+      if (!teammate.dob && data.dob) updates.dob = data.dob;
+
+      if (Object.keys(updates).length > 0) {
+        await this.dbRw.update(users).set(updates).where(eq(users.id, teammate.id));
+      }
+    }
+
+    await this.dbRw
+      .insert(eventAttendees)
+      .values({ event_id: project.event_id, user_id: teammate.id })
+      .onConflictDoNothing();
+
+    await this.dbRw
+      .insert(projectCollaborators)
+      .values({ project_id: projectId, user_id: teammate.id })
+      .onConflictDoNothing();
+
+    return {
+      user_id: teammate.id,
+      display_name: teammate.display_name,
+    };
+  }
+
+  async ownerRemoveCollaborator(projectId: string, userId: string, user: User) {
+    const project = await this.dbRw.query.projects.findFirst({
+      where: eq(projects.id, projectId),
+    });
+    if (!project) {
+      throw new HttpException('Project not found', HttpStatus.NOT_FOUND);
+    }
+    if (project.owner_id !== user.id) {
+      throw BAD_ACCESS;
+    }
+
+    const event = await this.dbRw.query.events.findFirst({
+      where: eq(events.id, project.event_id),
+    });
+    if (!event) {
+      throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
+    }
+    if (!event.votable && !event.voting_closed) {
+      throw new HttpException(
+        'Teammates can only be edited after submissions close',
+        HttpStatus.FORBIDDEN,
+      );
+    }
 
     await this.dbRw
       .delete(projectCollaborators)

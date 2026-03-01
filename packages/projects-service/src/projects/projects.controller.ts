@@ -160,6 +160,51 @@ class AdminAddCollaboratorDto {
   dob?: string;
 }
 
+class OwnerAddCollaboratorDto {
+  @IsEmail()
+  email!: string;
+
+  @IsOptional()
+  @IsString()
+  first_name?: string;
+
+  @IsOptional()
+  @IsString()
+  last_name?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  street_1?: string;
+
+  @IsOptional()
+  @IsString()
+  street_2?: string;
+
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  state?: string;
+
+  @IsOptional()
+  @IsString()
+  zip_code?: string;
+
+  @IsOptional()
+  @IsString()
+  country?: string;
+
+  @IsOptional()
+  @IsDateString()
+  dob?: string;
+}
+
 class UpdateProjectDto {
   @IsOptional()
   @IsString()
@@ -240,6 +285,27 @@ export class ProjectsController {
   @RateLimit(30, 60)
   async validateProject(@Query('project_id') projectId: string) {
     return this.projectsService.validateProject(projectId);
+  }
+
+  @Post(':project_id/collaborators')
+  @UseGuards(JwtAuthGuard)
+  @RateLimit(30, 60)
+  async ownerAddCollaborator(
+    @Param('project_id') projectId: string,
+    @Body() body: OwnerAddCollaboratorDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.projectsService.ownerAddCollaborator(projectId, body, user);
+  }
+
+  @Delete(':project_id/collaborators/:user_id')
+  @UseGuards(JwtAuthGuard)
+  async ownerRemoveCollaborator(
+    @Param('project_id') projectId: string,
+    @Param('user_id') userId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.projectsService.ownerRemoveCollaborator(projectId, userId, user);
   }
 
   @Put(':project_id')

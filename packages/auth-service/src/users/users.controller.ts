@@ -175,7 +175,7 @@ export class UsersController {
       is_superadmin: user.is_superadmin,
       has_address: !!(fullUser?.street_1 && fullUser?.city && fullUser?.state && fullUser?.zip_code && fullUser?.country),
       has_dob: !!fullUser?.dob,
-      phone: fullUser?.phone || '',
+      has_phone: !!fullUser?.phone,
     };
   }
 
@@ -194,7 +194,7 @@ export class UsersController {
       last_name: updated.last_name,
       has_address: !!(updated.street_1 && updated.city && updated.state && updated.zip_code && updated.country),
       has_dob: !!updated.dob,
-      phone: updated.phone || '',
+      has_phone: !!updated.phone,
     };
   }
 

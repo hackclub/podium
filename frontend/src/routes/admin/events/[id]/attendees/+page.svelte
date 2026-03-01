@@ -19,7 +19,7 @@
 		attendees.filter((a) => {
 			if (shippedFilter === 'shipped' && !a.has_project) return false;
 			if (shippedFilter === 'not_shipped' && a.has_project) return false;
-			return `${a.first_name} ${a.last_name} ${a.email} ${a.display_name}`
+			return `${a.email} ${a.display_name}`
 				.toLowerCase()
 				.includes(searchQuery.toLowerCase());
 		})
@@ -155,12 +155,11 @@
 						<div class="flex items-center gap-2">
 							<div>
 								<p class="text-white text-sm">
-									{attendee.first_name} {attendee.last_name}
-									{#if attendee.display_name}
-										<span class="text-white/40">({attendee.display_name})</span>
-									{/if}
+									{attendee.display_name || attendee.email}
 								</p>
-								<p class="text-white/40 text-xs">{attendee.email}</p>
+								{#if attendee.display_name}
+									<p class="text-white/40 text-xs">{attendee.email}</p>
+								{/if}
 							</div>
 							{#if attendee.has_project}
 								<span class="px-2 py-0.5 rounded bg-green-500/20 text-green-400 text-xs">Shipped</span>

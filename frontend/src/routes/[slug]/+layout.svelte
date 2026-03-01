@@ -46,6 +46,10 @@
 				if (currentPath.includes('/vote')) {
 					goto(`/${currentSlug}/create`);
 				}
+				// Team editing only available after submissions close
+				if (currentPath.includes('/team')) {
+					goto(`/${currentSlug}/create`);
+				}
 				break;
 			case 'voting':
 			case 'closed':

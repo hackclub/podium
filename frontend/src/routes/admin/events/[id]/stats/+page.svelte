@@ -21,7 +21,7 @@
 		if (searchQuery.trim()) {
 			const q = searchQuery.toLowerCase();
 			list = list.filter((a) =>
-				`${a.first_name} ${a.last_name} ${a.email} ${a.display_name}`
+				`${a.email} ${a.display_name}`
 					.toLowerCase()
 					.includes(q)
 			);
@@ -150,12 +150,11 @@
 						<div class="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10">
 							<div>
 								<p class="text-white text-sm">
-									{attendee.first_name} {attendee.last_name}
-									{#if attendee.display_name}
-										<span class="text-white/40">({attendee.display_name})</span>
-									{/if}
+									{attendee.display_name || attendee.email}
 								</p>
-								<p class="text-white/40 text-xs">{attendee.email}</p>
+								{#if attendee.display_name}
+									<p class="text-white/40 text-xs">{attendee.email}</p>
+								{/if}
 							</div>
 							{#if attendee.has_project}
 								<span class="px-2.5 py-1 rounded-full text-xs bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">

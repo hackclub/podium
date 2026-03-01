@@ -277,7 +277,6 @@ export class EventsService {
         description: projects.description,
         owner_id: projects.owner_id,
         owner_name: users.display_name,
-        owner_email: users.email,
         points: isFlagship
           ? projects.manual_points
           : sql<number>`(SELECT count(*) FROM votes WHERE votes.project_id = "projects"."id")`.mapWith(Number),
@@ -294,17 +293,16 @@ export class EventsService {
             project_id: projectCollaborators.project_id,
             user_id: users.id,
             display_name: users.display_name,
-            email: users.email,
           })
           .from(projectCollaborators)
           .innerJoin(users, eq(projectCollaborators.user_id, users.id))
           .where(inArray(projectCollaborators.project_id, projectIds))
       : [];
 
-    const collabsByProject = new Map<string, { user_id: string; display_name: string; email: string }[]>();
+    const collabsByProject = new Map<string, { user_id: string; display_name: string }[]>();
     for (const c of collabRows) {
       const list = collabsByProject.get(c.project_id) ?? [];
-      list.push({ user_id: c.user_id, display_name: c.display_name, email: c.email });
+      list.push({ user_id: c.user_id, display_name: c.display_name });
       collabsByProject.set(c.project_id, list);
     }
 
@@ -607,8 +605,6 @@ export class EventsService {
         user_id: row.user.id,
         email: row.user.email,
         display_name: row.user.display_name,
-        first_name: row.user.first_name,
-        last_name: row.user.last_name,
         has_project: shippedIds.has(row.user.id),
       }));
   }
@@ -721,8 +717,6 @@ export class EventsService {
       user_id: row.user.id,
       email: row.user.email,
       display_name: row.user.display_name,
-      first_name: row.user.first_name,
-      last_name: row.user.last_name,
       has_project: usersWithProject.has(row.user.id),
     }));
 
@@ -766,7 +760,6 @@ export class EventsService {
         hours_spent: projects.hours_spent,
         owner_id: projects.owner_id,
         owner_name: users.display_name,
-        owner_email: users.email,
         vote_count: sql<number>`(SELECT count(*) FROM votes WHERE votes.project_id = "projects"."id")`.mapWith(Number),
         manual_points: projects.manual_points,
       })
@@ -782,17 +775,16 @@ export class EventsService {
             project_id: projectCollaborators.project_id,
             user_id: users.id,
             display_name: users.display_name,
-            email: users.email,
           })
           .from(projectCollaborators)
           .innerJoin(users, eq(projectCollaborators.user_id, users.id))
           .where(inArray(projectCollaborators.project_id, projectIds))
       : [];
 
-    const collabsByProject = new Map<string, { user_id: string; display_name: string; email: string }[]>();
+    const collabsByProject = new Map<string, { user_id: string; display_name: string }[]>();
     for (const c of collabRows) {
       const list = collabsByProject.get(c.project_id) ?? [];
-      list.push({ user_id: c.user_id, display_name: c.display_name, email: c.email });
+      list.push({ user_id: c.user_id, display_name: c.display_name });
       collabsByProject.set(c.project_id, list);
     }
 
