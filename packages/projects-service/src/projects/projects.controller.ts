@@ -11,6 +11,7 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
@@ -291,7 +292,7 @@ export class ProjectsController {
   @UseGuards(JwtAuthGuard)
   @RateLimit(30, 60)
   async ownerAddCollaborator(
-    @Param('project_id') projectId: string,
+    @Param('project_id', ParseUUIDPipe) projectId: string,
     @Body() body: OwnerAddCollaboratorDto,
     @CurrentUser() user: User,
   ) {
@@ -301,8 +302,8 @@ export class ProjectsController {
   @Delete(':project_id/collaborators/:user_id')
   @UseGuards(JwtAuthGuard)
   async ownerRemoveCollaborator(
-    @Param('project_id') projectId: string,
-    @Param('user_id') userId: string,
+    @Param('project_id', ParseUUIDPipe) projectId: string,
+    @Param('user_id', ParseUUIDPipe) userId: string,
     @CurrentUser() user: User,
   ) {
     return this.projectsService.ownerRemoveCollaborator(projectId, userId, user);
@@ -311,7 +312,7 @@ export class ProjectsController {
   @Put(':project_id')
   @UseGuards(JwtAuthGuard)
   async updateProject(
-    @Param('project_id') projectId: string,
+    @Param('project_id', ParseUUIDPipe) projectId: string,
     @Body() body: UpdateProjectDto,
     @CurrentUser() user: User,
   ) {
@@ -321,7 +322,7 @@ export class ProjectsController {
   @Delete(':project_id')
   @UseGuards(JwtAuthGuard)
   async deleteProject(
-    @Param('project_id') projectId: string,
+    @Param('project_id', ParseUUIDPipe) projectId: string,
     @CurrentUser() user: User,
   ) {
     return this.projectsService.deleteProject(projectId, user);
@@ -329,7 +330,7 @@ export class ProjectsController {
 
   @Get(':project_id')
   @UseGuards(OptionalJwtAuthGuard)
-  async getProject(@Param('project_id') projectId: string, @CurrentUser() user?: User) {
+  async getProject(@Param('project_id', ParseUUIDPipe) projectId: string, @CurrentUser() user?: User) {
     return this.projectsService.getProject(projectId, user);
   }
 
@@ -338,7 +339,7 @@ export class ProjectsController {
   @Put('admin/:project_id')
   @UseGuards(JwtAuthGuard, AdminGuard)
   async adminUpdateProject(
-    @Param('project_id') projectId: string,
+    @Param('project_id', ParseUUIDPipe) projectId: string,
     @Body() body: UpdateProjectDto,
     @CurrentUser() user: User,
   ) {
@@ -348,7 +349,7 @@ export class ProjectsController {
   @Delete('admin/:project_id')
   @UseGuards(JwtAuthGuard, AdminGuard)
   async adminDeleteProject(
-    @Param('project_id') projectId: string,
+    @Param('project_id', ParseUUIDPipe) projectId: string,
     @CurrentUser() user: User,
   ) {
     return this.projectsService.adminDeleteProject(projectId, user);
@@ -357,7 +358,7 @@ export class ProjectsController {
   @Post('admin/:project_id/collaborators')
   @UseGuards(JwtAuthGuard, AdminGuard)
   async adminAddCollaborator(
-    @Param('project_id') projectId: string,
+    @Param('project_id', ParseUUIDPipe) projectId: string,
     @Body() body: AdminAddCollaboratorDto,
     @CurrentUser() user: User,
   ) {
@@ -367,8 +368,8 @@ export class ProjectsController {
   @Delete('admin/:project_id/collaborators/:user_id')
   @UseGuards(JwtAuthGuard, AdminGuard)
   async adminRemoveCollaborator(
-    @Param('project_id') projectId: string,
-    @Param('user_id') userId: string,
+    @Param('project_id', ParseUUIDPipe) projectId: string,
+    @Param('user_id', ParseUUIDPipe) userId: string,
     @CurrentUser() user: User,
   ) {
     return this.projectsService.adminRemoveCollaborator(projectId, userId, user);

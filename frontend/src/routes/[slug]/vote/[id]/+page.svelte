@@ -31,14 +31,16 @@
 
 	let project: (ApiProject & { join_code: string; hours_spent: number; event_id: string }) | null = $state(null);
 	let loading = $state(true);
+	let loadError = $state('');
 	let voteStatus = $state<'idle' | 'voting' | 'voted' | 'error'>('idle');
 	let voteError = $state('');
 
 	onMount(async () => {
 		try {
 			project = await getProject(id);
-		} catch {
+		} catch (e: any) {
 			project = null;
+			loadError = e.message || 'Project not found';
 		} finally {
 			loading = false;
 		}
@@ -164,7 +166,16 @@
 			</div>
 		</div>
 	{:else}
-		<p class="text-white/60">Project not found</p>
+		<div class="flex flex-col items-center gap-4">
+			<p class="text-white/60">{loadError || 'Project not found'}</p>
+			<button
+				type="button"
+				class="text-md text-white/70 underline cursor-pointer hover:text-white/90"
+				onclick={() => goto(`/${slug}/vote`)}
+			>
+				back to projects
+			</button>
+		</div>
 	{/if}
 </main>
 </ProfileGate>
