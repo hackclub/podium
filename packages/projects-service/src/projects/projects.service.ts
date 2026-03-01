@@ -19,6 +19,7 @@ import {
   users,
   eventAttendees,
   projectCollaborators,
+  getFeatureFlagsList,
   BAD_ACCESS,
   PlatformSettingsService,
 } from '@podium/shared';
@@ -42,6 +43,35 @@ export class ProjectsService {
     // Collision probability is negligible; uniqueness is enforced by the DB
     // UNIQUE constraint on join_code. The caller retries on conflict.
     return crypto.randomBytes(5).toString('base64url').toUpperCase().slice(0, 8);
+  }
+
+  /**
+   * Verify that the user is a superadmin OR the POC/owner/RM of the project's event.
+   * Throws ForbiddenException if not authorized.
+   */
+  private async assertEventLeadership(eventId: string, user: User): Promise<void> {
+    if (user.is_superadmin) return;
+
+    const event = await this.dbRw.query.events.findFirst({
+      where: eq(events.id, eventId),
+    });
+    if (!event) {
+      throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
+    }
+
+    if (getFeatureFlagsList(event).includes('flagship')) {
+      throw new ForbiddenException('Superadmin access required for flagship events');
+    }
+
+    if (
+      event.owner_id === user.id ||
+      event.poc_id === user.id ||
+      event.rm_id === user.id
+    ) {
+      return;
+    }
+
+    throw new ForbiddenException('Only the event POC or superadmins can perform this action');
   }
 
   async getMyProjects(user: User) {
@@ -72,7 +102,27 @@ export class ProjectsService {
         .where(eq(projectCollaborators.user_id, user.id)),
     ]);
 
-    return [...ownedProjects, ...collabProjects];
+    const allProjects = [...ownedProjects, ...collabProjects];
+
+    // Filter out flagship event projects for non-superadmins
+    if (!user.is_superadmin) {
+      const eventIds = [...new Set(allProjects.map((p) => p.event_id))];
+      if (eventIds.length > 0) {
+        const flagshipEventIds = new Set<string>();
+        const eventRows = await this.dbRo.query.events.findMany({
+          where: sql`${events.id} IN (${sql.join(eventIds.map((id) => sql`${id}`), sql`, `)})`,
+          columns: { id: true, feature_flags_csv: true },
+        });
+        for (const e of eventRows) {
+          if (getFeatureFlagsList(e).includes('flagship')) {
+            flagshipEventIds.add(e.id);
+          }
+        }
+        return allProjects.filter((p) => !flagshipEventIds.has(p.event_id));
+      }
+    }
+
+    return allProjects;
   }
 
   async createProject(
@@ -118,6 +168,10 @@ export class ProjectsService {
     ]);
 
     if (!event) {
+      throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
+    }
+    // Block non-superadmins from creating projects in flagship events
+    if (!user.is_superadmin && getFeatureFlagsList(event).includes('flagship')) {
       throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
     }
     if (!event.enabled) {
@@ -345,6 +399,17 @@ export class ProjectsService {
       throw new HttpException('No project found', HttpStatus.NOT_FOUND);
     }
 
+    // Block non-superadmins from joining flagship event projects
+    if (!user.is_superadmin) {
+      const event = await this.dbRw.query.events.findFirst({
+        where: eq(events.id, project.event_id),
+        columns: { feature_flags_csv: true },
+      });
+      if (event && getFeatureFlagsList(event).includes('flagship')) {
+        throw new HttpException('No project found', HttpStatus.NOT_FOUND);
+      }
+    }
+
     if (user.id === project.owner_id) {
       throw new HttpException(
         'User is already a collaborator or owner',
@@ -455,7 +520,7 @@ export class ProjectsService {
     return { message: 'Project deleted' };
   }
 
-  async getProject(projectId: string) {
+  async getProject(projectId: string, user?: User | null) {
     const rows = await this.dbRo
       .select({
         id: projects.id,
@@ -467,6 +532,7 @@ export class ProjectsService {
         owner_id: projects.owner_id,
         owner_name: users.display_name,
         owner_email: users.email,
+        event_id: projects.event_id,
         points: sql<number>`(SELECT count(*) FROM votes WHERE votes.project_id = "projects"."id")`.mapWith(Number),
       })
       .from(projects)
@@ -476,6 +542,17 @@ export class ProjectsService {
 
     if (rows.length === 0) {
       throw new HttpException('Project not found', HttpStatus.NOT_FOUND);
+    }
+
+    // Block access to flagship event projects for non-superadmins
+    if (!user?.is_superadmin) {
+      const event = await this.dbRo.query.events.findFirst({
+        where: eq(events.id, rows[0].event_id),
+        columns: { feature_flags_csv: true },
+      });
+      if (event && getFeatureFlagsList(event).includes('flagship')) {
+        throw new HttpException('Project not found', HttpStatus.NOT_FOUND);
+      }
     }
 
     // Fetch collaborators
@@ -497,13 +574,15 @@ export class ProjectsService {
 
   // ── Admin methods ──────────────────────────────────────────────────
 
-  async adminUpdateProject(projectId: string, data: Record<string, any>) {
+  async adminUpdateProject(projectId: string, data: Record<string, any>, user: User) {
     const project = await this.dbRw.query.projects.findFirst({
       where: eq(projects.id, projectId),
     });
     if (!project) {
       throw new HttpException('Project not found', HttpStatus.NOT_FOUND);
     }
+
+    await this.assertEventLeadership(project.event_id, user);
 
     const allowedFields = ['name', 'repo', 'image_url', 'demo', 'description', 'hours_spent'];
     const updateData: Record<string, any> = {};
@@ -538,7 +617,7 @@ export class ProjectsService {
     return rows[0];
   }
 
-  async adminDeleteProject(projectId: string) {
+  async adminDeleteProject(projectId: string, user: User) {
     const project = await this.dbRw.query.projects.findFirst({
       where: eq(projects.id, projectId),
     });
@@ -546,10 +625,131 @@ export class ProjectsService {
       throw new HttpException('Project not found', HttpStatus.NOT_FOUND);
     }
 
+    await this.assertEventLeadership(project.event_id, user);
+
     await this.dbRw.delete(projectCollaborators).where(eq(projectCollaborators.project_id, projectId));
     await this.dbRw.delete(votes).where(eq(votes.project_id, projectId));
     await this.dbRw.delete(projects).where(eq(projects.id, projectId));
     return { message: 'Project deleted' };
+  }
+
+  async adminAddCollaborator(
+    projectId: string,
+    data: {
+      email: string;
+      first_name?: string;
+      last_name?: string;
+      phone?: string;
+      street_1?: string;
+      street_2?: string;
+      city?: string;
+      state?: string;
+      zip_code?: string;
+      country?: string;
+      dob?: string;
+    },
+    user: User,
+  ) {
+    const project = await this.dbRw.query.projects.findFirst({
+      where: eq(projects.id, projectId),
+    });
+    if (!project) {
+      throw new HttpException('Project not found', HttpStatus.NOT_FOUND);
+    }
+
+    await this.assertEventLeadership(project.event_id, user);
+
+    const email = data.email.trim().toLowerCase();
+
+    // Check if email is the project owner
+    const owner = await this.dbRw.query.users.findFirst({
+      where: eq(users.id, project.owner_id),
+    });
+    if (owner && owner.email === email) {
+      throw new HttpException('Cannot add the project owner as a collaborator', HttpStatus.BAD_REQUEST);
+    }
+
+    let teammate = await this.dbRw.query.users.findFirst({
+      where: eq(users.email, email),
+    });
+
+    if (!teammate) {
+      const [created] = await this.dbRw
+        .insert(users)
+        .values({
+          email,
+          first_name: data.first_name || email.split('@')[0],
+          last_name: data.last_name ?? '',
+          display_name: data.first_name || email.split('@')[0],
+          phone: data.phone ?? '',
+          street_1: data.street_1 ?? '',
+          street_2: data.street_2 ?? '',
+          city: data.city ?? '',
+          state: data.state ?? '',
+          zip_code: data.zip_code ?? '',
+          country: data.country ?? '',
+          dob: data.dob ?? null,
+        })
+        .returning();
+      teammate = created;
+    } else {
+      // Fill in only empty fields
+      const updates: Record<string, any> = {};
+      if (!teammate.first_name && data.first_name) updates.first_name = data.first_name;
+      if (!teammate.last_name && data.last_name) updates.last_name = data.last_name;
+      if (!teammate.phone && data.phone) updates.phone = data.phone;
+      if (!teammate.street_1 && data.street_1) updates.street_1 = data.street_1;
+      if (!teammate.street_2 && data.street_2) updates.street_2 = data.street_2;
+      if (!teammate.city && data.city) updates.city = data.city;
+      if (!teammate.state && data.state) updates.state = data.state;
+      if (!teammate.zip_code && data.zip_code) updates.zip_code = data.zip_code;
+      if (!teammate.country && data.country) updates.country = data.country;
+      if (!teammate.dob && data.dob) updates.dob = data.dob;
+
+      if (Object.keys(updates).length > 0) {
+        await this.dbRw.update(users).set(updates).where(eq(users.id, teammate.id));
+      }
+    }
+
+    // Add as event attendee
+    await this.dbRw
+      .insert(eventAttendees)
+      .values({ event_id: project.event_id, user_id: teammate.id })
+      .onConflictDoNothing();
+
+    // Add as project collaborator
+    await this.dbRw
+      .insert(projectCollaborators)
+      .values({ project_id: projectId, user_id: teammate.id })
+      .onConflictDoNothing();
+
+    return {
+      user_id: teammate.id,
+      display_name: teammate.display_name,
+      email: teammate.email,
+    };
+  }
+
+  async adminRemoveCollaborator(projectId: string, userId: string, user: User) {
+    const project = await this.dbRw.query.projects.findFirst({
+      where: eq(projects.id, projectId),
+    });
+    if (!project) {
+      throw new HttpException('Project not found', HttpStatus.NOT_FOUND);
+    }
+
+    await this.assertEventLeadership(project.event_id, user);
+
+    await this.dbRw
+      .delete(projectCollaborators)
+      .where(
+        and(
+          eq(projectCollaborators.project_id, projectId),
+          eq(projectCollaborators.user_id, userId),
+        ),
+      );
+
+    return { message: 'Collaborator removed' };
   }
 
   async validateProject(projectId: string) {

@@ -456,6 +456,17 @@ export function adminDeleteProject(projectId: string) {
 	return apiFetch(`/projects/admin/${projectId}`, { method: 'DELETE' });
 }
 
+export function adminAddCollaborator(projectId: string, data: TeammateData) {
+	return apiFetch<ApiProjectCollaborator>(`/projects/admin/${projectId}/collaborators`, {
+		method: 'POST',
+		body: JSON.stringify(data)
+	});
+}
+
+export function adminRemoveCollaborator(projectId: string, userId: string) {
+	return apiFetch(`/projects/admin/${projectId}/collaborators/${userId}`, { method: 'DELETE' });
+}
+
 // ── Campfire (superadmin) ───────────────────────────────────────────
 
 // ── Campfire Dashboard (superadmin) ─────────────────────────────

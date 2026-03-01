@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
-import { User, JwtAuthGuard, AdminGuard, CurrentUser, RateLimit } from '@podium/shared';
+import { User, JwtAuthGuard, OptionalJwtAuthGuard, AdminGuard, CurrentUser, RateLimit } from '@podium/shared';
 import { ProjectsService } from './projects.service';
 import { UploadService } from './upload.service';
 import {
@@ -113,6 +113,51 @@ class CreateProjectDto {
   @ValidateNested({ each: true })
   @Type(() => TeammateDto)
   teammates?: TeammateDto[];
+}
+
+class AdminAddCollaboratorDto {
+  @IsEmail()
+  email!: string;
+
+  @IsOptional()
+  @IsString()
+  first_name?: string;
+
+  @IsOptional()
+  @IsString()
+  last_name?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  street_1?: string;
+
+  @IsOptional()
+  @IsString()
+  street_2?: string;
+
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  state?: string;
+
+  @IsOptional()
+  @IsString()
+  zip_code?: string;
+
+  @IsOptional()
+  @IsString()
+  country?: string;
+
+  @IsOptional()
+  @IsDateString()
+  dob?: string;
 }
 
 class UpdateProjectDto {
@@ -217,8 +262,9 @@ export class ProjectsController {
   }
 
   @Get(':project_id')
-  async getProject(@Param('project_id') projectId: string) {
-    return this.projectsService.getProject(projectId);
+  @UseGuards(OptionalJwtAuthGuard)
+  async getProject(@Param('project_id') projectId: string, @CurrentUser() user?: User) {
+    return this.projectsService.getProject(projectId, user);
   }
 
   // ── Admin endpoints ──────────────────────────────────────────────
@@ -228,13 +274,37 @@ export class ProjectsController {
   async adminUpdateProject(
     @Param('project_id') projectId: string,
     @Body() body: UpdateProjectDto,
+    @CurrentUser() user: User,
   ) {
-    return this.projectsService.adminUpdateProject(projectId, body);
+    return this.projectsService.adminUpdateProject(projectId, body, user);
   }
 
   @Delete('admin/:project_id')
   @UseGuards(JwtAuthGuard, AdminGuard)
-  async adminDeleteProject(@Param('project_id') projectId: string) {
-    return this.projectsService.adminDeleteProject(projectId);
+  async adminDeleteProject(
+    @Param('project_id') projectId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.projectsService.adminDeleteProject(projectId, user);
+  }
+
+  @Post('admin/:project_id/collaborators')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async adminAddCollaborator(
+    @Param('project_id') projectId: string,
+    @Body() body: AdminAddCollaboratorDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.projectsService.adminAddCollaborator(projectId, body, user);
+  }
+
+  @Delete('admin/:project_id/collaborators/:user_id')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async adminRemoveCollaborator(
+    @Param('project_id') projectId: string,
+    @Param('user_id') userId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.projectsService.adminRemoveCollaborator(projectId, userId, user);
   }
 }

@@ -101,25 +101,39 @@ export class EventsService {
     this.airtableTableId = config.get<string>('AIRTABLE_TABLE_ID', '')!;
   }
 
-  async listOfficialEvents() {
+  /**
+   * Throws 404 if the event has the 'flagship' flag and the caller is not a superadmin.
+   * Call this at the top of any public endpoint that accepts an event ID.
+   */
+  private assertNotFlagship(
+    event: { feature_flags_csv: string | null } | null | undefined,
+    user?: User | null,
+  ): asserts event is { feature_flags_csv: string | null } {
+    if (!event) {
+      throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
+    }
+    if (!user?.is_superadmin && getFeatureFlagsList(event as { feature_flags_csv: string }).includes('flagship')) {
+      throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
+    }
+  }
+
+  async listOfficialEvents(user?: User | null) {
     const rows = await this.dbR
       .select({ event: events })
       .from(events)
       .where(eq(events.enabled, true));
 
     return rows
-      .filter((r) => !getFeatureFlagsList(r.event).includes('flagship'))
+      .filter((r) => user?.is_superadmin || !getFeatureFlagsList(r.event).includes('flagship'))
       .map((r) => mapEventPublic(r.event));
   }
 
-  async getEventById(eventId: string) {
+  async getEventById(eventId: string, user?: User | null) {
     const row = await this.dbRo.query.events.findFirst({
       where: eq(events.id, eventId),
     });
 
-    if (!row || getFeatureFlagsList(row).includes('flagship')) {
-      throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
-    }
+    this.assertNotFlagship(row, user);
     return mapEventPublic(row);
   }
 
@@ -131,13 +145,21 @@ export class EventsService {
       .where(eq(eventAttendees.user_id, user.id));
 
     return {
-      attending_events: rows.map((r) => mapEventPublic(r.event)),
+      attending_events: rows
+        .filter((r) => user.is_superadmin || !getFeatureFlagsList(r.event).includes('flagship'))
+        .map((r) => mapEventPublic(r.event)),
     };
   }
 
-  async getMyVotes(eventId: string, userId: string): Promise<string[]> {
+  async getMyVotes(eventId: string, user: User): Promise<string[]> {
+    const event = await this.dbRo.query.events.findFirst({
+      where: eq(events.id, eventId),
+      columns: { feature_flags_csv: true },
+    });
+    this.assertNotFlagship(event, user);
+
     const rows = await this.dbRo.query.votes.findMany({
-      where: and(eq(votes.event_id, eventId), eq(votes.voter_id, userId)),
+      where: and(eq(votes.event_id, eventId), eq(votes.voter_id, user.id)),
       columns: { project_id: true },
     });
     return rows.map((r) => r.project_id);
@@ -208,9 +230,7 @@ export class EventsService {
     const event = await this.dbRw.query.events.findFirst({
       where: eq(events.id, eventId),
     });
-    if (!event) {
-      throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
-    }
+    this.assertNotFlagship(event, user);
 
     if (!event.enabled) {
       throw new HttpException('Event is not enabled', HttpStatus.BAD_REQUEST);
@@ -238,15 +258,13 @@ export class EventsService {
     return { message: 'Successfully joined event', event_id: event.id };
   }
 
-  async getEventProjects(eventId: string, leaderboard: boolean) {
+  async getEventProjects(eventId: string, leaderboard: boolean, user?: User | null) {
     const event = await this.dbRo.query.events.findFirst({
       where: eq(events.id, eventId),
     });
-    if (!event) {
-      throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
-    }
+    this.assertNotFlagship(event, user);
 
-    const isFlagship = getFeatureFlagsList(event).includes('flagship');
+    const isFlagship = getFeatureFlagsList(event as { feature_flags_csv: string }).includes('flagship');
 
     // Flagship events use manual_points; normal events use vote count
     const rows = await this.dbRo
@@ -310,7 +328,13 @@ export class EventsService {
     return result;
   }
 
-  async getUniqueVoterCount(eventId: string): Promise<{ unique_voters: number }> {
+  async getUniqueVoterCount(eventId: string, user?: User | null): Promise<{ unique_voters: number }> {
+    const event = await this.dbR.query.events.findFirst({
+      where: eq(events.id, eventId),
+      columns: { feature_flags_csv: true },
+    });
+    this.assertNotFlagship(event, user);
+
     const [row] = await this.dbR
       .select({
         unique_voters: sql<number>`COUNT(DISTINCT ${votes.voter_id})`.mapWith(Number),
@@ -321,13 +345,11 @@ export class EventsService {
     return { unique_voters: row?.unique_voters ?? 0 };
   }
 
-  async getEventIdBySlug(slug: string): Promise<{ id: string }> {
+  async getEventIdBySlug(slug: string, user?: User | null): Promise<{ id: string }> {
     const event = await this.dbRo.query.events.findFirst({
       where: eq(events.slug, slug),
     });
-    if (!event || getFeatureFlagsList(event).includes('flagship')) {
-      throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
-    }
+    this.assertNotFlagship(event, user);
     return { id: event.id };
   }
 

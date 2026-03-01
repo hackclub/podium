@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { Observable } from 'rxjs';
-import { User, JwtAuthGuard, AdminGuard, SuperAdminGuard, CurrentUser } from '@podium/shared';
+import { User, JwtAuthGuard, OptionalJwtAuthGuard, AdminGuard, SuperAdminGuard, CurrentUser } from '@podium/shared';
 import { EventsService } from './events.service';
 import { IsArray, IsString, IsUUID, IsOptional, IsEmail, IsInt, IsBoolean, Min, ValidateIf } from 'class-validator';
 
@@ -119,8 +119,9 @@ export class EventsController {
   // ── Public endpoints ─────────────────────────────────────────────
 
   @Get('official')
-  async listOfficialEvents() {
-    return this.eventsService.listOfficialEvents();
+  @UseGuards(OptionalJwtAuthGuard)
+  async listOfficialEvents(@CurrentUser() user?: User) {
+    return this.eventsService.listOfficialEvents(user);
   }
 
   @Get()
@@ -155,8 +156,9 @@ export class EventsController {
   }
 
   @Get('id/:slug')
-  async getEventIdBySlug(@Param('slug') slug: string) {
-    return this.eventsService.getEventIdBySlug(slug);
+  @UseGuards(OptionalJwtAuthGuard)
+  async getEventIdBySlug(@Param('slug') slug: string, @CurrentUser() user?: User) {
+    return this.eventsService.getEventIdBySlug(slug, user);
   }
 
   // ── Admin endpoints ──────────────────────────────────────────────
@@ -376,8 +378,9 @@ export class EventsController {
   // ── Parameterized public endpoints (must be last) ────────────────
 
   @Get(':event_id/voter-count')
-  async getUniqueVoterCount(@Param('event_id') eventId: string) {
-    return this.eventsService.getUniqueVoterCount(eventId);
+  @UseGuards(OptionalJwtAuthGuard)
+  async getUniqueVoterCount(@Param('event_id') eventId: string, @CurrentUser() user?: User) {
+    return this.eventsService.getUniqueVoterCount(eventId, user);
   }
 
   @Get(':event_id/my-votes')
@@ -386,17 +389,20 @@ export class EventsController {
     @Param('event_id') eventId: string,
     @CurrentUser() user: User,
   ) {
-    return this.eventsService.getMyVotes(eventId, user.id);
+    return this.eventsService.getMyVotes(eventId, user);
   }
 
   @Get(':event_id/projects')
+  @UseGuards(OptionalJwtAuthGuard)
   async getEventProjects(
     @Param('event_id') eventId: string,
     @Query('leaderboard') leaderboard: string,
+    @CurrentUser() user?: User,
   ) {
     return this.eventsService.getEventProjects(
       eventId,
       leaderboard === 'true',
+      user,
     );
   }
 
@@ -410,7 +416,8 @@ export class EventsController {
   }
 
   @Get(':event_id')
-  async getEvent(@Param('event_id') eventId: string) {
-    return this.eventsService.getEventById(eventId);
+  @UseGuards(OptionalJwtAuthGuard)
+  async getEvent(@Param('event_id') eventId: string, @CurrentUser() user?: User) {
+    return this.eventsService.getEventById(eventId, user);
   }
 }

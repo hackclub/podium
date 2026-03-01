@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import { adminGetLeaderboard, adminUpdateProject, adminDeleteProject, type ApiLeaderboardProject } from '$lib/api';
+	import { adminGetLeaderboard, adminUpdateProject, adminDeleteProject, adminAddCollaborator, adminRemoveCollaborator, lookupTeammate, type ApiLeaderboardProject, type TeammateData } from '$lib/api';
 
 	const eventId = $derived(page.params.id ?? '');
 
@@ -17,6 +17,25 @@
 	let editRepo = $state('');
 	let saving = $state(false);
 	let deletingId: string | null = $state(null);
+
+	// Teammate editing state
+	let editCollaborators: { user_id: string; display_name: string; email: string }[] = $state([]);
+	let teammateEmail = $state('');
+	let lookingUpTeammate = $state(false);
+	let teammateError = $state('');
+	let pendingTeammates: (TeammateData & { missing_fields: string[]; error: string })[] = $state([]);
+
+	const fieldLabels: Record<string, string> = {
+		first_name: 'First Name',
+		last_name: 'Last Name',
+		phone: 'Phone Number',
+		street_1: 'Street Address',
+		city: 'City',
+		state: 'State / Province',
+		zip_code: 'ZIP / Postal Code',
+		country: 'Country',
+		dob: 'Date of Birth',
+	};
 
 	onMount(async () => {
 		await loadProjects();
@@ -39,10 +58,86 @@
 		editDescription = project.description;
 		editDemo = project.demo;
 		editRepo = project.repo;
+		editCollaborators = [...(project.collaborators || [])];
+		pendingTeammates = [];
+		teammateEmail = '';
+		teammateError = '';
 	}
 
 	function cancelEdit() {
 		editingId = null;
+		pendingTeammates = [];
+		teammateError = '';
+	}
+
+	async function addTeammateByEmail() {
+		const email = teammateEmail.trim().toLowerCase();
+		if (!email || !email.includes('@')) return;
+		teammateError = '';
+
+		if (editCollaborators.some((c) => c.email === email)) {
+			teammateError = 'Already a teammate';
+			return;
+		}
+		if (pendingTeammates.some((t) => t.email === email)) {
+			teammateError = 'Already added';
+			return;
+		}
+
+		lookingUpTeammate = true;
+		try {
+			const result = await lookupTeammate(email);
+			if (result.missing_fields.length === 0) {
+				const collab = await adminAddCollaborator(editingId!, { email });
+				editCollaborators = [...editCollaborators, collab];
+				teammateEmail = '';
+			} else {
+				pendingTeammates = [...pendingTeammates, { email, missing_fields: result.missing_fields, error: '' }];
+				teammateEmail = '';
+			}
+		} catch (e: any) {
+			teammateError = e.message || 'Failed to look up teammate';
+		} finally {
+			lookingUpTeammate = false;
+		}
+	}
+
+	async function savePendingTeammate(index: number) {
+		const mate = pendingTeammates[index];
+		try {
+			const data: TeammateData = { email: mate.email };
+			for (const f of mate.missing_fields) {
+				const val = (mate as any)[f];
+				if (val) (data as any)[f] = val;
+			}
+			const collab = await adminAddCollaborator(editingId!, data);
+			editCollaborators = [...editCollaborators, collab];
+			pendingTeammates = pendingTeammates.filter((_, i) => i !== index);
+		} catch (e: any) {
+			pendingTeammates = pendingTeammates.map((t, i) =>
+				i === index ? { ...t, error: e.message || 'Failed to add' } : t
+			);
+		}
+	}
+
+	function removePendingTeammate(index: number) {
+		pendingTeammates = pendingTeammates.filter((_, i) => i !== index);
+	}
+
+	async function removeCollaborator(userId: string) {
+		if (!editingId) return;
+		try {
+			await adminRemoveCollaborator(editingId, userId);
+			editCollaborators = editCollaborators.filter((c) => c.user_id !== userId);
+		} catch (e: any) {
+			error = e.message || 'Failed to remove collaborator';
+		}
+	}
+
+	function updatePendingField(index: number, field: string, value: string) {
+		pendingTeammates = pendingTeammates.map((t, i) =>
+			i === index ? { ...t, [field]: value } : t
+		);
 	}
 
 	async function saveEdit() {
@@ -134,6 +229,90 @@
 								class="px-3 py-2 rounded-md bg-white/10 text-white border border-white/20 outline-none focus:border-white/40 text-sm"
 								placeholder="Repo URL"
 							/>
+
+							<!-- Teammates section -->
+							<div class="border border-white/10 rounded-md p-3 flex flex-col gap-2">
+								<p class="text-white/50 text-xs font-medium uppercase tracking-wide">Teammates</p>
+
+								{#if editCollaborators.length > 0}
+									<div class="flex flex-col gap-1.5">
+										{#each editCollaborators as collab}
+											<div class="flex items-center justify-between bg-white/5 rounded px-2.5 py-1.5">
+												<span class="text-white/70 text-sm">{collab.display_name || collab.email}</span>
+												<button
+													type="button"
+													onclick={() => removeCollaborator(collab.user_id)}
+													class="text-red-400/60 hover:text-red-400 text-xs transition-colors"
+												>
+													Remove
+												</button>
+											</div>
+										{/each}
+									</div>
+								{:else if pendingTeammates.length === 0}
+									<p class="text-white/30 text-xs">No teammates</p>
+								{/if}
+
+								{#each pendingTeammates as mate, mi}
+									<div class="bg-white/5 rounded p-2.5 flex flex-col gap-2">
+										<div class="flex items-center justify-between">
+											<span class="text-white/70 text-sm">{mate.email}</span>
+											<button
+												type="button"
+												onclick={() => removePendingTeammate(mi)}
+												class="text-white/40 hover:text-white text-xs transition-colors"
+											>
+												Cancel
+											</button>
+										</div>
+										{#if mate.error}
+											<p class="text-red-400 text-xs">{mate.error}</p>
+										{/if}
+										<p class="text-white/40 text-xs">Fill in missing info:</p>
+										{#each mate.missing_fields as field}
+											<div class="flex flex-col gap-0.5">
+												<label class="text-white/40 text-xs">{fieldLabels[field] || field}</label>
+												<input
+													type={field === 'dob' ? 'date' : field === 'phone' ? 'tel' : 'text'}
+													value={(mate as any)[field] || ''}
+													oninput={(e) => updatePendingField(mi, field, (e.target as HTMLInputElement).value)}
+													class="px-2 py-1 rounded bg-white/10 text-white border border-white/20 outline-none focus:border-white/40 text-xs"
+												/>
+											</div>
+										{/each}
+										<button
+											type="button"
+											onclick={() => savePendingTeammate(mi)}
+											class="px-2 py-1 bg-white/10 text-white/70 rounded text-xs hover:bg-white/20 transition-colors self-start"
+										>
+											Add teammate
+										</button>
+									</div>
+								{/each}
+
+								{#if teammateError}
+									<p class="text-red-400 text-xs">{teammateError}</p>
+								{/if}
+
+								<div class="flex gap-2">
+									<input
+										type="text"
+										bind:value={teammateEmail}
+										placeholder="teammate@email.com"
+										class="flex-1 px-2 py-1.5 rounded-md bg-white/10 text-white border border-white/20 outline-none focus:border-white/40 text-xs"
+										onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTeammateByEmail(); } }}
+									/>
+									<button
+										type="button"
+										onclick={addTeammateByEmail}
+										disabled={lookingUpTeammate || !teammateEmail.trim()}
+										class="px-3 py-1.5 bg-white/10 text-white/70 rounded-md text-xs hover:bg-white/20 transition-colors disabled:opacity-40"
+									>
+										{lookingUpTeammate ? 'Looking up...' : 'Add'}
+									</button>
+								</div>
+							</div>
+
 							<div class="flex gap-2">
 								<button
 									type="button"

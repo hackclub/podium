@@ -62,14 +62,21 @@
 		return filtered.sort((a, b) => (a[key] - b[key]) * dir);
 	});
 
-	onMount(async () => {
+	async function fetchData() {
 		try {
 			data = await getPublicDashboard();
+			error = '';
 		} catch (e: any) {
 			error = e.message || 'Failed to load dashboard';
 		} finally {
 			loading = false;
 		}
+	}
+
+	onMount(() => {
+		fetchData();
+		const interval = setInterval(fetchData, 60_000);
+		return () => clearInterval(interval);
 	});
 
 	$effect(() => {
