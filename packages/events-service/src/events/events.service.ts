@@ -1035,6 +1035,7 @@ export class EventsService {
               let day2 = 0;
               let eitherDay = 0;
               for (const p of participants) {
+                if (p.isVolunteer) continue;
                 if (p.checkinCompleted) checkins++;
                 const s1 = !!p.scanned;
                 const s2 = !!p.scannedDay2;
