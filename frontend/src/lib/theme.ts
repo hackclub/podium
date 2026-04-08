@@ -1,5 +1,6 @@
 import CampfireFlagship from './logos/CampfireFlagship.svelte';
 import CampfireSatLogo from './logos/CampfireSat.svelte';
+import SleepoverLogo from './logos/Sleepover.svelte';
 import type { ApiEvent } from './api';
 
 export type EventTheme = {
@@ -23,11 +24,19 @@ export const defaultThemes: Record<string, Omit<EventTheme, 'logo'>> = {
 		font: '"ADLaM Display", sans-serif',
 		primary: '#000',
 		selected: '#F59E0B'
+	},
+	sleepover: {
+		background: 'https://cdn.hackclub.com/019c4e31-db5f-7af0-848d-fc4cc15a9c33/image.png',
+		font: '"Ember& Fire", sans-serif',
+		primary: '#49B6F3',
+		selected: '#F59E0B'
 	}
 };
 
 export function getLogo(themeName: string): import('svelte').Component<any> {
-	return themeName === 'flagship' ? CampfireFlagship : CampfireSatLogo;
+	if (themeName === 'flagship') return CampfireFlagship;
+	if (themeName === 'sleepover') return SleepoverLogo;
+	return CampfireSatLogo;
 }
 
 export function eventToTheme(event: ApiEvent): EventTheme {
