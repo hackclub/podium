@@ -9,6 +9,7 @@
 
   let officialEvents = $state<EventPublic[]>([]);
   let loadingOfficial = $state(true);
+  let loadError = $state(false);
 
   // Phase display helpers (same as root page)
   const phaseLabel: Record<string, string> = {
@@ -30,6 +31,8 @@
     });
     if (!res.error && res.data) {
       officialEvents = res.data as EventPublic[];
+    } else if (res.error) {
+      loadError = true;
     }
     loadingOfficial = false;
   });
@@ -104,6 +107,10 @@
     {#if loadingOfficial}
       <div class="flex justify-center py-8">
         <span class="loading loading-spinner loading-lg text-primary"></span>
+      </div>
+    {:else if loadError}
+      <div class="alert alert-error">
+        <span>Failed to load events. Please refresh the page.</span>
       </div>
     {:else if officialEvents.length > 0}
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

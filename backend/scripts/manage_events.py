@@ -244,7 +244,7 @@ class CreateEventScreen(ModalScreen[EventData | None]):
                     slug=event.slug,
                     description=event.description or "",
                     feature_flags_csv=event.feature_flags_csv or "",
-                    phase=event.phase or "draft",
+                    phase=event.phase or DEFAULT_PHASE,
                     demo_links_optional=event.demo_links_optional,
                     owner_id=event.owner_id,
                 )

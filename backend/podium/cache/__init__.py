@@ -66,7 +66,12 @@ async def cache_get(key: str) -> Any | None:
 
 
 async def cache_set(key: str, value: Any, ttl: int = 60) -> None:
-    """Store value as JSON under key with a TTL in seconds. Silently skips if Redis unavailable."""
+    """Store value as JSON under key with a TTL in seconds. Silently skips if Redis unavailable.
+
+    ttl must be a positive integer — Redis raises an error for zero or negative values.
+    """
+    if ttl <= 0:
+        raise ValueError(f"cache_set: ttl must be positive, got {ttl}")
     if not _redis:
         return
     try:

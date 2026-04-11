@@ -89,9 +89,14 @@ async def request_login(
     user: UserLoginPayload,
     redirect: Annotated[str, Query()],
     session: Annotated[AsyncSession, Depends(get_session)],
-    _turnstile: None = Depends(require_turnstile),
 ):
-    """Send a magic link to the user's email."""
+    """Send a magic link to the user's email.
+
+    Turnstile is intentionally not required here: the signup flow sends the
+    same single-use Turnstile token to both create_user and request_login, so
+    validating it twice would break the second call. The rate limiter (keyed
+    on user email / IP) provides bot protection instead.
+    """
     email = user.email.strip().lower()
     # Block disposable emails from requesting magic links
     if is_disposable_email(email):

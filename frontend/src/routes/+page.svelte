@@ -45,7 +45,9 @@
         if (!projectsRes.error && projectsRes.data) {
           projects = projectsRes.data;
         }
-      } catch (_) {}
+      } catch (err) {
+        console.error("Failed to load user data:", err);
+      }
     }
 
     loading = false;

@@ -104,7 +104,10 @@ class UserInternal(UserPrivate, _AddressFields):
 
 def user_to_private(user: "User") -> "UserPrivate":
     """Build UserPrivate from a User model, extracting vote IDs from the loaded relationship.
-    Requires User.votes to be loaded (via selectinload or similar)."""
+    Requires User.votes to be loaded (via selectinload or similar).
+    Raises ValueError if the relationship was not loaded (votes is None)."""
+    if user.votes is None:
+        raise ValueError("user_to_private: User.votes must be eagerly loaded (add selectinload(User.votes))")
     return UserPrivate(
         id=user.id,
         display_name=user.display_name,
@@ -112,7 +115,7 @@ def user_to_private(user: "User") -> "UserPrivate":
         first_name=user.first_name,
         last_name=user.last_name,
         phone=user.phone,
-        vote_ids=[v.id for v in user.votes] if user.votes else [],
+        vote_ids=[v.id for v in user.votes],
     )
 
 

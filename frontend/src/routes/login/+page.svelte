@@ -371,6 +371,10 @@
             on:callback={(e) => (turnstileToken = e.detail.token)}
             on:expired={() => (turnstileToken = "")}
             on:timeout={() => (turnstileToken = "")}
+            on:error={() => {
+              turnstileToken = "";
+              toast.error("Security check failed to load. Please refresh the page.");
+            }}
           />
         </div>
       {/if}

@@ -25,11 +25,18 @@ sentry_sdk.init(
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     from podium.db.postgres import engine
     from podium.cache import init_redis, close_redis
+    from podium.config import settings
 
     if engine:
         print("✓ PostgreSQL connection configured")
     else:
         print("⚠ PostgreSQL not configured. Set PODIUM_DATABASE_URL.")
+
+    # Warn loudly if Turnstile is not configured outside of development —
+    # unauthenticated endpoints will be unprotected without it.
+    env = os.getenv("ENV_FOR_DYNACONF", "development")
+    if env != "development" and not settings.get("turnstile_secret_key", ""):
+        print("⚠ PODIUM_TURNSTILE_SECRET_KEY is not set. Turnstile verification is disabled — unauthenticated endpoints are unprotected.")
 
     await init_redis()
 
