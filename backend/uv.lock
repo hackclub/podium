@@ -1317,7 +1317,7 @@ wheels = [
 
 [[package]]
 name = "locust"
-version = "2.42.3"
+version = "2.43.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "configargparse" },
@@ -1326,7 +1326,6 @@ dependencies = [
     { name = "flask-login" },
     { name = "gevent" },
     { name = "geventhttpclient" },
-    { name = "locust-cloud" },
     { name = "msgpack" },
     { name = "psutil" },
     { name = "pytest" },
@@ -1337,25 +1336,9 @@ dependencies = [
     { name = "requests" },
     { name = "werkzeug" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/bb/f9/ba22c81fb6fbb81610e4c661c6ffe4f495cbb5d5e8296de31964e710feb8/locust-2.42.3.tar.gz", hash = "sha256:01227890df7bf5268332f2dc041558ae45561b72a06193b068f7e02774f75ab2", size = 1416478, upload-time = "2025-11-15T10:41:50.143Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/52/be/6df1c778f673e1e2d785f262d20a4e130fdb8e51242466d7ae434b66a587/locust-2.43.4.tar.gz", hash = "sha256:4ace60f07f5fa9bf08d1b64da25915707befca19a790897eed6372656824deee", size = 1434321, upload-time = "2026-04-01T20:43:04.322Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/61/b3/38dd0eb197ca63d1ee39f6cedfb1aab8e6c844da3c8f3fd8d0f41192a293/locust-2.42.3-py3-none-any.whl", hash = "sha256:89c6359abcb79f8cbd870cd33c01acd3dc099baaea8774155cfdede4167d6a1d", size = 1435187, upload-time = "2025-11-15T10:41:48.654Z" },
-]
-
-[[package]]
-name = "locust-cloud"
-version = "1.28.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "configargparse" },
-    { name = "gevent" },
-    { name = "platformdirs" },
-    { name = "python-engineio" },
-    { name = "python-socketio", extra = ["client"] },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/cf/11/c9b8ebef10a5dd3df11ebf371e1defddbf123cd798f2010dfaeece03c642/locust_cloud-1.28.1.tar.gz", hash = "sha256:c010a80dbd26fbd791a9c1202c63c59ddb96e9f3cc4ff5af48a9ee858057a56c", size = 457093, upload-time = "2025-11-06T11:26:13.558Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/86/ca/9439688ed80ec97ff292e01863cca2bd1c27fc0acd40e6f8751edb0ad6d6/locust_cloud-1.28.1-py3-none-any.whl", hash = "sha256:fadfd423dd83057b96c4332e8fdb94ccacaecbb6b8ae837212c42276b8b5c22e", size = 413154, upload-time = "2025-11-06T11:26:12.068Z" },
+    { url = "https://files.pythonhosted.org/packages/c5/2c/a90d0b6fc476eb0f8e5a705f49e410563450b9b087688cc93a50eab54d63/locust-2.43.4-py3-none-any.whl", hash = "sha256:a4f40403e9f665e0dcb94991d9a8f19317d0d36afe88400833c5fab99ba942ed", size = 1454332, upload-time = "2026-04-01T20:43:02.767Z" },
 ]
 
 [[package]]
@@ -2325,7 +2308,7 @@ wheels = [
 
 [[package]]
 name = "requests"
-version = "2.32.4"
+version = "2.33.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "certifi" },
@@ -2333,9 +2316,9 @@ dependencies = [
     { name = "idna" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e1/0a/929373653770d8a0d7ea76c37de6e41f11eb07559b103b1c02cafb3f7cf8/requests-2.32.4.tar.gz", hash = "sha256:27d0316682c8a29834d3264820024b62a36942083d52caf2f14c0591336d3422", size = 135258, upload-time = "2025-06-09T16:43:07.34Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/34/64/8860370b167a9721e8956ae116825caff829224fbca0ca6e7bf8ddef8430/requests-2.33.0.tar.gz", hash = "sha256:c7ebc5e8b0f21837386ad0e1c8fe8b829fa5f544d8df3b2253bff14ef29d7652", size = 134232, upload-time = "2026-03-25T15:10:41.586Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7c/e4/56027c4a6b4ae70ca9de302488c5ca95ad4a39e190093d6c1a8ace08341b/requests-2.32.4-py3-none-any.whl", hash = "sha256:27babd3cda2a6d50b30443204ee89830707d396671944c998b5975b031ac2b2c", size = 64847, upload-time = "2025-06-09T16:43:05.728Z" },
+    { url = "https://files.pythonhosted.org/packages/56/5d/c814546c2333ceea4ba42262d8c4d55763003e767fa169adc693bd524478/requests-2.33.0-py3-none-any.whl", hash = "sha256:3324635456fa185245e24865e810cecec7b4caf933d7eb133dcde67d48cee69b", size = 65017, upload-time = "2026-03-25T15:10:40.382Z" },
 ]
 
 [[package]]
