@@ -6,8 +6,38 @@
   themes:
     coffee,
     night --prefersdark, night,
-    retro --default, retro,
+    retro,
     dracula;
+}
+
+/* Hack Club brand theme — red primary, clean whites */
+@plugin "daisyui/theme" {
+  name: "hackclub";
+  default: true;
+  prefersdark: false;
+  --color-base-100: #ffffff;
+  --color-base-200: #f6f6f6;
+  --color-base-300: #e8e8e8;
+  --color-base-content: #1d1d1d;
+  --color-primary: #ec3750;
+  --color-primary-content: #ffffff;
+  --color-secondary: #ff8c37;
+  --color-secondary-content: #ffffff;
+  --color-accent: #33d6a6;
+  --color-accent-content: #000000;
+  --color-neutral: #252429;
+  --color-neutral-content: #ffffff;
+  --color-info: #338eda;
+  --color-info-content: #ffffff;
+  --color-success: #33d6a6;
+  --color-success-content: #000000;
+  --color-warning: #f1ca4d;
+  --color-warning-content: #000000;
+  --color-error: #ec3750;
+  --color-error-content: #ffffff;
+  --radius-selector: 0.5rem;
+  --radius-field: 0.375rem;
+  --radius-box: 0.5rem;
 }
 /* 
 @plugin "daisyui/theme" {

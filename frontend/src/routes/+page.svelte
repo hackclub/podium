@@ -71,13 +71,29 @@
 </script>
 
 {#if !getAuthenticatedUser().access_token}
-  <!-- Unauthenticated: show public event list — no login wall -->
-  <div class="max-w-6xl mx-auto space-y-8">
-    <div class="text-center py-4">
-      <h1 class="text-4xl font-bold text-base-content mb-2">Podium</h1>
-      <p class="text-base-content/70">
-        Hack Club's peer-judging platform for hackathons
-      </p>
+  <!-- Unauthenticated: event-first landing — no login wall -->
+  <div class="max-w-6xl mx-auto space-y-10">
+    <!-- Hero -->
+    <div class="flex flex-col items-center text-center gap-4 py-8">
+      <img src="/favicon.svg" alt="Podium" class="w-16 h-16" />
+      <div>
+        <h1 class="text-5xl font-bold text-base-content">Podium</h1>
+        <p class="text-base-content/60 mt-2 text-lg">
+          Hack Club's peer-judging platform for hackathons
+        </p>
+      </div>
+      <a href="/login" class="btn btn-primary btn-lg mt-2">Sign in to participate</a>
+    </div>
+
+    <!-- Divider with label -->
+    <div class="divider text-base-content/40 text-sm font-medium">
+      {#if loading}
+        Events
+      {:else if officialEvents.length > 0}
+        {officialEvents.length} event{officialEvents.length === 1 ? "" : "s"}
+      {:else}
+        Events
+      {/if}
     </div>
 
     {#if loading}
@@ -89,35 +105,38 @@
         {#each officialEvents as event (event.id)}
           <a
             href={`/events/${event.slug}`}
-            class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow"
+            class="card bg-base-100 border border-base-300 shadow-sm hover:shadow-md hover:border-primary/30 transition-all group"
           >
-            <div class="card-body">
+            <div class="card-body gap-3">
               <div class="flex items-start justify-between gap-2">
-                <h2 class="card-title text-base">{event.name}</h2>
+                <h2 class="card-title text-base group-hover:text-primary transition-colors">
+                  {event.name}
+                </h2>
                 <span
-                  class="badge {phaseBadge[event.phase] ?? 'badge-ghost'} shrink-0"
+                  class="badge {phaseBadge[event.phase] ?? 'badge-ghost'} shrink-0 text-xs"
                 >
                   {phaseLabel[event.phase] ?? event.phase}
                 </span>
               </div>
               {#if event.description}
-                <p class="text-base-content/70 text-sm line-clamp-2">
+                <p class="text-base-content/60 text-sm line-clamp-2">
                   {event.description}
                 </p>
               {/if}
+              <div class="flex justify-end">
+                <span class="text-primary text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                  View event →
+                </span>
+              </div>
             </div>
           </a>
         {/each}
       </div>
     {:else}
-      <p class="text-center text-base-content/70 py-8">
-        No events available right now.
+      <p class="text-center text-base-content/50 py-8">
+        No events available right now. Check back soon.
       </p>
     {/if}
-
-    <div class="flex justify-center pt-2 pb-8">
-      <a href="/login" class="btn btn-primary">Sign in to participate</a>
-    </div>
   </div>
 {:else}
   <!-- Authenticated dashboard -->

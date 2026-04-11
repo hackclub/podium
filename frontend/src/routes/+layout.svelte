@@ -11,8 +11,6 @@
   import { env } from "$env/dynamic/public";
   import MaintenanceMode from "$lib/components/MaintenanceMode.svelte";
 
-  import Podium from "$lib/assets/podium.png";
-
   import { getAuthenticatedUser, signOut } from "$lib/user.svelte";
   import NoticeAndHelp from "$lib/components/NoticeAndHelp.svelte";
   import UpdateUser from "$lib/components/UpdateUser.svelte";
@@ -102,7 +100,7 @@
 
 <svelte:head>
   <title>{title}</title>
-  <link rel="icon" href={Podium} />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <meta name="description" content={description} />
   {#each additionalMeta as { name, content }}
     <meta {name} {content} />
@@ -156,7 +154,10 @@
           </label>
         </div>
         <div class="flex-1">
-          <a href="/" class="btn btn-ghost text-xl font-extrabold">Podium</a>
+          <a href="/" class="flex items-center gap-2 btn btn-ghost px-2">
+            <img src="/favicon.svg" alt="Podium" class="w-6 h-6" />
+            <span class="text-xl font-extrabold">Podium</span>
+          </a>
         </div>
       </div>
 
@@ -183,7 +184,10 @@
       <div class="min-h-full w-80 bg-base-200 flex flex-col" id="sidebar-ui">
         <!-- Logo/Header -->
         <div class="p-6 border-b border-base-300" id="sidebar-top">
-          <a href="/" class="text-2xl font-extrabold text-primary">Podium</a>
+          <a href="/" class="flex items-center gap-2">
+            <img src="/favicon.svg" alt="Podium" class="w-8 h-8" />
+            <span class="text-2xl font-extrabold text-primary">Podium</span>
+          </a>
           <p class="text-base-content/70 text-sm mt-1">
             Hackathon peer judging platform
           </p>
@@ -253,9 +257,12 @@
 {:else}
   <!-- Login page or unauthenticated users without sidebar -->
   <div class="min-h-screen flex flex-col" id="landing">
-    <div class="navbar bg-base-200" id="landing-navbar">
+    <div class="navbar bg-base-100 border-b border-base-300" id="landing-navbar">
       <div class="flex-1">
-        <a href="/" class="btn btn-ghost text-xl font-extrabold">Podium</a>
+        <a href="/" class="flex items-center gap-2 btn btn-ghost px-2">
+          <img src="/favicon.svg" alt="Podium" class="w-7 h-7" />
+          <span class="text-xl font-extrabold">Podium</span>
+        </a>
       </div>
       <div class="flex-none gap-2">
         <a href="/events" class="btn btn-ghost btn-sm">Events</a>
