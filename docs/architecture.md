@@ -7,6 +7,8 @@ Podium is a peer-judging platform for Hack Club hackathons. Attendees select an 
 - **Frontend:** SvelteKit (Svelte 5), Tailwind, DaisyUI
 - **Backend:** FastAPI, SQLModel (async PostgreSQL)
 - **Auth:** Magic link email via Loops API
+- **Cache:** Redis (optional — leaderboards cached 30s; app works without it)
+- **CAPTCHA:** Cloudflare Turnstile on unauthenticated endpoints
 - **Monitoring:** Sentry
 
 ## Data Model
@@ -14,13 +16,26 @@ Podium is a peer-judging platform for Hack Club hackathons. Attendees select an 
 Core entities:
 
 - **User** — email, display_name, first_name
-- **Event** — name, slug, feature_flags_csv, votable, leaderboard_enabled
+- **Event** — name, slug, feature_flags_csv, phase
 - **Project** — name, repo, image_url, demo, owner_id, event_id, points
 - **Vote** — voter_id, project_id, event_id (unique on voter+project)
 
 M2M relationships via junction tables:
 - `event_attendees` — User ↔ Event
 - `project_collaborators` — User ↔ Project
+
+## Event Lifecycle
+
+Events move through phases in order: `draft` → `submission` → `voting` → `closed`.
+
+| Phase | What's allowed |
+|---|---|
+| `draft` | Not yet visible to users |
+| `submission` | Users can join and submit projects |
+| `voting` | Submissions closed; users can vote |
+| `closed` | Voting closed; leaderboard visible |
+
+The phase is changed by the event owner via the admin API (`PUT /events/admin/{id}` with `phase` field).
 
 ## Event Series
 
@@ -51,15 +66,20 @@ Vote limits scale with project count: 1 vote (< 4 projects), 2 votes (4-19), 3 v
 ## Key Directories
 
 Backend (`backend/podium/`):
-- `main.py` — FastAPI app
-- `config.py` — Dynaconf settings
-- `db/postgres/` — SQLModel models
+- `main.py` — FastAPI app, lifespan (Redis init/close)
+- `config.py` — Dynaconf settings (all env vars with `PODIUM_` prefix)
+- `constants.py` — Shared types: `EventPhase`, `BAD_AUTH`, `BAD_ACCESS`, etc.
+- `limiter.py` — slowapi rate limiter (user-email based)
+- `db/postgres/` — SQLModel models and database session helpers
 - `routers/` — API endpoints
-- `validators/` — Project validation (itch-police)
+- `validators/` — Input validation: `email.py` (disposable email), `turnstile.py` (CAPTCHA), `__init__.py` (itch.io)
+- `cache/` — Redis helpers (`cache_get`, `cache_set`, `cache_delete`) with graceful no-op fallback
 
 Frontend (`frontend/src/`):
 - `hooks.client.ts` — Client init, auth validation
-- `lib/client/` — Generated OpenAPI client
+- `lib/client/` — Generated OpenAPI client (run `bun run openapi-ts` to regenerate)
+- `lib/forms/` — Reusable form components (Button, Input, Label, Textarea, FileDropZone)
+- `lib/logos/` — Event logo components (CampfireFlagship, CampfireSat)
 - `lib/user.svelte.ts` — User state
 - `lib/validation.ts` — Project validation
 - `routes/` — SvelteKit pages

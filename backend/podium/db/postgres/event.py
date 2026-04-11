@@ -7,9 +7,10 @@ An Event is a hackathon where users submit projects and vote.
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from pydantic import computed_field
+from pydantic import computed_field, field_validator
 from sqlmodel import Field, SQLModel, Relationship
 
+from podium.constants import EventPhase
 from podium.db.postgres.links import EventAttendeeLink
 
 if TYPE_CHECKING:
@@ -32,9 +33,10 @@ class Event(SQLModel, table=True):
     slug: str = Field(max_length=50, unique=True, index=True)
     description: str = Field(default="")
 
+    # Event lifecycle phase — controls what actions are allowed (see EventPhase enum)
+    phase: str = Field(default=EventPhase.DRAFT, max_length=20)
+
     # Feature flags
-    votable: bool = Field(default=False)
-    leaderboard_enabled: bool = Field(default=False)
     demo_links_optional: bool = Field(default=False)
     ysws_checks_enabled: bool = Field(default=False)
     feature_flags_csv: str = Field(default="", max_length=500)
@@ -50,6 +52,14 @@ class Event(SQLModel, table=True):
     projects: list["Project"] = Relationship(back_populates="event")
     votes: list["Vote"] = Relationship(back_populates="event")
     referrals: list["Referral"] = Relationship(back_populates="event")
+
+    @field_validator("phase")
+    @classmethod
+    def validate_phase(cls, v: str) -> str:
+        valid = {p.value for p in EventPhase}
+        if v not in valid:
+            raise ValueError(f"phase must be one of {valid}")
+        return v
 
     @computed_field
     @property
@@ -85,8 +95,7 @@ class EventPublic(SQLModel):
     name: str
     slug: str
     description: str
-    votable: bool
-    leaderboard_enabled: bool
+    phase: str
     demo_links_optional: bool
     max_votes_per_user: int
 
@@ -103,7 +112,6 @@ class EventUpdate(SQLModel):
 
     name: str | None = None
     description: str | None = None
-    votable: bool | None = None
-    leaderboard_enabled: bool | None = None
+    phase: str | None = None
     demo_links_optional: bool | None = None
     ysws_checks_enabled: bool | None = None

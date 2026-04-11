@@ -1,7 +1,14 @@
+"""
+Magic link authentication and JWT session management.
+
+Flow: POST /request-login → email with magic link → GET /verify?token=... → JWT access token
+The access token is a short-lived JWT (default 2 days) stored in localStorage by the frontend.
+"""
+
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, Depends, Request
+from fastapi import APIRouter, HTTPException, Query, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from sqlmodel import select
@@ -12,8 +19,10 @@ import httpx
 
 from podium.config import settings
 from podium.constants import BAD_AUTH
-from podium.limiter import limiter
-from podium.db.postgres import User, UserPrivate, get_session, scalar_one_or_none
+from podium.validators.email import is_disposable_email
+from podium.validators.turnstile import require_turnstile
+from sqlalchemy.orm import selectinload
+from podium.db.postgres import User, UserPrivate, get_session, scalar_one_or_none, user_to_private
 
 router = APIRouter(tags=["auth"])
 
@@ -76,15 +85,17 @@ async def send_magic_link(email: str, redirect: str = ""):
 
 
 @router.post("/request-login")
-@limiter.limit("30/minute")
 async def request_login(
-    request: Request,
     user: UserLoginPayload,
     redirect: Annotated[str, Query()],
     session: Annotated[AsyncSession, Depends(get_session)],
+    _turnstile: None = Depends(require_turnstile),
 ):
     """Send a magic link to the user's email."""
     email = user.email.strip().lower()
+    # Block disposable emails from requesting magic links
+    if is_disposable_email(email):
+        raise HTTPException(status_code=400, detail="Disposable email addresses are not allowed")
     existing = await scalar_one_or_none(session, select(User).where(User.email == email))
     if existing is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -98,11 +109,10 @@ class AuthenticatedUser(BaseModel):
 
 
 @router.get("/verify")
-@limiter.limit("30/minute")
 async def verify_token(
-    request: Request,
     token: Annotated[str, Query()],
     session: Annotated[AsyncSession, Depends(get_session)],
+    _turnstile: None = Depends(require_turnstile),
 ) -> AuthenticatedUser:
     """Verify a magic link token and return an access token."""
     try:
@@ -114,7 +124,8 @@ async def verify_token(
     except PyJWTError:
         raise HTTPException(status_code=400, detail="Invalid token")
 
-    user = await scalar_one_or_none(session, select(User).where(User.email == email))
+    stmt = select(User).where(User.email == email).options(selectinload(User.votes))
+    user = await scalar_one_or_none(session, stmt)
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -126,7 +137,7 @@ async def verify_token(
     return AuthenticatedUser(
         access_token=access_token,
         token_type="access",
-        user=UserPrivate.model_validate(user),
+        user=user_to_private(user),
     )
 
 
@@ -147,7 +158,8 @@ async def get_current_user(
     except PyJWTError:
         raise BAD_AUTH
 
-    user = await scalar_one_or_none(session, select(User).where(User.email == email))
+    stmt = select(User).where(User.email == email).options(selectinload(User.votes))
+    user = await scalar_one_or_none(session, stmt)
     if user is None:
         raise BAD_AUTH
     return user

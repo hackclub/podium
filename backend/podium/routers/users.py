@@ -13,9 +13,13 @@ from podium.db.postgres import (
     UserSignup,
     UserUpdate,
     get_session,
+    get_ro_session,
     scalar_one_or_none,
+    user_to_private,
 )
 from podium.routers.auth import get_current_user
+from podium.validators.email import is_disposable_email
+from podium.validators.turnstile import require_turnstile
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -27,7 +31,8 @@ class UserExistsResponse(BaseModel):
 @router.get("/exists")
 async def user_exists(
     email: Annotated[EmailStr, Query(...)],
-    session: Annotated[AsyncSession, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_ro_session)],
+    _turnstile: None = Depends(require_turnstile),
 ) -> UserExistsResponse:
     email_lower = email.strip().lower()
     user = await scalar_one_or_none(session, select(User).where(User.email == email_lower))
@@ -38,7 +43,7 @@ async def user_exists(
 async def get_current_user_info(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> UserPrivate:
-    return UserPrivate.model_validate(current_user)
+    return user_to_private(current_user)
 
 
 @router.put("/current")
@@ -56,13 +61,13 @@ async def update_current_user(
 
     await session.commit()
     await session.refresh(current_user)
-    return UserPrivate.model_validate(current_user)
+    return user_to_private(current_user)
 
 
 @router.get("/{user_id}", response_model=UserPublic)
 async def get_user_public(
     user_id: Annotated[UUID, Path(title="User ID")],
-    session: Annotated[AsyncSession, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_ro_session)],
 ) -> UserPublic:
     user = await session.get(User, user_id)
     if not user:
@@ -74,8 +79,11 @@ async def get_user_public(
 async def create_user(
     user: UserSignup,
     session: Annotated[AsyncSession, Depends(get_session)],
+    _turnstile: None = Depends(require_turnstile),
 ):
     email = user.email.strip().lower()
+    if is_disposable_email(email):
+        raise HTTPException(status_code=400, detail="Disposable email addresses are not allowed")
     existing = await scalar_one_or_none(session, select(User).where(User.email == email))
     if existing:
         raise HTTPException(status_code=400, detail="User already exists")

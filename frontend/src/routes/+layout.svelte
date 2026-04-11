@@ -51,7 +51,7 @@
   // Check if user has submitted a project
   const hasProject = $derived(getHasProject());
 
-  // Navigation options - only show full nav if user has a project
+  // Navigation options — always show Events; show Projects only once user has submitted one
   const navOptions = $derived(
     hasProject
       ? {
@@ -61,6 +61,7 @@
         }
       : {
           "/": { label: "Home", icon: "home" },
+          "/events": { label: "Events", icon: "events" },
         },
   );
 
@@ -255,6 +256,12 @@
     <div class="navbar bg-base-200" id="landing-navbar">
       <div class="flex-1">
         <a href="/" class="btn btn-ghost text-xl font-extrabold">Podium</a>
+      </div>
+      <div class="flex-none gap-2">
+        <a href="/events" class="btn btn-ghost btn-sm">Events</a>
+        {#if page.url.pathname !== "/login"}
+          <a href="/login" class="btn btn-primary btn-sm">Sign In</a>
+        {/if}
       </div>
     </div>
 

@@ -27,7 +27,8 @@ Each series gets custom branding — same codebase, same database, re-skinned vi
 **What designers touch:**
 - CSS/Tailwind classes, DaisyUI theme
 - Component layouts and markup
-- Assets (logos, images)
+- Assets (logos, images) — see `frontend/src/lib/logos/` for `CampfireFlagship` and `CampfireSat` components
+- Form components in `frontend/src/lib/forms/` accept a `selectedColor` prop for per-event brand tinting
 - Copy/text content
 
 **What designers don't touch:**

@@ -17,13 +17,13 @@
   {#if data.event.partOfEvent}
     <div
       class="tooltip"
-      data-tip={data.event.votable
+      data-tip={data.event.phase === "voting"
         ? "Vote for your favorite projects"
         : "You can't vote yet! If you think you should be able to, contact your event organizer."}
     >
       <a
         href={`/events/${data.event.slug}/rank`}
-        class="btn-primary btn btn-block {data.event.votable
+        class="btn-primary btn btn-block {data.event.phase === 'voting'
           ? ''
           : 'btn-disabled'}">Rank Projects</a
       >
@@ -32,16 +32,31 @@
   {#if !data.event.owned}
     <div
       class="tooltip"
-      data-tip={data.event.leaderboard_enabled
+      data-tip={data.event.phase === "closed"
         ? "View the leaderboard"
-        : "The event organizer has not enabled the leaderboard yet."}
+        : "Results will be available after voting closes."}
     >
       <a
         href={`/events/${data.event.slug}/leaderboard`}
-        class="btn-primary btn btn-block {data.event.leaderboard_enabled
+        class="btn-primary btn btn-block {data.event.phase === 'closed'
           ? ''
           : 'btn-disabled'}">Leaderboard</a
       >
+    </div>
+  {/if}
+
+  {#if !data.event.partOfEvent && !data.event.owned}
+    <!-- Visitor: prompt them to sign in and join -->
+    <div class="divider"></div>
+    <div class="card bg-base-200 text-center">
+      <div class="card-body gap-2 py-4">
+        <p class="text-base-content/70 text-sm">
+          Want to submit a project or vote?
+        </p>
+        <a href="/login?redirect=/events/{data.event.slug}" class="btn btn-primary btn-sm">
+          Sign in to participate
+        </a>
+      </div>
     </div>
   {/if}
 </div>

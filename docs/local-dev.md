@@ -25,13 +25,15 @@ cd frontend && bun dev
 
 ## Docker Compose
 
-The root `docker-compose.yaml` starts Postgres on port 5432 and optionally NocoDB on port 8080.
+The root `docker-compose.yaml` starts Postgres on port 5432 and Redis on port 6379.
 
 First time:
 ```bash
 cp .env.example .env
 docker compose up -d
 ```
+
+Redis is optional — the app works normally without it (caching is silently disabled). To enable caching locally, set `PODIUM_REDIS_URL=redis://localhost:6379` in your Doppler dev config or `settings.toml`.
 
 ## Regenerate API Client
 

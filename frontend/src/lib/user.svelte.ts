@@ -10,6 +10,7 @@ export const defaultUser: UserPrivate = {
   first_name: "",
   last_name: "",
   phone: "",
+  vote_ids: [],
 };
 
 export const defaultAuthenticatedUser: AuthenticatedUser = {

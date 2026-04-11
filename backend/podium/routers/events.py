@@ -20,10 +20,12 @@ from podium.db.postgres import (
     ProjectPublic,
     Vote,
     get_session,
+    get_ro_session,
     scalar_one_or_none,
     scalar_all,
 )
-from podium.constants import BAD_AUTH, BAD_ACCESS, Slug
+from podium.constants import BAD_AUTH, BAD_ACCESS, Slug, EventPhase
+from podium.cache import cache_get, cache_set, cache_delete
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -39,7 +41,7 @@ class CreateVotes(BaseModel):
 
 @router.get("/official")
 async def list_official_events(
-    session: Annotated[AsyncSession, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_ro_session)],
 ) -> list[EventPublic]:
     """List all official events for the current series (flagship + satellites)."""
     active_series = settings.active_event_series
@@ -63,7 +65,7 @@ async def list_official_events(
 @router.get("/{event_id}")
 async def get_event_endpoint(
     event_id: Annotated[UUID, Path(title="Event ID")],
-    session: Annotated[AsyncSession, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_ro_session)],
 ) -> EventPublic:
     """Get a public event by its ID."""
     stmt = select(Event).where(Event.id == event_id).options(selectinload(Event.projects))
@@ -145,6 +147,9 @@ async def vote(
     if user not in event.attendees:
         raise BAD_ACCESS
 
+    if event.phase != EventPhase.VOTING:
+        raise HTTPException(status_code=403, detail="Voting is not open for this event")
+
     # Dedupe project IDs to prevent voting for same project twice in one request
     unique_project_ids = list(dict.fromkeys(votes.projects))
 
@@ -188,6 +193,8 @@ async def vote(
         session.add(Vote(voter_id=user.id, project_id=project_id, event_id=event.id))
 
     await session.commit()
+    # Invalidate cached leaderboard so next request reflects the new votes
+    await cache_delete(f"leaderboard:{event.id}")
     return {"message": "Votes recorded"}
 
 
@@ -195,12 +202,22 @@ async def vote(
 async def get_event_projects(
     event_id: Annotated[UUID, Path(title="Event ID")],
     leaderboard: Annotated[bool, Query(description="Sort by points if true")],
-    session: Annotated[AsyncSession, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_ro_session)],
 ) -> list[ProjectPublic]:
-    """Get projects for an event."""
+    """Get projects for an event. Leaderboard results are cached for 30s."""
     event = await session.get(Event, event_id)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
+
+    if leaderboard:
+        if event.phase != EventPhase.CLOSED:
+            raise HTTPException(status_code=403, detail="Leaderboard is only available after voting closes")
+
+        # Serve from cache if available (30s TTL is fine for leaderboards)
+        cache_key = f"leaderboard:{event_id}"
+        cached = await cache_get(cache_key)
+        if cached is not None:
+            return cached
 
     projects = await scalar_all(
         session,
@@ -210,9 +227,10 @@ async def get_event_projects(
     )
 
     if leaderboard:
-        if not event.leaderboard_enabled:
-            raise HTTPException(status_code=403, detail="Leaderboard is not enabled")
         projects.sort(key=lambda p: p.points, reverse=True)
+        result = [ProjectPublic.model_validate(p).model_dump() for p in projects]
+        await cache_set(cache_key, result, ttl=30)
+        return result  # type: ignore[return-value]
     else:
         random.shuffle(projects)
 
@@ -265,8 +283,7 @@ async def create_test_event(
         slug=slug,
         description=event_data.description,
         owner_id=user.id,
-        votable=True,
-        leaderboard_enabled=True,
+        phase=EventPhase.VOTING,  # test events start in voting phase for e2e tests
         demo_links_optional=True,
         feature_flags_csv=active_series,
     )

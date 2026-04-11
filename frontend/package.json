@@ -38,6 +38,7 @@
     "countries-list": "^3.1.1",
     "dompurify": "^3.2.5",
     "svelte-sonner": "^0.3.28",
+    "svelte-turnstile": "^0.11.0",
     "theme-change": "^2.5.0"
   }
 }

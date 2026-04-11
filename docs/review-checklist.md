@@ -25,6 +25,6 @@ Flows to verify after major changes. **Most core flows are covered by e2e tests*
 
 ## Organizer Admin (✅ E2E tested)
 - [ ] View admin panel for event ✅
-- [ ] Toggle voting/leaderboard settings ✅
+- [ ] Set event phase (draft → submission → voting → closed) ✅
 - [ ] View attendees list ✅
 - [ ] Remove attendee ✅

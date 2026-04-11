@@ -1,5 +1,12 @@
 """
 Database connection and session management for SQLModel.
+
+Two engines are provided:
+  - engine / get_session()    — read-write (always uses database_url)
+  - ro_engine / get_ro_session() — read-only (uses database_url_ro in prod,
+                                   falls back to database_url in dev)
+
+In development (database_url_ro not set), both point to the same instance.
 """
 
 from collections.abc import AsyncGenerator, Sequence
@@ -13,12 +20,23 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from podium.config import settings
 
 DATABASE_URL = settings.get("database_url", "")
+DATABASE_URL_RO = settings.get("database_url_ro", "") or DATABASE_URL  # fall back to rw in dev
 
+# Read-write engine — use for all mutations
 engine = create_async_engine(DATABASE_URL, echo=False) if DATABASE_URL else None
+
+# Read-only engine — use for public read endpoints (leaderboard, project listing, etc.)
+ro_engine = create_async_engine(DATABASE_URL_RO, echo=False) if DATABASE_URL_RO else engine
 
 async_session_factory = (
     async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     if engine
+    else None
+)
+
+ro_session_factory = (
+    async_sessionmaker(ro_engine, class_=AsyncSession, expire_on_commit=False)
+    if ro_engine
     else None
 )
 
@@ -31,10 +49,20 @@ async def init_db():
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
-    """Dependency that provides a database session."""
+    """Dependency: read-write database session. Use for any endpoint that writes data."""
     if not async_session_factory:
         raise RuntimeError("Database not configured. Set PODIUM_DATABASE_URL.")
     async with async_session_factory() as session:
+        yield session
+
+
+async def get_ro_session() -> AsyncGenerator[AsyncSession, None]:
+    """Dependency: read-only database session. Use for public read endpoints.
+    In dev (no database_url_ro set), this is the same as get_session()."""
+    factory = ro_session_factory or async_session_factory
+    if not factory:
+        raise RuntimeError("Database not configured. Set PODIUM_DATABASE_URL.")
+    async with factory() as session:
         yield session
 
 

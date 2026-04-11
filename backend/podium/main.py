@@ -10,7 +10,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from starlette.middleware.base import BaseHTTPMiddleware
-from podium.limiter import limiter, get_user_or_ip
+from podium.limiter import limiter, get_user_or_ip_for_sentry
 
 sentry_sdk.init(
     dsn=""
@@ -24,13 +24,18 @@ sentry_sdk.init(
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     from podium.db.postgres import engine
+    from podium.cache import init_redis, close_redis
 
     if engine:
         print("✓ PostgreSQL connection configured")
     else:
         print("⚠ PostgreSQL not configured. Set PODIUM_DATABASE_URL.")
 
+    await init_redis()
+
     yield
+
+    await close_redis()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -39,7 +44,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 class SentryUserMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
-        user_key = get_user_or_ip(request)
+        user_key = get_user_or_ip_for_sentry(request)
         if "@" in user_key:
             sentry_sdk.set_user({"email": user_key})
         else:

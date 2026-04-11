@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.13, <4.0"
 
 [[package]]
@@ -1359,6 +1359,15 @@ wheels = [
 ]
 
 [[package]]
+name = "mailchecker"
+version = "6.0.20"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d9/b1/54f153cb2d494c3923a560d53cce19086d16b5c156d28f4a24d757f8b6d8/mailchecker-6.0.20.tar.gz", hash = "sha256:953e16c5a7dca4e5dbc497c89d18c3c75c7e9af64c05aee6d004afaf8a03eb8a", size = 322876, upload-time = "2026-03-06T16:35:03.052Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a5/37/e2e7f711148a395784d020d38361b8ac98214cf3cc9a8296cbfeae269527/mailchecker-6.0.20-py3-none-any.whl", hash = "sha256:82916c0d997cab6e6f39eaafd3c3505ac952ff8ea4baef3723b299d7cd6fa8cf", size = 323128, upload-time = "2026-03-06T16:35:01.537Z" },
+]
+
+[[package]]
 name = "mako"
 version = "1.3.10"
 source = { registry = "https://pypi.org/simple" }
@@ -1809,6 +1818,7 @@ dependencies = [
     { name = "langchain-google-genai" },
     { name = "langchain-ollama" },
     { name = "langchain-openai" },
+    { name = "mailchecker" },
     { name = "matplotlib" },
     { name = "passlib", extra = ["bcrypt"] },
     { name = "psycopg2-binary" },
@@ -1857,6 +1867,7 @@ requires-dist = [
     { name = "langchain-google-genai", specifier = ">=2.1.7,<3.0.0" },
     { name = "langchain-ollama", specifier = ">=0.3.4,<0.4.0" },
     { name = "langchain-openai", specifier = ">=0.3.27,<0.4.0" },
+    { name = "mailchecker", specifier = ">=6.0.1" },
     { name = "matplotlib", specifier = ">=3.10.6" },
     { name = "passlib", extras = ["bcrypt"], specifier = ">=1.7.4,<2.0.0" },
     { name = "psycopg2-binary", specifier = ">=2.9.11" },

@@ -65,8 +65,7 @@ async def create_flagship_event(session, owner: User) -> Event:
         name="Flagship Debug Event",
         slug="flagship-debug",
         description="A debug flagship event for testing purposes",
-        votable=True,
-        leaderboard_enabled=True,
+        phase="voting",  # seed data starts in voting so you can immediately test voting/leaderboard
         demo_links_optional=False,
         ysws_checks_enabled=False,
         feature_flags_csv=podium_settings.active_event_series,

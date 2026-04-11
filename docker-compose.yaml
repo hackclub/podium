@@ -1,5 +1,5 @@
 # Local dev: docker compose up
-# Runs Postgres (localhost:5432) + Mathesar (localhost:8000)
+# Runs Postgres (localhost:5432) + Redis (localhost:6379)
 # Set DOPPLER_TOKEN in .env first (see .env.example)
 
 services:
@@ -12,6 +12,14 @@ services:
     volumes: [podium_pgdata:/var/lib/postgresql/data]
     healthcheck:
       test: pg_isready -U postgres -d podium
+      interval: 5s
+      retries: 5
+
+  podium-redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: redis-cli ping
       interval: 5s
       retries: 5
 

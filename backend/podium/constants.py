@@ -42,6 +42,21 @@ class FeatureFlag(Enum):
     DAYDREAM = "daydream"  # Daydream-specific features
 
 
+class EventPhase(str, Enum):
+    """Lifecycle phases for an event, in order.
+
+    DRAFT      - not yet visible or accepting submissions
+    SUBMISSION - open for project submissions
+    VOTING     - submissions closed, voting is open
+    CLOSED     - voting closed, results visible
+    """
+
+    DRAFT = "draft"
+    SUBMISSION = "submission"
+    VOTING = "voting"
+    CLOSED = "closed"
+
+
 # Comma-separated feature flags (e.g., "flag1,flag2"); regex ensures only alphanum/underscore names, no spaces.
 # Empty string is allowed for no flags
 CommaSeparatedFeatureFlags = Annotated[

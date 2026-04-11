@@ -32,6 +32,7 @@ dependencies = [
     "sqlmodel>=0.0.31",
     "beautifulsoup4>=4.13.4",
     "slowapi>=0.1.9",
+    "mailchecker>=6.0.1",
 ]
 
 [project.optional-dependencies]

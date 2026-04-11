@@ -66,6 +66,25 @@ stmt = select(Project).options(selectinload(Project.votes))
 
 See [Pydantic computed_field docs](https://docs.pydantic.dev/latest/concepts/fields/#computed-fields).
 
+## Read Replicas
+
+In production, read-heavy public endpoints use a separate read-only database connection to offload the primary. In dev (single Postgres instance), both connections point to the same database.
+
+**Use `get_ro_session` for read-only GET endpoints:**
+```python
+from podium.db.postgres import get_ro_session
+
+@router.get("/events/official")
+async def list_official_events(
+    session: Annotated[AsyncSession, Depends(get_ro_session)],
+) -> list[EventPublic]:
+    ...
+```
+
+**Use `get_session` for any endpoint that writes data** (POST, PUT, DELETE).
+
+**Config:** Set `PODIUM_DATABASE_URL_RO` in Doppler. If not set, both `get_session` and `get_ro_session` use the same `PODIUM_DATABASE_URL` — zero behavior change in dev.
+
 ## Migrations
 
 ```bash

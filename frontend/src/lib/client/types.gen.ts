@@ -23,8 +23,8 @@ export type EventPrivate = {
     name: string;
     slug: string;
     description: string;
-    votable: boolean;
-    leaderboard_enabled: boolean;
+    /** Lifecycle phase: draft | submission | voting | closed */
+    phase: string;
     demo_links_optional: boolean;
     max_votes_per_user: number;
     owner_id: string;
@@ -39,8 +39,8 @@ export type EventPublic = {
     name: string;
     slug: string;
     description: string;
-    votable: boolean;
-    leaderboard_enabled: boolean;
+    /** Lifecycle phase: draft | submission | voting | closed */
+    phase: string;
     demo_links_optional: boolean;
     max_votes_per_user: number;
 };
@@ -150,6 +150,8 @@ export type UserPrivate = {
     first_name: string;
     last_name: string;
     phone?: string;
+    /** IDs of votes this user has cast — used to filter already-voted projects */
+    vote_ids: Array<string>;
 };
 
 /**

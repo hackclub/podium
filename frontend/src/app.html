@@ -2,12 +2,11 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <!-- echo "from PIL import Image; Image.open('input.png').save('output.ico', sizes=[(64,64),(48,48),(32,32),(16,16)])" | uv run --with pillow - -->
-    <!-- <link rel="icon" href="%sveltekit.assets%/podium.png" /> -->
-    <!-- <link rel="icon" href="https://assets.hackclub.com/icon-rounded.svg" /> -->
+    <link rel="icon" href="%sveltekit.assets%/favicon.svg" type="image/svg+xml" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- If added to the homescreen, the web app will launch in fullscreen on iOS -->
+    <!-- Fullscreen when added to homescreen: mobile-web-app-capable = Chrome/Android, apple-mobile-web-app-capable = Safari/iOS -->
     <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
     <title>Podium</title>
     %sveltekit.head%
   </head>

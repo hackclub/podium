@@ -5,13 +5,10 @@ import { getAuthenticatedUser } from "$lib/user.svelte";
 import { client } from "$lib/client/sdk.gen";
 import { EventsService } from "$lib/client/sdk.gen";
 
-export const load: LayoutLoad = async ({ fetch, url }) => {
+export const load: LayoutLoad = async ({ fetch }) => {
   client.setConfig({ fetch });
 
-  // Check if this is the main events page (not a sub-route)
-  const isMainEventsPage = url.pathname === "/events";
-
-  // Only load user events if authenticated
+  // Only load attending events if authenticated
   if (getAuthenticatedUser().access_token) {
     const {
       data,
@@ -31,12 +28,7 @@ export const load: LayoutLoad = async ({ fetch, url }) => {
     };
   }
 
-  // If unauthenticated and trying to access main events page, throw error
-  if (isMainEventsPage) {
-    throw error(401, "Unauthorized, try logging in first");
-  }
-
-  // Return empty events for unauthenticated users on sub-routes
+  // Unauthenticated: no attending events (sub-routes handle public access themselves)
   return {
     events: {
       attending_events: [],

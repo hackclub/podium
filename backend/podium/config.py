@@ -82,6 +82,22 @@ settings.validators.register(
             "production_url",
             default="http://localhost:5173",
         ),
+        # Cloudflare Turnstile — empty string disables verification (for local dev)
+        Validator(
+            "turnstile_secret_key",
+            default="",
+        ),
+        # Redis — empty string disables caching (app works normally without it)
+        Validator(
+            "redis_url",
+            default="",
+        ),
+        # Read-only database endpoint for production replicas.
+        # Default "" means the consuming code (db/postgres/base.py) falls back to database_url.
+        Validator(
+            "database_url_ro",
+            default="",
+        ),
     ],
 )
 

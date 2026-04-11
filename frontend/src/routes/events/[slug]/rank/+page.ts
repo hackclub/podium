@@ -25,14 +25,12 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
       console.error(projectsError, projectsResponse);
       throw error(projectsResponse.status, JSON.stringify(projectsError));
     }
-    let toSelect = (event as any).max_votes_per_user;
+    let toSelect = (event as any).max_votes_per_user ?? 0;
 
-    // Check if user already voted
-    // console.debug("Project IDs loaded:", projects.data.map((project) => project.id));
-    // console.debug("User votes:", getAuthenticatedUser().user.votes);
-    const user = getAuthenticatedUser().user as any;
+    // Filter out projects the user already voted for or owns/collaborates on
+    const user = getAuthenticatedUser().user;
     const userId = user.id;
-    const userVoteIds = (user.votes ?? []) as string[];
+    const userVoteIds: string[] = user.vote_ids ?? [];
 
     // Filter to only projects the user can vote for
     const votableProjects = projects.filter((project) => {

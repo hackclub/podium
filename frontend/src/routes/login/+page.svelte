@@ -10,8 +10,13 @@
   import type { UserSignup } from "$lib/client/types.gen";
   import { countries } from "countries-list";
   import { asyncClick } from "$lib/actions/asyncClick";
+  import { Turnstile } from "svelte-turnstile";
+  import { env } from "$env/dynamic/public";
   // rest is the extra props passed to the component
   let { ...rest } = $props();
+
+  // Turnstile token — refreshed each time the user solves the challenge
+  let turnstileToken = $state("");
 
   let isVerifying = $state(false);
   let showSignupFields = $state(false);
@@ -41,9 +46,15 @@
     }
   }
 
+  /** Build headers including the Turnstile token when one is available. */
+  function turnstileHeaders(): Record<string, string> {
+    return turnstileToken ? { "X-Turnstile-Token": turnstileToken } : {};
+  }
+
   async function checkUserExists(): Promise<boolean> {
     const { data, error: err } = await UsersService.userExistsUsersExistsGet({
       query: { email: userInfo.email },
+      headers: turnstileHeaders(),
       throwOnError: false,
     });
     if (err || !data) {
@@ -73,6 +84,7 @@
       const { error: err } = await AuthService.requestLoginRequestLoginPost({
         body: { email: userInfo.email },
         query: { redirect: redirectUrl ?? "" },
+        headers: turnstileHeaders(),
         throwOnError: false,
       });
       if (err) {
@@ -107,6 +119,7 @@
     const signupEmail = userInfo.email;
     const { error: signupErr } = await UsersService.createUserUsersPost({
       body: userInfo,
+      headers: turnstileHeaders(),
       throwOnError: false,
     });
     if (signupErr) {
@@ -118,6 +131,7 @@
     const { error: loginErr } = await AuthService.requestLoginRequestLoginPost({
       body: { email: signupEmail },
       query: { redirect: redirectUrl ?? "" },
+      headers: turnstileHeaders(),
       throwOnError: false,
     });
     if (loginErr) {
@@ -349,9 +363,22 @@
         />
       {/if}
 
+      {#if env.PUBLIC_TURNSTILE_SITE_KEY}
+        <div class="flex justify-center mt-4">
+          <Turnstile
+            siteKey={env.PUBLIC_TURNSTILE_SITE_KEY}
+            theme="auto"
+            on:callback={(e) => (turnstileToken = e.detail.token)}
+            on:expired={() => (turnstileToken = "")}
+            on:timeout={() => (turnstileToken = "")}
+          />
+        </div>
+      {/if}
+
       <div class="flex justify-center">
         <button
           class="btn btn-primary mt-4"
+          disabled={!!env.PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken}
           use:asyncClick={eitherLoginOrSignUp}
         >
           Login / Sign Up

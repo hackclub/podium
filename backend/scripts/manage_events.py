@@ -28,6 +28,7 @@ from textual.widgets import (
     Header,
     Input,
     Label,
+    Select,
     Static,
     Switch,
     TabPane,
@@ -38,6 +39,11 @@ from sqlmodel import select
 # Add parent to path for imports
 sys.path.insert(0, ".")
 
+# Phase options for the Select widget — must match EventPhase enum values in constants.py
+PHASE_OPTIONS = [("Draft", "draft"), ("Submission", "submission"), ("Voting", "voting"), ("Closed", "closed")]
+# Default phase for new events and fallback if a Select has no valid selection
+DEFAULT_PHASE = "submission"
+
 
 @dataclass
 class EventData:
@@ -47,8 +53,7 @@ class EventData:
     slug: str
     description: str
     feature_flags_csv: str
-    votable: bool
-    leaderboard_enabled: bool
+    phase: str
     demo_links_optional: bool
     owner_id: UUID
 
@@ -160,12 +165,8 @@ class CreateEventScreen(ModalScreen[EventData | None]):
                 yield Input(value=self.default_series, placeholder="scrapyard-2025", id="feature-flags")
                 yield Label("Owner Email * (Tab to autocomplete)")
                 yield Input(placeholder="user@example.com", id="owner-email", suggester=self.email_suggester)
-                with Horizontal(classes="switch-row"):
-                    yield Label("Votable")
-                    yield Switch(id="votable")
-                with Horizontal(classes="switch-row"):
-                    yield Label("Leaderboard")
-                    yield Switch(id="leaderboard")
+                yield Label("Phase")
+                yield Select(PHASE_OPTIONS, value=DEFAULT_PHASE, id="phase")
                 with Horizontal(classes="switch-row"):
                     yield Label("Demo Optional")
                     yield Switch(id="demo-optional")
@@ -188,8 +189,8 @@ class CreateEventScreen(ModalScreen[EventData | None]):
             description = self.query_one("#description", Input).value.strip()
             feature_flags = self.query_one("#feature-flags", Input).value.strip()
             owner_email = self.query_one("#owner-email", Input).value.strip().lower()
-            votable = self.query_one("#votable", Switch).value
-            leaderboard = self.query_one("#leaderboard", Switch).value
+            phase_value = self.query_one("#phase", Select).value
+            phase = DEFAULT_PHASE if phase_value is Select.BLANK else str(phase_value)
             demo_optional = self.query_one("#demo-optional", Switch).value
 
             if not name:
@@ -227,10 +228,8 @@ class CreateEventScreen(ModalScreen[EventData | None]):
                     name=name,
                     slug=event_slug,
                     description=description,
-
                     feature_flags_csv=feature_flags,
-                    votable=votable,
-                    leaderboard_enabled=leaderboard,
+                    phase=phase,
                     demo_links_optional=demo_optional,
                     owner_id=owner.id,
                 )
@@ -245,8 +244,7 @@ class CreateEventScreen(ModalScreen[EventData | None]):
                     slug=event.slug,
                     description=event.description or "",
                     feature_flags_csv=event.feature_flags_csv or "",
-                    votable=event.votable,
-                    leaderboard_enabled=event.leaderboard_enabled,
+                    phase=event.phase or "draft",
                     demo_links_optional=event.demo_links_optional,
                     owner_id=event.owner_id,
                 )
@@ -424,12 +422,10 @@ class EditEventScreen(ModalScreen[bool]):
                 yield Input(value=self.event.description or "", id="description")
                 yield Label("Feature Flags")
                 yield Input(value=self.event.feature_flags_csv or "", id="feature-flags")
-                with Horizontal(classes="switch-row"):
-                    yield Label("Votable")
-                    yield Switch(value=self.event.votable, id="votable")
-                with Horizontal(classes="switch-row"):
-                    yield Label("Leaderboard")
-                    yield Switch(value=self.event.leaderboard_enabled, id="leaderboard")
+                yield Label("Phase")
+                valid_phases = {opt[1] for opt in PHASE_OPTIONS}
+                initial_phase = self.event.phase if self.event.phase in valid_phases else DEFAULT_PHASE
+                yield Select(PHASE_OPTIONS, value=initial_phase, id="phase")
                 with Horizontal(classes="switch-row"):
                     yield Label("Demo Optional")
                     yield Switch(value=self.event.demo_links_optional, id="demo-optional")
@@ -465,8 +461,8 @@ class EditEventScreen(ModalScreen[bool]):
                 event.name = self.query_one("#name", Input).value.strip()
                 event.description = self.query_one("#description", Input).value.strip()
                 event.feature_flags_csv = self.query_one("#feature-flags", Input).value.strip()
-                event.votable = self.query_one("#votable", Switch).value
-                event.leaderboard_enabled = self.query_one("#leaderboard", Switch).value
+                phase_value = self.query_one("#phase", Select).value
+                event.phase = DEFAULT_PHASE if phase_value is Select.BLANK else str(phase_value)
                 event.demo_links_optional = self.query_one("#demo-optional", Switch).value
 
                 session.add(event)
@@ -732,8 +728,7 @@ class EventManagerApp(App):
                         slug=e.slug or "",
                         description=e.description or "",
                         feature_flags_csv=e.feature_flags_csv or "",
-                        votable=bool(e.votable),
-                        leaderboard_enabled=bool(e.leaderboard_enabled),
+                        phase=e.phase or "draft",
                         demo_links_optional=bool(e.demo_links_optional),
                         owner_id=e.owner_id,
                     )
@@ -771,7 +766,7 @@ class EventManagerApp(App):
         try:
             table = self.query_one("#events-table", DataTable)
             table.clear(columns=True)
-            table.add_columns("Name", "Slug", "Feature Flags", "V", "L", "Owner")
+            table.add_columns("Name", "Slug", "Feature Flags", "Phase", "Owner")
             table.cursor_type = "row"
 
             filter_lower = self.filter_text.lower()
@@ -790,8 +785,7 @@ class EventManagerApp(App):
                     event.name[:30],
                     event.slug[:25],
                     event.feature_flags_csv,
-                    "✓" if event.votable else "",
-                    "✓" if event.leaderboard_enabled else "",
+                    event.phase,
                     owner_str[:25],
                     key=str(event.id),
                 )

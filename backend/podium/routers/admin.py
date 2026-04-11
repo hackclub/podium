@@ -1,3 +1,9 @@
+"""
+Admin/organizer endpoints. All routes require the requesting user to own the event.
+Organizers can view event details, attendees, votes, referrals, and the leaderboard,
+and can remove attendees.
+"""
+
 from typing import Annotated
 from uuid import UUID
 

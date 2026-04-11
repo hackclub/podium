@@ -1,31 +1,44 @@
 # Rate Limiting
 
-## Backend (slowapi)
+## Backend
 
-Auth endpoints are rate-limited at **5 requests/minute per IP** using [slowapi](https://github.com/laurentS/slowapi).
+Two mechanisms protect backend endpoints from abuse:
 
-**Config:** `backend/podium/limiter.py` defines the limiter and a `get_user_or_ip` key function.
+### Cloudflare Turnstile (unauthenticated endpoints)
 
-**Adding to a new endpoint:**
+Unauthenticated endpoints require a Turnstile CAPTCHA token instead of IP-based rate limiting. The token comes from the Turnstile widget on the frontend and is verified server-side via the `X-Turnstile-Token` header.
+
+**Endpoints protected by Turnstile:**
+- `POST /request-login`
+- `GET /verify`
+- `POST /users/` (signup)
+- `GET /users/exists`
+
+**Config:** Set `PODIUM_TURNSTILE_SECRET_KEY` in Doppler (prod) / `settings.toml` (dev). If empty, verification is skipped — no code change needed for local dev.
+
+> ⚠️ **Production**: Never deploy without `PODIUM_TURNSTILE_SECRET_KEY` set. Unauthenticated endpoints will be completely unprotected without it.
+
+**Implementation:** `backend/podium/validators/turnstile.py` — `require_turnstile` FastAPI dependency.
+
+### slowapi (authenticated endpoints)
+
+Authenticated endpoints use **user-email-based** rate limiting (extracted from the JWT). This is fairer than IP-based limits for hackathon wifi where many users share a single IP.
+
+**Config:** `backend/podium/limiter.py` defines the limiter keyed by `get_user_email`.
+
+**Adding a limit to a new endpoint:**
 
 ```python
-from podium.limiter import limiter  # or get_user_or_ip for per-user limits
+from podium.limiter import limiter
 
 @router.post("/my-endpoint")
 @limiter.limit("10/minute")
-async def my_endpoint(request: Request, ...):  # request: Request is required
-    ...
-
-# Per-user (falls back to IP for unauthenticated requests)
-@router.post("/my-endpoint")
-@limiter.limit("30/minute", key_func=get_user_or_ip)
 async def my_endpoint(request: Request, ...):
+    # request: Request is required by slowapi even if you don't use it
     ...
 ```
 
-**Currently limited:** `/request-login` (30/min), `/verify` (30/min)
-
-Limits are per-IP. Set high enough for shared hackathon WiFi (many users behind one NAT) while still blocking scripted abuse.
+**Currently limited:** `POST /projects/validate` (10/minute per user)
 
 ## Frontend (asyncClick action)
 
@@ -45,7 +58,6 @@ Buttons that trigger async work use the `asyncClick` Svelte action to prevent do
 - Use `use:asyncClick={handler}` instead of `onclick={handler}` for any button that calls an API
 - The handler must be `async` (return a Promise)
 - Handlers should manage their own error display (e.g. `handleError` + toast) — the action catches exceptions only to prevent unhandled rejections
-- Style loading state via `button[aria-busy="true"]` if desired
 - Don't combine with manual `isLoading` state — the action replaces that pattern
 
 ## Observability

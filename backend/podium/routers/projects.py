@@ -17,10 +17,11 @@ from podium.db.postgres import (
     ProjectCreate,
     ProjectUpdate,
     get_session,
+    get_ro_session,
     scalar_one_or_none,
 )
 from podium.routers.auth import get_current_user
-from podium.limiter import limiter, get_user_or_ip
+from podium.limiter import limiter
 from podium.validators import is_itch_url, is_playable
 from podium.constants import BAD_AUTH, BAD_ACCESS
 
@@ -186,7 +187,7 @@ async def delete_project(
 @router.get("/{project_id}")
 async def get_project_endpoint(
     project_id: Annotated[UUID, Path(title="Project ID")],
-    session: Annotated[AsyncSession, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_ro_session)],
 ) -> ProjectPublic:
     """Get a project by ID."""
     project = await scalar_one_or_none(
@@ -201,7 +202,7 @@ async def get_project_endpoint(
 
 
 @router.post("/validate")
-@limiter.limit("10/minute", key_func=get_user_or_ip)
+@limiter.limit("10/minute")
 async def validate_project(
     request: Request,
     project_id: Annotated[UUID, Query(description="Project ID to validate")],

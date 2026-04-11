@@ -25,17 +25,17 @@ class User(SQLModel, table=True):
 
     __tablename__: str = "users"
 
-    # Primary key - auto-generated UUID
     id: UUID = Field(default_factory=uuid4, primary_key=True)
 
-    # Core fields
+    # Core identity fields
     email: str = Field(max_length=255, unique=True, index=True)
     display_name: str = Field(default="", max_length=255)
     first_name: str = Field(max_length=50)
     last_name: str = Field(default="", max_length=50)
     phone: str = Field(default="", max_length=20)
 
-    # Address fields
+    # Sensitive PII — must only appear in UserInternal, never in client-facing schemas.
+    # If you add a new field here, do NOT add it to UserPublic or UserPrivate.
     street_1: str = Field(default="", max_length=255)
     street_2: str = Field(default="", max_length=255)
     city: str = Field(default="", max_length=100)
@@ -59,50 +59,69 @@ class User(SQLModel, table=True):
     )
 
 
-
 # =============================================================================
-# API SCHEMAS (not database tables - used for request/response validation)
+# API SCHEMAS (not database tables — used for request/response validation)
 # =============================================================================
 
+
+# ─── Mixin: sensitive PII address block ──────────────────────────────────────
+
+class _AddressFields(SQLModel):
+    """Address/PII fields used in response and write schemas.
+    Only for truly internal/server-side use — not exposed to event admins or the client."""
+    street_1: str = ""
+    street_2: str = ""
+    city: str = ""
+    state: str = ""
+    zip_code: str = ""
+    country: str = ""
+    dob: date | None = None
+
+
+# ─── Read schemas (API responses) ────────────────────────────────────────────
 
 class UserPublic(SQLModel):
-    """Public user info - visible to anyone."""
-
+    """Public user info — visible to anyone."""
     id: UUID
     display_name: str
 
 
 class UserPrivate(UserPublic):
-    """Private user info - visible to the user themselves and event owners."""
-
+    """Authenticated user's self-view — returned by /users/current and /verify.
+    Non-sensitive identity fields only. Address/DOB not included (see UserInternal)."""
     email: str
     first_name: str
     last_name: str
     phone: str = ""
+    vote_ids: list[UUID] = []
 
 
-class UserSignup(SQLModel):
-    """Request body for user signup."""
-
-    email: str
-    first_name: str
-    last_name: str | None = ""
-    display_name: str | None = ""
-    phone: str | None = ""
-    street_1: str | None = ""
-    street_2: str | None = ""
-    city: str | None = ""
-    state: str | None = ""
-    zip_code: str | None = ""
-    country: str | None = ""
-    dob: date | None = None
+class UserInternal(UserPrivate, _AddressFields):
+    """Full user record including sensitive PII (address, DOB).
+    Server-side/ops use only — never return to any client, including event admins."""
+    pass
 
 
-class UserUpdate(SQLModel):
-    """Request body for updating user profile. All fields optional."""
+def user_to_private(user: "User") -> "UserPrivate":
+    """Build UserPrivate from a User model, extracting vote IDs from the loaded relationship.
+    Requires User.votes to be loaded (via selectinload or similar)."""
+    return UserPrivate(
+        id=user.id,
+        display_name=user.display_name,
+        email=user.email,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        phone=user.phone,
+        vote_ids=[v.id for v in user.votes] if user.votes else [],
+    )
 
+
+# ─── Write schemas (API requests) ────────────────────────────────────────────
+
+class _UserWriteBase(SQLModel):
+    """Common optional fields shared by UserSignup and UserUpdate.
+    first_name is handled separately — required at signup, optional on update."""
     display_name: str | None = None
-    first_name: str | None = None
     last_name: str | None = None
     phone: str | None = None
     street_1: str | None = None
@@ -112,3 +131,14 @@ class UserUpdate(SQLModel):
     zip_code: str | None = None
     country: str | None = None
     dob: date | None = None
+
+
+class UserSignup(_UserWriteBase):
+    """Request body for user signup."""
+    email: str
+    first_name: str
+
+
+class UserUpdate(_UserWriteBase):
+    """Request body for profile update. None fields are excluded from the update."""
+    first_name: str | None = None
