@@ -68,7 +68,9 @@ async def get_event_endpoint(
     session: Annotated[AsyncSession, Depends(get_ro_session)],
 ) -> EventPublic:
     """Get a public event by its ID."""
-    stmt = select(Event).where(Event.id == event_id).options(selectinload(Event.projects))
+    stmt = (
+        select(Event).where(Event.id == event_id).options(selectinload(Event.projects))
+    )
     event = await scalar_one_or_none(session, stmt)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -117,7 +119,10 @@ async def attend_event(
         raise HTTPException(status_code=404, detail="Event not found")
 
     if active_series not in event.feature_flags_list:
-        raise HTTPException(status_code=400, detail=f"Event is not part of the active series (expected {active_series!r} in {event.feature_flags_list!r})")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Event is not part of the active series (expected {active_series!r} in {event.feature_flags_list!r})",
+        )
 
     if user in event.attendees:
         return {"message": "Already attending this event", "event_id": str(event.id)}
@@ -181,14 +186,20 @@ async def vote(
         already_voted = await scalar_one_or_none(
             session,
             select(Vote).where(
-                Vote.voter_id == user.id, Vote.event_id == event.id, Vote.project_id == project_id
+                Vote.voter_id == user.id,
+                Vote.event_id == event.id,
+                Vote.project_id == project_id,
             ),
         )
         if already_voted:
-            raise HTTPException(status_code=400, detail="User has already voted for this project")
+            raise HTTPException(
+                status_code=400, detail="User has already voted for this project"
+            )
 
         if user.id == project.owner_id or user in project.collaborators:
-            raise HTTPException(status_code=403, detail="User cannot vote for their own project")
+            raise HTTPException(
+                status_code=403, detail="User cannot vote for their own project"
+            )
 
         session.add(Vote(voter_id=user.id, project_id=project_id, event_id=event.id))
 
@@ -211,7 +222,10 @@ async def get_event_projects(
 
     if leaderboard:
         if event.phase != EventPhase.CLOSED:
-            raise HTTPException(status_code=403, detail="Leaderboard is only available after voting closes")
+            raise HTTPException(
+                status_code=403,
+                detail="Leaderboard is only available after voting closes",
+            )
 
         # Serve from cache if available (30s TTL is fine for leaderboards)
         cache_key = f"leaderboard:{event_id}"
@@ -293,7 +307,9 @@ async def create_test_event(
     await session.refresh(event)
 
     # Reload with projects relationship for max_votes_per_user computation
-    stmt = select(Event).where(Event.id == event.id).options(selectinload(Event.projects))
+    stmt = (
+        select(Event).where(Event.id == event.id).options(selectinload(Event.projects))
+    )
     event = await scalar_one_or_none(session, stmt)
 
     return EventPublic.model_validate(event)
@@ -316,6 +332,7 @@ async def cleanup_test_data(
                 SELECT id FROM users WHERE email LIKE 'test+pw%@example.com'
                 OR email LIKE 'organizer+%@test.local'
                 OR email LIKE 'attendee+%@test.local'
+                OR email LIKE 'admin+%@test.local'
             )
         """)
     )
@@ -326,6 +343,7 @@ async def cleanup_test_data(
                     SELECT id FROM users WHERE email LIKE 'test+pw%@example.com'
                     OR email LIKE 'organizer+%@test.local'
                     OR email LIKE 'attendee+%@test.local'
+                    OR email LIKE 'admin+%@test.local'
                 )
             )
         """)
@@ -336,6 +354,7 @@ async def cleanup_test_data(
                 SELECT id FROM users WHERE email LIKE 'test+pw%@example.com'
                 OR email LIKE 'organizer+%@test.local'
                 OR email LIKE 'attendee+%@test.local'
+                OR email LIKE 'admin+%@test.local'
             )
         """)
     )
@@ -345,6 +364,7 @@ async def cleanup_test_data(
                 SELECT id FROM users WHERE email LIKE 'test+pw%@example.com'
                 OR email LIKE 'organizer+%@test.local'
                 OR email LIKE 'attendee+%@test.local'
+                OR email LIKE 'admin+%@test.local'
             )
         """)
     )
@@ -354,6 +374,7 @@ async def cleanup_test_data(
                 SELECT id FROM users WHERE email LIKE 'test+pw%@example.com'
                 OR email LIKE 'organizer+%@test.local'
                 OR email LIKE 'attendee+%@test.local'
+                OR email LIKE 'admin+%@test.local'
             )
         """)
     )
@@ -363,6 +384,7 @@ async def cleanup_test_data(
                 SELECT id FROM users WHERE email LIKE 'test+pw%@example.com'
                 OR email LIKE 'organizer+%@test.local'
                 OR email LIKE 'attendee+%@test.local'
+                OR email LIKE 'admin+%@test.local'
             )
         """)
     )
@@ -372,6 +394,7 @@ async def cleanup_test_data(
                 SELECT id FROM users WHERE email LIKE 'test+pw%@example.com'
                 OR email LIKE 'organizer+%@test.local'
                 OR email LIKE 'attendee+%@test.local'
+                OR email LIKE 'admin+%@test.local'
             )
         """)
     )
@@ -380,6 +403,7 @@ async def cleanup_test_data(
             DELETE FROM users WHERE email LIKE 'test+pw%@example.com'
             OR email LIKE 'organizer+%@test.local'
             OR email LIKE 'attendee+%@test.local'
+            OR email LIKE 'admin+%@test.local'
         """)
     )
 

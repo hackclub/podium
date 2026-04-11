@@ -15,6 +15,7 @@ bun dev                                           # frontend/
 docker compose up -d                              # Start Postgres + NocoDB
 doppler run --config dev -- uv run alembic upgrade head  # Run migrations (backend/)
 ./scripts/reset-migrate.sh                        # Reset local DB
+doppler run --config dev -- uv run python scripts/seed_debug_data.py  # Seed dev users/event/project (backend/)
 ```
 
 # Documentation
