@@ -17,7 +17,7 @@
   let validationModal: Modal;
 </script>
 
-<div class="m-4">
+<div class="m-4 min-w-0 @container">
   <div class="card card-sm bg-base-100 rounded border-1 shadow-sm">
     <!-- Header with metadata -->
     <div class="card-body pb-2">
@@ -37,20 +37,13 @@
         {/each}
       </div>
 
-      <div class="grid grid-cols-3 gap-3 text-sm">
-        <!-- Join Code -->
-        <div class="flex flex-col items-center">
-          <span class="text-xs text-base-content/70 mb-1">Join Code</span>
-          <span class="badge badge-accent font-mono text-sm px-3 py-1">
-            {project.join_code}
-          </span>
-        </div>
-
+      <!-- Narrow: stacked/wrapped.  Wide (@xs+): Status | Join Code (centered) | Edit on one row. -->
+      <div class="flex flex-wrap justify-evenly items-start gap-x-3 gap-y-2 text-sm @xs:grid @xs:grid-cols-[auto_minmax(0,1fr)_auto]">
         <!-- Validation Status -->
         <div class="flex flex-col items-center">
           <span class="text-xs text-base-content/70 mb-1">Status</span>
           <button
-            class="badge text-sm px-3 py-1 underline cursor-pointer whitespace-nowrap {validationResults[project.id]?.valid
+            class="badge badge-sm underline cursor-pointer whitespace-nowrap {validationResults[project.id]?.valid
               ? 'badge-success'
               : 'badge-warning'}"
             onclick={() => validationModal?.openModal()}
@@ -81,11 +74,19 @@
           {/if}
         </div>
 
+        <!-- Join Code (center) -->
+        <div class="flex flex-col items-center justify-self-center">
+          <span class="text-xs text-base-content/70 mb-1">Join Code</span>
+          <span class="badge badge-accent badge-sm font-mono max-w-full">
+            {project.join_code}
+          </span>
+        </div>
+
         <!-- Actions -->
         <div class="flex flex-col items-center">
           <span class="text-xs text-base-content/70 mb-1">Actions</span>
           <button
-            class="badge text-sm px-3 py-1 underline badge-secondary cursor-pointer"
+            class="badge badge-sm badge-secondary underline cursor-pointer"
             onclick={() => editModal?.openModal()}
           >
             Edit
