@@ -258,13 +258,14 @@
   <!-- Login page or unauthenticated users without sidebar -->
   <div class="min-h-screen flex flex-col" id="landing">
     <div class="navbar bg-base-100 border-b border-base-300" id="landing-navbar">
-      <div class="flex-1">
+      <div class="navbar-start"></div>
+      <div class="navbar-center">
         <a href="/" class="flex items-center gap-2 btn btn-ghost px-2">
           <img src="/favicon.svg" alt="Podium" class="w-7 h-7" />
           <span class="text-xl font-extrabold">Podium</span>
         </a>
       </div>
-      <div class="flex-none gap-2">
+      <div class="navbar-end gap-2">
         <a href="/events" class="btn btn-ghost btn-sm">Events</a>
         {#if page.url.pathname !== "/login"}
           <a href="/login" class="btn btn-primary btn-sm">Sign In</a>
@@ -291,8 +292,6 @@
   <ThemeSwitcher />
 </div>
 
-<!-- Airtable Hits Counter (Top Right, dev only) -->
-<AirtableHitsCounter />
 
 <!-- Dev Mode Indicator (red border + notice) -->
 <DevModeIndicator />
