@@ -23,7 +23,6 @@ export type EventPrivate = {
     name: string;
     slug: string;
     description: string;
-    /** Lifecycle phase: draft | submission | voting | closed */
     phase: string;
     demo_links_optional: boolean;
     max_votes_per_user: number;
@@ -39,10 +38,20 @@ export type EventPublic = {
     name: string;
     slug: string;
     description: string;
-    /** Lifecycle phase: draft | submission | voting | closed */
     phase: string;
     demo_links_optional: boolean;
     max_votes_per_user: number;
+};
+
+/**
+ * Request body for updating an event. All fields optional.
+ */
+export type EventUpdate = {
+    name?: (string | null);
+    description?: (string | null);
+    phase?: (string | null);
+    demo_links_optional?: (boolean | null);
+    ysws_checks_enabled?: (boolean | null);
 };
 
 export type HTTPValidationError = {
@@ -141,7 +150,8 @@ export type UserLoginPayload = {
 };
 
 /**
- * Private user info - visible to the user themselves and event owners.
+ * Authenticated user's self-view — returned by /users/current and /verify.
+ * Non-sensitive identity fields only. Address/DOB not included (see UserInternal).
  */
 export type UserPrivate = {
     id: string;
@@ -150,12 +160,11 @@ export type UserPrivate = {
     first_name: string;
     last_name: string;
     phone?: string;
-    /** IDs of votes this user has cast — used to filter already-voted projects */
-    vote_ids: Array<string>;
+    vote_ids?: Array<(string)>;
 };
 
 /**
- * Public user info - visible to anyone.
+ * Public user info — visible to anyone.
  */
 export type UserPublic = {
     id: string;
@@ -166,10 +175,8 @@ export type UserPublic = {
  * Request body for user signup.
  */
 export type UserSignup = {
-    email: string;
-    first_name: string;
-    last_name?: (string | null);
     display_name?: (string | null);
+    last_name?: (string | null);
     phone?: (string | null);
     street_1?: (string | null);
     street_2?: (string | null);
@@ -178,14 +185,15 @@ export type UserSignup = {
     zip_code?: (string | null);
     country?: (string | null);
     dob?: (string | null);
+    email: string;
+    first_name: string;
 };
 
 /**
- * Request body for updating user profile. All fields optional.
+ * Request body for profile update. None fields are excluded from the update.
  */
 export type UserUpdate = {
     display_name?: (string | null);
-    first_name?: (string | null);
     last_name?: (string | null);
     phone?: (string | null);
     street_1?: (string | null);
@@ -195,6 +203,7 @@ export type UserUpdate = {
     zip_code?: (string | null);
     country?: (string | null);
     dob?: (string | null);
+    first_name?: (string | null);
 };
 
 export type ValidationError = {
@@ -306,6 +315,10 @@ export type CreateTestEventEventsTestCreatePostResponse = (EventPublic);
 
 export type CreateTestEventEventsTestCreatePostError = (HTTPValidationError);
 
+export type CleanupTestDataEventsTestCleanupPostResponse = (unknown);
+
+export type CleanupTestDataEventsTestCleanupPostError = unknown;
+
 export type GetEventAdminEventsAdminEventIdGetData = {
     path: {
         event_id: string;
@@ -315,6 +328,17 @@ export type GetEventAdminEventsAdminEventIdGetData = {
 export type GetEventAdminEventsAdminEventIdGetResponse = (EventPrivate);
 
 export type GetEventAdminEventsAdminEventIdGetError = (HTTPValidationError);
+
+export type UpdateEventAdminEventsAdminEventIdPatchData = {
+    body: EventUpdate;
+    path: {
+        event_id: string;
+    };
+};
+
+export type UpdateEventAdminEventsAdminEventIdPatchResponse = (EventPrivate);
+
+export type UpdateEventAdminEventsAdminEventIdPatchError = (HTTPValidationError);
 
 export type GetEventAttendeesEventsAdminEventIdAttendeesGetData = {
     path: {

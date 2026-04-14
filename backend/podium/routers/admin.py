@@ -17,6 +17,7 @@ from podium.db.postgres import (
     User,
     Event,
     EventPrivate,
+    EventUpdate,
     Project,
     ProjectPrivate,
     Vote,
@@ -72,6 +73,25 @@ async def get_event_admin(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> EventPrivate:
     event = await get_owned_event(event_id, user, session)
+    return EventPrivate.model_validate(event)
+
+
+@router.patch("/{event_id}")
+async def update_event_admin(
+    event_id: Annotated[UUID, Path(title="Event ID")],
+    update: EventUpdate,
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> EventPrivate:
+    """Update an event you own. Only fields provided in the body are changed."""
+    event = await get_owned_event(event_id, user, session)
+
+    # exclude_unset so omitted fields stay untouched (PATCH semantics)
+    for field, value in update.model_dump(exclude_unset=True).items():
+        setattr(event, field, value)
+
+    await session.commit()
+    await session.refresh(event)
     return EventPrivate.model_validate(event)
 
 

@@ -12,6 +12,7 @@
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import AttendeesTable from "./AttendeesTable.svelte";
   import AdminLeaderboard from "./AdminLeaderboard.svelte";
+  import StageTimeline from "./StageTimeline.svelte";
   import VotesTable from "./VotesTable.svelte";
   import ReferralsTable from "./ReferralsTable.svelte";
   import { handleError, returnLoadingText } from "$lib/misc";
@@ -144,6 +145,15 @@
     </div>
   {:else}
     <div class="space-y-6">
+      <!-- Event Status Timeline -->
+      <StageTimeline
+        {event}
+        onUpdate={(updated) => {
+          // Reflect the new phase locally so gating UI updates without a reload
+          event.phase = updated.phase;
+        }}
+      />
+
       <!-- Attendees Table -->
       <AttendeesTable {attendees} onRemoveAttendee={removeAttendee} {event} />
 
