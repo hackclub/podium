@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./sleepover.css";
 
 @plugin '@tailwindcss/typography';
 
@@ -7,7 +8,38 @@
     coffee,
     night --prefersdark, night,
     retro,
-    dracula;
+    dracula,
+    sleepover;
+}
+
+/* Sleepover theme — pastel kawaii inspired by sleepover.hackclub.com */
+@plugin "daisyui/theme" {
+  name: "sleepover";
+  default: false;
+  prefersdark: false;
+  --color-base-100: #c8caf0;
+  --color-base-200: #b4b8e8;
+  --color-base-300: #9aa0dc;
+  --color-base-content: #2d3a7a;
+  --color-primary: #6c8be1;
+  --color-primary-content: #ffffff;
+  --color-secondary: #dfa1aa;
+  --color-secondary-content: #2d1a3d;
+  --color-accent: #f5e2a0;
+  --color-accent-content: #3a2c00;
+  --color-neutral: #3d4b8f;
+  --color-neutral-content: #ffffff;
+  --color-info: #91baf2;
+  --color-info-content: #1a2040;
+  --color-success: #a8e8c4;
+  --color-success-content: #023818;
+  --color-warning: #f5e2a0;
+  --color-warning-content: #3a2c00;
+  --color-error: #dfa1aa;
+  --color-error-content: #2d1a3d;
+  --radius-selector: 9999px;
+  --radius-field: 9999px;
+  --radius-box: 1.25rem;
 }
 
 /* Hack Club brand theme — red primary, clean whites */

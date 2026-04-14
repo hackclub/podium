@@ -1,0 +1,300 @@
+/* ─────────────────────────────────────────────────────────────────
+   Sleepover theme — kawaii pastel aesthetic
+   Inspired by sleepover.hackclub.com (OSS: github.com/hackclub/sleepover)
+
+   To enable:  add `@import "./sleepover.css";` to app.css
+               add "sleepover" to the themes array in consts.ts
+   To revert:  remove the import line above
+   ───────────────────────────────────────────────────────────────── */
+
+@import url("https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,700&display=swap");
+
+/* ── Animations ────────────────────────────────────────────────── */
+
+@keyframes so-wobble {
+  0%, 100% { transform: rotate(0deg) translateY(-3px); }
+  25%       { transform: rotate(-4deg) translateY(-3px); }
+  75%       { transform: rotate(4deg) translateY(-3px); }
+}
+
+/* ── Background ────────────────────────────────────────────────── */
+
+[data-theme="sleepover"] body,
+[data-theme="sleepover"] html {
+  height: max-content;
+  min-height: 100vh;
+  font-family: "Nunito", "Phantom Sans", sans-serif;
+}
+
+[data-theme="sleepover"] body {
+  /* Solid lavender base — bunny tile floats on top via ::after */
+  background-color: #c8caf0;
+  position: relative;
+}
+
+/* Bunny tile at ~35% opacity, matching the original site's approach */
+[data-theme="sleepover"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: url("https://sleepover.hackclub.com/background/bunny-tile.png") repeat;
+  background-size: 200px;
+  opacity: 0.12;
+  pointer-events: none;
+  z-index: 0;
+}
+
+[data-theme="sleepover"] body > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Landing (unauthenticated) layout ─────────────────────────── */
+
+[data-theme="sleepover"] #landing {
+  background: none;
+}
+
+[data-theme="sleepover"] #landing-navbar {
+  background-color: #b8bcec;
+  border-bottom: 2px solid #9aa0dc;
+}
+
+[data-theme="sleepover"] #landing-content {
+  background-color: #ffffff;
+  border: 2px solid #9aa0dc;
+  border-radius: 1.5rem;
+  box-shadow: 0 6px 24px rgba(45, 58, 122, 0.2);
+  width: max-content;
+  margin-inline: auto;
+}
+
+[data-theme="sleepover"] #landing-content h1 {
+  background: linear-gradient(135deg, #6c8be1 0%, #dfa1aa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 900;
+}
+
+[data-theme="sleepover"] #landing-content p {
+  color: #5a6296;
+}
+
+/* ── Sidebar ───────────────────────────────────────────────────── */
+
+[data-theme="sleepover"] #sidebar-ui {
+  background-color: #b8bcec;
+  border-right: 2px solid #9aa0dc;
+  position: relative;
+}
+
+[data-theme="sleepover"] #sidebar-top a,
+[data-theme="sleepover"] #sidebar-top span {
+  color: #1e2a6a;
+}
+
+[data-theme="sleepover"] #sidebar-top p {
+  color: #3d4b8f;
+}
+
+[data-theme="sleepover"] #sidebar :not(#sidebar-top) a,
+[data-theme="sleepover"] #sidebar :not(#sidebar-top) button {
+  color: #2d3a7a;
+  border-radius: 9999px;
+  font-weight: 700;
+}
+
+[data-theme="sleepover"] #sidebar :not(#sidebar-top) a:hover {
+  background-color: rgba(108, 139, 225, 0.2);
+}
+
+[data-theme="sleepover"] #sidebar :not(#sidebar-top) a.bg-primary {
+  background: linear-gradient(135deg, #6c8be1, #dfa1aa) !important;
+  color: #ffffff !important;
+  font-weight: 800;
+}
+
+/* Account card in sidebar */
+[data-theme="sleepover"] #sidebar .card {
+  background-color: rgba(255, 255, 255, 0.6);
+  border: 2px solid #9aa0dc;
+}
+
+/* ── Buttons ───────────────────────────────────────────────────── */
+
+[data-theme="sleepover"] .btn,
+[data-theme="sleepover"] .btn-primary,
+[data-theme="sleepover"] .btn-secondary,
+[data-theme="sleepover"] .btn-outline,
+[data-theme="sleepover"] .btn-ghost,
+[data-theme="sleepover"] .btn-info,
+[data-theme="sleepover"] .btn-success,
+[data-theme="sleepover"] .btn-warning,
+[data-theme="sleepover"] .btn-error,
+[data-theme="sleepover"] .btn-accent {
+  --so-btn-fg: #ffffff;
+  --so-btn-color: #6c8be1;
+  --so-btn-shadow: #4a65c8;
+  --so-btn-outline: rgba(108, 139, 225, 0.3);
+
+  background-color: var(--so-btn-color) !important;
+  color: var(--so-btn-fg) !important;
+  border: none !important;
+  border-bottom: 3px solid var(--so-btn-shadow) !important;
+  border-radius: 9999px !important;
+  font-weight: 800;
+  font-family: "Nunito", sans-serif;
+  transition: box-shadow 0.1s, transform 0.1s;
+}
+
+[data-theme="sleepover"] .btn:not(:hover):not(:focus) {
+  box-shadow: none !important;
+}
+[data-theme="sleepover"] .btn:hover {
+  animation: so-wobble 0.4s ease-in-out;
+  box-shadow: var(--so-btn-shadow) 0px 3px 0px 0px !important;
+}
+[data-theme="sleepover"] .btn:active {
+  box-shadow: none !important;
+  transform: none;
+  animation: none;
+}
+[data-theme="sleepover"] .btn:focus {
+  box-shadow: var(--so-btn-outline) 0px 0px 0px 3px !important;
+}
+
+[data-theme="sleepover"] .btn-secondary {
+  --so-btn-fg: #3d1020;
+  --so-btn-color: #dfa1aa;
+  --so-btn-shadow: #b87480;
+  --so-btn-outline: rgba(223, 161, 170, 0.4);
+}
+
+[data-theme="sleepover"] .btn-accent {
+  --so-btn-fg: #3a2c00;
+  --so-btn-color: #f5c842;
+  --so-btn-shadow: #c4920a;
+  --so-btn-outline: rgba(245, 200, 66, 0.4);
+}
+
+[data-theme="sleepover"] .btn-outline {
+  --so-btn-fg: #3d4b8f;
+  --so-btn-color: transparent;
+  --so-btn-shadow: #9aa0dc;
+  --so-btn-outline: rgba(61, 75, 143, 0.2);
+  border: 2px solid #6c8be1 !important;
+}
+
+[data-theme="sleepover"] .btn-ghost {
+  --so-btn-color: transparent;
+  --so-btn-fg: #3d4b8f;
+  --so-btn-shadow: transparent;
+  --so-btn-outline: rgba(61, 75, 143, 0.15);
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+[data-theme="sleepover"] .btn-ghost:hover {
+  box-shadow: none !important;
+  background-color: rgba(108, 139, 225, 0.12) !important;
+  animation: none;
+}
+
+/* ── Cards & modals — fully opaque so bunnies don't bleed through ─ */
+
+[data-theme="sleepover"] .card,
+[data-theme="sleepover"] .modal-box {
+  background-color: #ffffff;
+  border: 2px solid #9aa0dc;
+  border-radius: 1.5rem;
+  box-shadow: 0 6px 24px rgba(45, 58, 122, 0.15);
+}
+
+/* ── Inputs ────────────────────────────────────────────────────── */
+
+[data-theme="sleepover"] .input,
+[data-theme="sleepover"] input[type="text"],
+[data-theme="sleepover"] input[type="email"],
+[data-theme="sleepover"] input[type="password"],
+[data-theme="sleepover"] input[type="number"],
+[data-theme="sleepover"] input[type="search"] {
+  border: 2px solid #9aa0dc !important;
+  border-radius: 9999px !important;
+  background-color: #ffffff !important;
+  color: #2d3a7a !important;
+}
+
+[data-theme="sleepover"] textarea,
+[data-theme="sleepover"] select {
+  border: 2px solid #9aa0dc !important;
+  border-radius: 1rem !important;
+  background-color: #ffffff !important;
+  color: #2d3a7a !important;
+}
+
+/* ── Typography ────────────────────────────────────────────────── */
+
+[data-theme="sleepover"] p,
+[data-theme="sleepover"] li {
+  color: #4a5080;
+}
+
+/* Spans are used pervasively for badges/labels so leave them inheriting */
+
+[data-theme="sleepover"] h1,
+[data-theme="sleepover"] h2 {
+  background: linear-gradient(135deg, #6c8be1 0%, #dfa1aa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 900;
+}
+
+[data-theme="sleepover"] h3,
+[data-theme="sleepover"] h4,
+[data-theme="sleepover"] h5,
+[data-theme="sleepover"] h6 {
+  color: #2d3a7a;
+  font-weight: 800;
+}
+
+/* ── Navbar (authenticated mobile top bar) ─────────────────────── */
+
+[data-theme="sleepover"] #home-navbar {
+  background-color: #b8bcec;
+  border-bottom: 2px solid #9aa0dc;
+}
+
+/* ── Badges ─────────────────────────────────────────────────────── */
+
+[data-theme="sleepover"] .badge {
+  border-radius: 9999px;
+  font-weight: 700;
+  font-family: "Nunito", sans-serif;
+}
+
+/* ── Tables ─────────────────────────────────────────────────────── */
+
+[data-theme="sleepover"] .table th {
+  background-color: #e8ecfa;
+  color: #2d3a7a;
+  font-weight: 800;
+}
+
+[data-theme="sleepover"] .table tr:nth-child(even) td {
+  background-color: #f4f5fd;
+}
+
+/* ── Steps / timeline (stage indicator) ─────────────────────────── */
+
+[data-theme="sleepover"] .steps .step-primary::before,
+[data-theme="sleepover"] .steps .step-primary::after {
+  background-color: #6c8be1;
+}
+
+[data-theme="sleepover"] .steps .step-primary .step-circle {
+  background-color: #6c8be1;
+  color: #ffffff;
+}
