@@ -66,11 +66,12 @@
   border-radius: 1.5rem;
   box-shadow: 0 6px 24px rgba(45, 58, 122, 0.2);
   width: max-content;
+  min-width: 32rem;
   margin-inline: auto;
 }
 
 [data-theme="sleepover"] #landing-content h1 {
-  background: linear-gradient(135deg, #6c8be1 0%, #dfa1aa 100%);
+  background: linear-gradient(135deg, #4a6fd4 0%, #b8476a 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -78,7 +79,7 @@
 }
 
 [data-theme="sleepover"] #landing-content p {
-  color: #5a6296;
+  color: #3a4285;
 }
 
 /* ── Sidebar ───────────────────────────────────────────────────── */
@@ -95,7 +96,7 @@
 }
 
 [data-theme="sleepover"] #sidebar-top p {
-  color: #3d4b8f;
+  color: #2d3a7a;
 }
 
 [data-theme="sleepover"] #sidebar :not(#sidebar-top) a,
@@ -238,14 +239,14 @@
 
 [data-theme="sleepover"] p,
 [data-theme="sleepover"] li {
-  color: #4a5080;
+  color: #2e3566;
 }
 
 /* Spans are used pervasively for badges/labels so leave them inheriting */
 
 [data-theme="sleepover"] h1,
 [data-theme="sleepover"] h2 {
-  background: linear-gradient(135deg, #6c8be1 0%, #dfa1aa 100%);
+  background: linear-gradient(135deg, #4a6fd4 0%, #b8476a 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -273,6 +274,7 @@
   border-radius: 9999px;
   font-weight: 700;
   font-family: "Nunito", sans-serif;
+  padding-inline: 0.75rem;
 }
 
 /* ── Tables ─────────────────────────────────────────────────────── */

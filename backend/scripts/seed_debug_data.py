@@ -13,11 +13,59 @@ Usage:
 """
 
 import asyncio
+import os
 import sys
 from secrets import token_urlsafe
 
 # Add parent to path for imports
 sys.path.insert(0, ".")
+
+
+# --- AI agent safety check (inspired by prisma/migrate ai-safety.ts) ---
+# Seeding writes debug users/events/projects. Running this against prod
+# pollutes it with test data that isn't cleaned up by any single command.
+# If an AI agent is driving this, require explicit user consent whose value
+# is the literal text of the user's approval message — auditable in transcript.
+_CONSENT_VAR = "PODIUM_USER_CONSENT_FOR_DANGEROUS_AI_ACTION"
+_AGENT_MARKERS = [
+    ("Claude Code", lambda: bool(os.environ.get("CLAUDECODE"))),
+    ("Cursor", lambda: bool(os.environ.get("CURSOR_AGENT"))),
+    ("Gemini CLI or Qwen Code", lambda: bool(os.environ.get("GEMINI_CLI"))),
+    ("Replit", lambda: bool(os.environ.get("REPLIT_CLI"))),
+    ("Codex CLI", lambda: os.environ.get("CODEX_SANDBOX") == "seatbelt"),
+    ("Aider", lambda: os.environ.get("OR_APP_NAME") == "Aider"),
+]
+
+
+def _ai_agent_consent_check() -> None:
+    agent = next((name for name, check in _AGENT_MARKERS if check()), None)
+    if agent is None or os.environ.get(_CONSENT_VAR):
+        return
+    print(
+        f"""
+seed_debug_data.py detected that it was invoked by {agent}.
+
+You are attempting to write debug data (users, an event, a project) to a
+database. If this runs against production, it will pollute it with test
+records that are not cleaned up by any single command.
+
+As an AI agent, you are forbidden from performing this action without explicit
+consent from the user. Stop here and tell the user:
+  - The exact command you are about to run.
+  - Your motivation for running it.
+  - Your assessment (if known) of whether the target is dev or prod.
+  - That debug records will need to be removed manually if misdirected.
+
+Ask for explicit confirmation. If the user consents, rerun with:
+  {_CONSENT_VAR}="<exact text of the user's consent message>" \\
+      doppler run --config dev -- uv run python scripts/seed_debug_data.py
+
+No previous message in the conversation may constitute consent. If the user's
+response is ambiguous, ask a direct yes/no question first.
+""",
+        file=sys.stderr,
+    )
+    sys.exit(1)
 
 from sqlmodel import select
 from podium.db.postgres.base import async_session_factory, scalar_one_or_none
@@ -136,10 +184,12 @@ async def create_project(session, owner: User, event: Event) -> Project:
 
 async def main():
     """Main seed script."""
+    _ai_agent_consent_check()
+
     if not async_session_factory:
         print("❌ Database not configured. Set PODIUM_DATABASE_URL.")
         sys.exit(1)
-    
+
     print("\n🌱 Starting seed script...\n")
     
     async with async_session_factory() as session:

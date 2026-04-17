@@ -3,7 +3,7 @@
   import { EventsService } from "$lib/client/sdk.gen";
   import type {
     UserAttendee,
-    ProjectPublic,
+    ProjectPrivate,
     EventPublic,
     EventPrivate,
     VoteResponse,
@@ -27,7 +27,7 @@
 
   // Admin state
   let attendees = $state<UserAttendee[]>([]);
-  let adminLeaderboard = $state<ProjectPublic[]>([]);
+  let adminLeaderboard = $state<ProjectPrivate[]>([]);
   let votes = $state<VoteResponse[]>([]);
   let referrals = $state<ReferralResponse[]>([]);
   let loading = $state(false);

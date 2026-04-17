@@ -2,8 +2,7 @@ from secrets import token_urlsafe
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
-from pydantic import BaseModel
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Path, Query, Request
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -20,23 +19,86 @@ from podium.db.postgres import (
     get_ro_session,
     scalar_one_or_none,
 )
+from podium.db.postgres.base import async_session_factory
+from podium.db.postgres.user import has_complete_address
 from podium.routers.auth import get_current_user
 from podium.limiter import limiter
-from podium.validators import is_itch_url, is_playable
-from podium.constants import BAD_AUTH, BAD_ACCESS
-
-
-class ValidationResult(BaseModel):
-    valid: bool
-    message: str
+from podium.validators import itch, github, CUSTOM_VALIDATORS
+from podium.validators.base import ValidationResult
+from podium.constants import BAD_AUTH, BAD_ACCESS, RepoValidation, DemoValidation, ValidationStatus
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
 
 def validate_demo_field(demo: str | None, event: Event) -> None:
-    """Validate demo field based on event settings."""
+    """Raise 422 if demo is required but missing."""
     if not event.demo_links_optional and not (demo and demo.strip()):
         raise HTTPException(status_code=422, detail="Demo URL is required for this event")
+
+
+async def _run_background_validation(project_id: UUID) -> None:
+    """Open a fresh DB session and run all validators for the project's event config.
+
+    Updates project.validation_status and project.validation_message in-place.
+    Runs after the response is sent so it never blocks the user.
+    """
+    if not async_session_factory:
+        return
+
+    async with async_session_factory() as session:
+        project = await scalar_one_or_none(
+            session,
+            select(Project).where(Project.id == project_id).options(selectinload(Project.votes)),
+        )
+        if not project:
+            return
+
+        event = await session.get(Event, project.event_id)
+        if not event:
+            return
+
+        messages: list[str] = []
+        all_valid = True
+
+        try:
+            # ── repo validation ──────────────────────────────────────────────────
+            if event.repo_validation == RepoValidation.GITHUB and project.repo:
+                result = await github.validate(project.repo)
+                if not result.valid:
+                    all_valid = False
+                    if result.message:
+                        messages.append(result.message)
+            elif event.repo_validation == RepoValidation.CUSTOM and event.custom_validator:
+                module = CUSTOM_VALIDATORS.get(event.custom_validator)
+                if module and hasattr(module, "validate_repo"):
+                    result = await module.validate_repo(project.repo)
+                    if not result.valid:
+                        all_valid = False
+                        if result.message:
+                            messages.append(result.message)
+
+            # ── demo validation ──────────────────────────────────────────────────
+            if event.demo_validation == DemoValidation.ITCH and project.demo:
+                result = await itch.validate(project.demo)
+                if not result.valid:
+                    all_valid = False
+                    if result.message:
+                        messages.append(result.message)
+            elif event.demo_validation == DemoValidation.CUSTOM and event.custom_validator:
+                module = CUSTOM_VALIDATORS.get(event.custom_validator)
+                if module and hasattr(module, "validate_demo"):
+                    result = await module.validate_demo(project.demo)
+                    if not result.valid:
+                        all_valid = False
+                        if result.message:
+                            messages.append(result.message)
+        except Exception as e:
+            all_valid = False
+            messages.append(f"Validation error: {e}")
+        finally:
+            project.validation_status = ValidationStatus.VALID if all_valid else ValidationStatus.WARNING
+            project.validation_message = " | ".join(messages)
+            await session.commit()
 
 
 @router.get("/mine")
@@ -63,10 +125,11 @@ async def get_projects(
 @router.post("/")
 async def create_project(
     project: ProjectCreate,
+    background_tasks: BackgroundTasks,
     user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    """Create a new project."""
+    """Create a new project and schedule background validation."""
     stmt = (
         select(Event)
         .where(Event.id == project.event_id)
@@ -80,6 +143,9 @@ async def create_project(
 
     if user not in event.attendees:
         raise HTTPException(status_code=403, detail="Owner not part of event")
+
+    if event.require_address and not has_complete_address(user):
+        raise HTTPException(status_code=400, detail="This event requires a shipping address on your profile before you can submit a project")
 
     while True:
         join_code = token_urlsafe(3).upper()
@@ -101,6 +167,8 @@ async def create_project(
     session.add(new_project)
     await session.commit()
     await session.refresh(new_project)
+
+    background_tasks.add_task(_run_background_validation, new_project.id)
     return {"id": str(new_project.id), "join_code": new_project.join_code}
 
 
@@ -141,10 +209,11 @@ async def join_project(
 async def update_project(
     project_id: Annotated[UUID, Path(title="Project ID")],
     project_update: ProjectUpdate,
+    background_tasks: BackgroundTasks,
     user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    """Update a project."""
+    """Update a project and re-schedule background validation."""
     project = await scalar_one_or_none(
         session,
         select(Project)
@@ -162,9 +231,14 @@ async def update_project(
 
     update_data = project_update.model_dump(exclude_unset=True, exclude_none=True)
     project.sqlmodel_update(update_data)
+    # Reset to pending so the UI reflects that re-validation is in progress
+    project.validation_status = ValidationStatus.PENDING
+    project.validation_message = ""
 
     await session.commit()
     await session.refresh(project)
+
+    background_tasks.add_task(_run_background_validation, project.id)
     return ProjectPublic.model_validate(project)
 
 
@@ -206,24 +280,24 @@ async def get_project_endpoint(
 async def validate_project(
     request: Request,
     project_id: Annotated[UUID, Query(description="Project ID to validate")],
+    background_tasks: BackgroundTasks,
     session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
 ) -> ValidationResult:
-    """Validate a project's demo URL for itch.io browser playability."""
+    """Trigger re-validation for a project and return the current (pre-run) status.
+
+    The actual validation runs asynchronously after this response. Poll
+    GET /projects/{id} to see the updated validation_status once done.
+    """
     project = await session.get(Project, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    if project.owner_id != user.id:
+        raise BAD_ACCESS
 
-    if not project.demo:
-        return ValidationResult(valid=False, message="No demo URL provided")
+    project.validation_status = ValidationStatus.PENDING
+    project.validation_message = ""
+    await session.commit()
 
-    if not is_itch_url(project.demo):
-        return ValidationResult(valid=False, message="Demo URL must be an itch.io game page")
-
-    if await is_playable(project.demo):
-        return ValidationResult(valid=True, message="Game is browser-playable")
-    else:
-        return ValidationResult(
-            valid=False,
-            message="Game is not browser-playable. Enable 'Run game in browser' in your itch.io project settings.",
-        )
+    background_tasks.add_task(_run_background_validation, project.id)
+    return ValidationResult(valid=True, message="Validation queued")

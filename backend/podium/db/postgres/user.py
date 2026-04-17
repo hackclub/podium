@@ -34,6 +34,9 @@ class User(SQLModel, table=True):
     last_name: str = Field(default="", max_length=50)
     phone: str = Field(default="", max_length=20)
 
+    # Elevated access — superadmins can manage all events and set validation config
+    is_superadmin: bool = Field(default=False)
+
     # Sensitive PII — must only appear in UserInternal, never in client-facing schemas.
     # If you add a new field here, do NOT add it to UserPublic or UserPrivate.
     street_1: str = Field(default="", max_length=255)
@@ -94,12 +97,19 @@ class UserPrivate(UserPublic):
     last_name: str
     phone: str = ""
     vote_ids: list[UUID] = []
+    # True if the user has a street address on file — safe to expose without leaking the address itself
+    has_address: bool = False
 
 
 class UserInternal(UserPrivate, _AddressFields):
     """Full user record including sensitive PII (address, DOB).
     Server-side/ops use only — never return to any client, including event admins."""
     pass
+
+
+def has_complete_address(user: "User") -> bool:
+    """Minimum viable address: street, city, and country must all be present."""
+    return bool(user.street_1 and user.city and user.country)
 
 
 def user_to_private(user: "User") -> "UserPrivate":
@@ -116,6 +126,7 @@ def user_to_private(user: "User") -> "UserPrivate":
         last_name=user.last_name,
         phone=user.phone,
         vote_ids=[v.id for v in user.votes],
+        has_address=has_complete_address(user),
     )
 
 

@@ -15,9 +15,9 @@ Podium is a peer-judging platform for Hack Club hackathons. Attendees select an 
 
 Core entities:
 
-- **User** — email, display_name, first_name
-- **Event** — name, slug, feature_flags_csv, phase
-- **Project** — name, repo, image_url, demo, owner_id, event_id, points
+- **User** — email, display_name, first_name, is_superadmin
+- **Event** — name, slug, phase, feature_flags_csv, repo_validation, demo_validation, require_address
+- **Project** — name, repo, image_url, demo, owner_id, event_id, points, validation_status, validation_message
 - **Vote** — voter_id, project_id, event_id (unique on voter+project)
 
 M2M relationships via junction tables:
@@ -35,7 +35,7 @@ Events move through phases in order: `draft` → `submission` → `voting` → `
 | `voting` | Submissions closed; users can vote |
 | `closed` | Voting closed; leaderboard visible |
 
-The phase is changed by the event owner via the admin API (`PUT /events/admin/{id}` with `phase` field).
+The phase is changed by the event owner via the admin panel UI or `PATCH /events/admin/{id}`.
 
 ## Event Series
 
@@ -47,17 +47,33 @@ Key rules:
 - **All official events are equal** — no UI distinction between flagship and satellites
 - **Past series are read-only** — users can view but not edit old projects
 
+## Validation System
+
+Background validation runs after every project create/update — never blocks the user. Results are informational badges (`pending → valid | warning`).
+
+Validation is configured per-event via `repo_validation` and `demo_validation` fields:
+
+| Setting | What it does |
+|---|---|
+| `repo_validation: github` | Checks repo exists and is public via GitHub API |
+| `demo_validation: itch` | Checks itch.io page has `.game_frame` (browser-playable) |
+| `repo_validation: custom` | Calls the named entry in `validators/custom/` |
+| `none` | Skips validation for that field |
+
+Events can also set `require_address: true` to enforce that users have a shipping address on file before submitting — this is a hard block at the API level.
+
 ## User Flow
 
 ```
-Sign in → Select event → Submit project → Validation → Vote
+Sign in → Select event → (Address check) → Submit project → Validation → Vote
 ```
 
 1. User signs in via magic link
-2. Selects from available official events (GET /events/official)
-3. Creates or joins a project (project join codes still exist for collaborators)
-4. Project validated (itch.io playability check)
-5. Can vote on other projects
+2. Selects from available official events (`GET /events/official`)
+3. If `require_address` is set, must provide shipping address first
+4. Creates or joins a project (join codes allow collaborators)
+5. Background validation runs; badge appears on project card
+6. Can vote on other projects
 
 ## Voting Rules
 
@@ -68,11 +84,11 @@ Vote limits scale with project count: 1 vote (< 4 projects), 2 votes (4-19), 3 v
 Backend (`backend/podium/`):
 - `main.py` — FastAPI app, lifespan (Redis init/close)
 - `config.py` — Dynaconf settings (all env vars with `PODIUM_` prefix)
-- `constants.py` — Shared types: `EventPhase`, `BAD_AUTH`, `BAD_ACCESS`, etc.
+- `constants.py` — Shared types: `EventPhase`, `RepoValidation`, `DemoValidation`, `BAD_AUTH`, etc.
 - `limiter.py` — slowapi rate limiter (user-email based)
 - `db/postgres/` — SQLModel models and database session helpers
-- `routers/` — API endpoints
-- `validators/` — Input validation: `email.py` (disposable email), `turnstile.py` (CAPTCHA), `__init__.py` (itch.io)
+- `routers/` — API endpoints (`auth`, `users`, `events`, `projects`, `admin`, `superadmin`)
+- `validators/` — Project URL validation: `github.py`, `itch.py`, `custom/` (event-specific); input validation: `email.py`, `turnstile.py`
 - `cache/` — Redis helpers (`cache_get`, `cache_set`, `cache_delete`) with graceful no-op fallback
 
 Frontend (`frontend/src/`):
@@ -86,6 +102,9 @@ Frontend (`frontend/src/`):
 
 ## Admin Tools
 
-Events are managed via:
-- `backend/scripts/manage_events.py` — TUI for creating/editing events
-- NocoDB — Spreadsheet UI for database (see nocodb.md)
+- `backend/scripts/manage_events.py` — TUI: create events, manage attendees, toggle superadmin, delete users/events
+- `POST /superadmin/events` — API: create real events (requires `is_superadmin`)
+- `PATCH /events/admin/{id}` — API: update any event field (owners and superadmins)
+- NocoDB — spreadsheet UI for the database (see nocodb.md)
+
+Superadmin status (`is_superadmin`) is toggled via the TUI Users tab — there is no API for it.

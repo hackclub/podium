@@ -26,6 +26,7 @@ from podium.db.postgres import (
 )
 from podium.constants import BAD_AUTH, BAD_ACCESS, Slug, EventPhase
 from podium.cache import cache_get, cache_set, cache_delete
+from podium.db.postgres.queries import get_active_event, list_active_events
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -48,10 +49,7 @@ async def list_official_events(
     if not active_series:
         return []
 
-    all_events = await scalar_all(
-        session,
-        select(Event).options(selectinload(Event.projects)),
-    )
+    all_events = await list_active_events(session, selectinload(Event.projects))
 
     official_events = [
         EventPublic.model_validate(e)
@@ -68,10 +66,7 @@ async def get_event_endpoint(
     session: Annotated[AsyncSession, Depends(get_ro_session)],
 ) -> EventPublic:
     """Get a public event by its ID."""
-    stmt = (
-        select(Event).where(Event.id == event_id).options(selectinload(Event.projects))
-    )
-    event = await scalar_one_or_none(session, stmt)
+    event = await get_active_event(session, event_id, selectinload(Event.projects))
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     return EventPublic.model_validate(event)
@@ -300,6 +295,10 @@ async def create_test_event(
         phase=EventPhase.VOTING,  # test events start in voting phase for e2e tests
         demo_links_optional=True,
         feature_flags_csv=active_series,
+        # Disable validation for test events — avoids external API calls (GitHub, itch)
+        # that add latency and burn rate limits during e2e test runs.
+        repo_validation="none",
+        demo_validation="none",
     )
 
     session.add(event)

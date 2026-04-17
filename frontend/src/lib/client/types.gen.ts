@@ -15,8 +15,19 @@ export type CreateVotes = {
     event: string;
 };
 
+export type EventCreate = {
+    name: string;
+    description?: string;
+    phase?: string;
+    demo_links_optional?: boolean;
+    repo_validation?: string;
+    demo_validation?: string;
+    custom_validator?: (string | null);
+    feature_flags_csv?: string;
+};
+
 /**
- * Private event info - visible to owner and attendees.
+ * Extended event info — visible to owner and superadmins.
  */
 export type EventPrivate = {
     id: string;
@@ -25,13 +36,16 @@ export type EventPrivate = {
     description: string;
     phase: string;
     demo_links_optional: boolean;
+    require_address: boolean;
     max_votes_per_user: number;
+    repo_validation: string;
+    demo_validation: string;
     owner_id: string;
-    ysws_checks_enabled: boolean;
+    custom_validator: (string | null);
 };
 
 /**
- * Public event info - visible to anyone.
+ * Public event info — visible to anyone.
  */
 export type EventPublic = {
     id: string;
@@ -40,18 +54,25 @@ export type EventPublic = {
     description: string;
     phase: string;
     demo_links_optional: boolean;
+    require_address: boolean;
     max_votes_per_user: number;
+    repo_validation: string;
+    demo_validation: string;
 };
 
 /**
- * Request body for updating an event. All fields optional.
+ * Request body for updating an event (PATCH semantics — all fields optional).
  */
 export type EventUpdate = {
     name?: (string | null);
     description?: (string | null);
     phase?: (string | null);
     demo_links_optional?: (boolean | null);
-    ysws_checks_enabled?: (boolean | null);
+    require_address?: (boolean | null);
+    repo_validation?: (string | null);
+    demo_validation?: (string | null);
+    custom_validator?: (string | null);
+    feature_flags_csv?: (string | null);
 };
 
 export type HTTPValidationError = {
@@ -86,6 +107,8 @@ export type ProjectPrivate = {
     join_code: string;
     hours_spent: number;
     event_id: string;
+    validation_status: string;
+    validation_message: string;
 };
 
 /**
@@ -161,6 +184,7 @@ export type UserPrivate = {
     last_name: string;
     phone?: string;
     vote_ids?: Array<(string)>;
+    has_address?: boolean;
 };
 
 /**
@@ -212,6 +236,9 @@ export type ValidationError = {
     type: string;
 };
 
+/**
+ * Outcome of a single validation check.
+ */
 export type ValidationResult = {
     valid: boolean;
     message: string;
@@ -459,6 +486,28 @@ export type ValidateProjectProjectsValidatePostData = {
 export type ValidateProjectProjectsValidatePostResponse = (ValidationResult);
 
 export type ValidateProjectProjectsValidatePostError = (HTTPValidationError);
+
+export type ListAllEventsSuperadminEventsGetResponse = (Array<EventPrivate>);
+
+export type ListAllEventsSuperadminEventsGetError = unknown;
+
+export type CreateEventSuperadminEventsPostData = {
+    body: EventCreate;
+};
+
+export type CreateEventSuperadminEventsPostResponse = (EventPrivate);
+
+export type CreateEventSuperadminEventsPostError = (HTTPValidationError);
+
+export type SoftDeleteEventSuperadminEventsEventIdDeleteData = {
+    path: {
+        event_id: string;
+    };
+};
+
+export type SoftDeleteEventSuperadminEventsEventIdDeleteResponse = (unknown);
+
+export type SoftDeleteEventSuperadminEventsEventIdDeleteError = (HTTPValidationError);
 
 export type UserExistsUsersExistsGetData = {
     query: {

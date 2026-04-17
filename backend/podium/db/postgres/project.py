@@ -10,6 +10,7 @@ from uuid import UUID, uuid4
 from pydantic import computed_field
 from sqlmodel import Field, SQLModel, Relationship
 
+from podium.constants import ValidationStatus
 from podium.db.postgres.links import ProjectCollaboratorLink
 
 if TYPE_CHECKING:
@@ -34,6 +35,10 @@ class Project(SQLModel, table=True):
     description: str = Field(default="")
     join_code: str = Field(max_length=20, unique=True)
     hours_spent: int = Field(default=0)
+
+    # Background validation result — updated asynchronously after project save
+    validation_status: str = Field(default=ValidationStatus.PENDING, max_length=20)
+    validation_message: str = Field(default="")
 
     # Computed field pattern: use @computed_field for derived values.
     # Requires eager-loading the relationship: select(Project).options(selectinload(Project.votes))
@@ -81,6 +86,8 @@ class ProjectPrivate(ProjectPublic):
     join_code: str
     hours_spent: int
     event_id: UUID
+    validation_status: str
+    validation_message: str
 
 
 class ProjectCreate(SQLModel):

@@ -20,22 +20,29 @@
   import JoinProject from "./JoinProject.svelte";
   import type { ProjectPrivate, EventPrivate } from "$lib/client";
   import { validateProject } from "$lib/validation";
-  import { ProjectsService } from "$lib/client/sdk.gen";
+  import { ProjectsService, UsersService } from "$lib/client/sdk.gen";
   import CreateProject from "./CreateProject.svelte";
   import UpdateProjectModal from "./UpdateProjectModal.svelte";
   import Modal from "./Modal.svelte";
+  import { getAuthenticatedUser } from "$lib/user.svelte";
+  import { handleError, invalidateUser } from "$lib/misc";
 
   type WizardStep =
     | "chooseProject"
+    | "collectAddress"
     | "createProject"
     | "joinProject"
     | "validateProject"
     | "success";
 
+  // Which step to go to after address collection
+  let postAddressStep = $state<"createProject" | "joinProject">("createProject");
+
   // Map URL hash values to wizard steps
   const HASH_TO_STEP: Record<string, WizardStep> = {
     "": "chooseProject",
     "choose": "chooseProject",
+    "address": "collectAddress",
     "create": "createProject",
     "join": "joinProject",
     "validate": "validateProject",
@@ -45,6 +52,7 @@
   // Map wizard steps to URL hash values
   const STEP_TO_HASH: Record<WizardStep, string> = {
     chooseProject: "choose",
+    collectAddress: "address",
     createProject: "create",
     joinProject: "join",
     validateProject: "validate",
@@ -66,6 +74,14 @@
   let { flagshipEvents = [], projects = $bindable([]), welcomeMessage }: Props = $props();
 
   let currentEvent = $state(flagshipEvents[0]);
+
+  // Address form state — only used in collectAddress step
+  let addressForm = $state({ street_1: "", street_2: "", city: "", state: "", zip_code: "", country: "" });
+  let addressSubmitting = $state(false);
+
+  const needsAddress = $derived(
+    currentEvent?.require_address && !getAuthenticatedUser().user.has_address
+  );
   let validationResult = $state<any>(null); // Store full validation result
   let updateProjectModal: Modal = $state() as Modal;
   let currentStep = $state<WizardStep>("chooseProject");
@@ -193,11 +209,33 @@
   });
 
   function goToCreateProject() {
-    setStep("createProject");
+    if (needsAddress) {
+      postAddressStep = "createProject";
+      setStep("collectAddress");
+    } else {
+      setStep("createProject");
+    }
   }
 
   function goToJoinProject() {
-    setStep("joinProject");
+    if (needsAddress) {
+      postAddressStep = "joinProject";
+      setStep("collectAddress");
+    } else {
+      setStep("joinProject");
+    }
+  }
+
+  async function submitAddress() {
+    addressSubmitting = true;
+    const { error } = await UsersService.updateCurrentUserUsersCurrentPut({
+      body: addressForm,
+      throwOnError: false,
+    });
+    addressSubmitting = false;
+    if (error) { handleError(error); return; }
+    await invalidateUser();
+    setStep(postAddressStep);
   }
 
   async function goToValidateProject() {
@@ -205,13 +243,31 @@
     setStep("validateProject");
 
     const project = userProject();
-    if (project) {
-      const result = await validateProject(project.id);
-      validationResult = result;
-      validationState = result.valid ? "success" : "failure";
-    } else {
-      validationState = "success";
+    if (!project) {
+      setStep("chooseProject");
+      return;
     }
+
+    // Queue background validation
+    await validateProject(project.id);
+
+    // Poll until status leaves "pending" (max 10s)
+    for (let i = 0; i < 10; i++) {
+      await new Promise((r) => setTimeout(r, 1000));
+      const { data } = await ProjectsService.getProjectsProjectsMineGet({ throwOnError: false });
+      if (data) {
+        projects = data;
+        const updated = projects.find((p) => p.id === project.id);
+        if (updated && updated.validation_status !== "pending") {
+          validationResult = { valid: updated.validation_status === "valid", message: updated.validation_message || "" };
+          validationState = updated.validation_status === "valid" ? "success" : "failure";
+          return;
+        }
+      }
+    }
+
+    // Timed out — treat as success (validation is non-blocking)
+    validationState = "success";
   }
 
   async function handleProjectAction() {
@@ -239,7 +295,6 @@
     });
     if (!error && data) {
       projects = data;
-      hasAutoValidated = false;  // Reset so validation runs again
     }
   }
 </script>
@@ -354,6 +409,42 @@
             </button>
           </div>
         </div>
+      {:else if currentStep === "collectAddress"}
+        <!-- Address Collection Step -->
+        <div class="mb-4">
+          <button class="btn btn-ghost btn-sm" onclick={goBack}>← Back</button>
+        </div>
+        <h2 class="card-title text-xl mb-1">Shipping Address Required</h2>
+        <p class="text-sm text-base-content/70 mb-4">
+          <span class="underline">{currentEvent.name}</span> needs your shipping address to send prizes.
+        </p>
+        <fieldset class="fieldset space-y-2" disabled={addressSubmitting}>
+          <label class="label" for="addr_street_1">Address Line 1 <span class="text-error">*</span></label>
+          <input id="addr_street_1" type="text" bind:value={addressForm.street_1} placeholder="123 Main St" class="input input-bordered w-full" required />
+
+          <label class="label" for="addr_street_2">Address Line 2</label>
+          <input id="addr_street_2" type="text" bind:value={addressForm.street_2} placeholder="Apt 4B" class="input input-bordered w-full" />
+
+          <label class="label" for="addr_city">City <span class="text-error">*</span></label>
+          <input id="addr_city" type="text" bind:value={addressForm.city} placeholder="New York" class="input input-bordered w-full" required />
+
+          <label class="label" for="addr_state">State / Province</label>
+          <input id="addr_state" type="text" bind:value={addressForm.state} placeholder="NY" class="input input-bordered w-full" />
+
+          <label class="label" for="addr_zip">ZIP / Postal Code</label>
+          <input id="addr_zip" type="text" bind:value={addressForm.zip_code} placeholder="10001" class="input input-bordered w-full" />
+
+          <label class="label" for="addr_country">Country <span class="text-error">*</span></label>
+          <input id="addr_country" type="text" bind:value={addressForm.country} placeholder="United States" class="input input-bordered w-full" required />
+
+          <button
+            class="btn btn-primary btn-block mt-4"
+            onclick={submitAddress}
+            disabled={addressSubmitting || !addressForm.street_1 || !addressForm.city || !addressForm.country}
+          >
+            {addressSubmitting ? "Saving…" : "Save & Continue"}
+          </button>
+        </fieldset>
       {:else if currentStep === "createProject"}
         <!-- Create Project Step -->
         <div class="mb-4">

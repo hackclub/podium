@@ -29,21 +29,23 @@
   let events: EventPublic[] = $state([]);
   let fetchedEvents = false;
 
-  // Track the selected event's demo_links_optional setting
+  // Track the selected event's settings
   let selectedEvent = $derived(
-    preselectedEvent || events.find((e) => e.id === project.event_id),
+    preselectedEvent || events.find((e) => e.id === project.event_id)
   );
   let demoLinksOptional = $derived(selectedEvent?.demo_links_optional || false);
 
-  // Real-time validation warnings (soft, non-blocking)
+  // Instant warnings driven by each event's validation config (non-blocking, user can bypass).
+  // "itch" events warn if demo isn't a valid itch.io URL; "github" events warn for repo.
+  // No instant warning for "none" or "custom" (custom validation is background-only).
   let demoWarning = $derived(
-    project.demo?.trim() && !isValidItchUrl(project.demo)
+    selectedEvent?.demo_validation === "itch" && project.demo?.trim() && !isValidItchUrl(project.demo)
       ? "Demo should be an itch.io game URL (e.g., username.itch.io/game-name)"
       : null
   );
   let repoWarning = $derived(
-    project.repo?.trim() && !isValidGitHubUrl(project.repo)
-      ? "Repository should be a GitHub or Gitee URL"
+    (selectedEvent?.repo_validation ?? "github") === "github" && project.repo?.trim() && !isValidGitHubUrl(project.repo)
+      ? "Repository should be a GitHub URL"
       : null
   );
 

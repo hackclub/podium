@@ -1,51 +1,68 @@
 # E2E Tests
 
-**39 tests | 100% pass rate | ~1-2 min runtime**
+Playwright tests split between UI-focused journey specs and an API-level coverage
+spec that guarantees every backend endpoint is exercised at least once.
 
-## Run Tests
+## Run tests
 
-**Stop running dev servers first:**
+Stop any running dev servers first (they collide on ports 8000 and 4173):
+
 ```bash
 pkill -f podium; pkill -f "vite|bun.*dev"
 ```
 
-**Run all tests:**
-```bash
-cd frontend
-doppler run --config dev -- bun run test:e2e
-```
-
-## Commands
+Then from `frontend/`:
 
 ```bash
-doppler run --config dev -- bun run test:e2e                        # All tests (~1-2 min)
-doppler run --config dev -- bun run test:e2e:ui                     # UI mode
-doppler run --config dev -- bunx playwright test tests/auth.spec.ts  # Specific file
+doppler run --config dev -- npx playwright test                  # full suite
+doppler run --config dev -- npx playwright test tests/api-coverage.spec.ts
+doppler run --config dev -- npx playwright test --ui             # interactive mode
 ```
 
-**Note:** Doppler provides JWT secret to tests AND backend (backend runs with nested `doppler run`)
-
-## Performance
-
-- **Parallel execution**: 4 workers for faster test runs
-- **Server reuse**: Backend/frontend start once, shared across all workers
-- **Optimized waits**: 10-30s timeouts based on operation type
-
-## Setup
-
-**Local:** Doppler CLI must be logged in (`doppler login`) and configured for the project (`doppler setup`)
-
-**CI/CD:** Add `DOPPLER_TOKEN` to GitHub repository secrets
-
-## Architecture
-
-- Backend: Port 8000 (started by Playwright)
-- Frontend: Port 4173 (started by Playwright)
-- NOT using Vercel deployments
-- Doppler injects all required env vars
-
-**Important:** Stop any running dev servers before running tests (they will conflict on ports 8000/5173)
+Doppler injects `PODIUM_JWT_SECRET`, `PODIUM_DATABASE_URL`, and other backend
+env vars. Playwright boots both servers on demand (see `playwright.config.ts`).
 
 ## Files
 
-`auth.spec.ts` (5) | `events.organizer.spec.ts` (4) | `events.attendee.spec.ts` (6) | `projects.spec.ts` (6) | `voting.spec.ts` (4) | `admin.spec.ts` (8) | `permissions.spec.ts` (7) | `voting-integrity.spec.ts` (4) | `wizard.spec.ts` (2)
+| File | Purpose |
+| --- | --- |
+| `auth.spec.ts` | Signup form UI |
+| `core.spec.ts` | Official events list, attend, wizard, event detail, leaderboard link |
+| `wizard.spec.ts` | Project submission wizard routing |
+| `permissions.spec.ts` | Admin panel visibility + leaderboard access |
+| `journey.spec.ts` | Full hackathon UI journey (organizer → attendee → vote → admin) |
+| `api-coverage.spec.ts` | **Every backend endpoint hit at least once via direct API calls** |
+
+Helpers: `helpers/api.ts` (endpoint wrappers), `helpers/users.ts` (secondary
+user setup), `helpers/jwt.ts` (magic-link JWT signing), `fixtures/auth.ts`
+(worker-scoped authed page + API contexts), `utils/data.ts` (`unique()` for
+collision-free data across workers).
+
+## Coverage guarantee
+
+`api-coverage.spec.ts` is the source of truth for endpoint coverage. When you
+add a route to `backend/podium/routers/`, add a matching test there. The file
+is organised by router (auth / users / events / projects / admin / test) so
+the mapping stays obvious.
+
+`GET /verify` and `POST /users/` are implicitly exercised by the per-worker
+auth fixture before any other test runs.
+
+## Backend test endpoints
+
+Two endpoints only exist when `enable_test_endpoints=true`:
+
+- `POST /events/test/create` — creates an event in VOTING phase; used by every
+  spec that needs an event.
+- `POST /events/test/cleanup` — reaps data for any user whose email matches
+  `test+pw*@example.com`, `organizer+*@test.local`, `attendee+*@test.local`,
+  or `admin+*@test.local`. Invoke it manually between local runs if the DB
+  gets cluttered; we don't call it from tests because it would stomp on
+  parallel workers.
+
+## Parallelism
+
+Four workers, fully parallel. Tests isolate state by using unique emails per
+worker (`test+pw{workerIndex}@example.com`) and timestamp-suffixed names for
+events and projects (see `utils/data.ts`). Secondary users created inside a
+test get a timestamp+worker tag so parallel runs don't collide.

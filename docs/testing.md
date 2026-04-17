@@ -18,47 +18,46 @@ Use `npx`, not `bunx`, for Playwright.
 
 Tests create users on-the-fly via `/users/` endpoint, then get a JWT via `/verify` using a magic link token (created with `signMagicLinkToken()`). The JWT is stored in localStorage and reused for UI navigation.
 
-## Test Structure
+## Test Files
 
-Journey tests follow this pattern:
-
-1. **Setup phase (API only):**
-   - Create users and authenticate
-   - Create test events
-   - Set up projects or other test data
-
-2. **Testing phase (UI):**
-   - Navigate pages and interact with components
-   - Verify user flows work end-to-end
-   - All feature testing happens through the browser
-
-Example:
-
-```typescript
-// Setup: Create user and authenticate
-const { token } = await createUserAndGetToken(email, name);
-const page = await createAuthenticatedPage(browser, token, baseURL);
-
-// Test: User joins event via EventSelector
-await page.goto('/');
-await page.getByText(eventName).click();
-await expect(page.getByText(/joined/i)).toBeVisible();
-
-// Test: User creates project via ProjectSubmissionWizard
-await page.getByRole('button', { name: /create new project/i }).click();
-// ... fill form, wait for API response ...
-```
+| File | Covers |
+|---|---|
+| `auth.spec.ts` | Sign-up flow |
+| `core.spec.ts` | Event selection, wizard visibility, leaderboard |
+| `journey.spec.ts` | Full end-to-end hackathon lifecycle (organizer + attendee) |
+| `wizard.spec.ts` | Project submission wizard steps |
+| `admin.spec.ts` | Admin panel: phase change, attendee removal, leaderboard badges |
+| `permissions.spec.ts` | Owner vs non-owner vs unauthenticated access |
+| `api-coverage.spec.ts` | API contract tests (one test per endpoint) |
 
 ## Key Patterns
 
-- **Authenticated pages:** Use `createAuthenticatedPage(browser, token, baseURL)` to set up localStorage with JWT
-- **Wait for API calls:** Use `page.waitForResponse()` to sync with backend
-- **Query selectors:** Prefer `getByRole()` for accessibility; use `getByText()` for content; avoid brittle selectors
-- **Test data:** Use timestamps in names (`projectName_${Date.now()}`) to avoid collisions
+**Register `waitForResponse` before navigation** — the response may arrive before Playwright evaluates the listener if you navigate first:
+```typescript
+// Correct
+const loaded = page.waitForResponse((r) => r.url().includes('/attendees') && r.ok());
+await page.goto(`/events/${slug}`);
+await loaded;
 
-## Best Practices
+// Wrong — may miss the response
+await page.goto(`/events/${slug}`);
+await page.waitForResponse(...);
+```
 
-- **API only for infrastructure:** Limit API calls to auth, event/project setup, and test cleanup
-- **Test real user flows:** All features should be tested through the UI
-- **Wait for responses:** Always wait for the expected API call when testing form submissions
-- **Handle flakiness:** Use reasonable timeouts (10s-15s) and `.catch(() => {})` for non-critical waits
+**SSR vs CSR:** SvelteKit `+page.ts` load functions run server-side on direct navigation — `waitForResponse` can't intercept them. Either assert the UI element directly (`toBeVisible`) or navigate client-side from within the app.
+
+**Secondary users:** `createUserAndGetToken()` creates a second user via API for multi-user scenarios. Always dispose contexts in a `finally` block:
+```typescript
+const { authedApi: otherApi, api: otherBase } = await createUserAndGetToken(email, name);
+try {
+  await attendEvent(otherApi, event.id);
+  // ...
+} finally {
+  await otherApi.dispose();
+  await otherBase.dispose();
+}
+```
+
+**Query selectors:** Prefer `getByRole()` for accessibility; use `getByText()` for content. Avoid `locator('.class-name')` unless scoping within a known container.
+
+**Test data:** Use `unique('Label', testInfo)` (from `tests/utils/data.ts`) for unique names that include the worker index — avoids cross-worker collisions.

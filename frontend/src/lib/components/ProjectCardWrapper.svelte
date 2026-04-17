@@ -3,18 +3,39 @@
   import UpdateProjectModal from "./UpdateProjectModal.svelte";
   import Modal from "./Modal.svelte";
   import type { ProjectPrivate, EventPrivate } from "$lib/client/types.gen";
-  import type { ValidationResult } from "$lib/validation";
+  import { validateProject } from "$lib/validation";
+  import { customInvalidateAll } from "$lib/misc";
 
   interface Props {
     project: ProjectPrivate;
     events: EventPrivate[];
-    validationResults?: Record<string, ValidationResult>;
   }
 
-  let { project, events, validationResults = {} }: Props = $props();
+  let { project, events }: Props = $props();
 
-  let editModal: Modal;
-  let validationModal: Modal;
+  let editModal = $state<Modal>();
+  let validationModal = $state<Modal>();
+  let revalidating = $state(false);
+
+  async function triggerRevalidation() {
+    revalidating = true;
+    try {
+      await validateProject(project.id);
+      // Give the background task a moment then refresh project data
+      await new Promise((r) => setTimeout(r, 1500));
+      await customInvalidateAll();
+    } finally {
+      revalidating = false;
+    }
+  }
+
+  const statusBadge = $derived(
+    project.validation_status === "valid"
+      ? { cls: "badge-success", label: "✅ Valid" }
+      : project.validation_status === "warning"
+        ? { cls: "badge-warning", label: "⚠️ Warning" }
+        : { cls: "badge-neutral", label: "Pending" }
+  );
 </script>
 
 <div class="m-4 min-w-0 @container">
@@ -42,35 +63,17 @@
         <!-- Validation Status -->
         <div class="flex flex-col items-center">
           <span class="text-xs text-base-content/70 mb-1">Status</span>
-          <button
-            class="badge badge-sm underline cursor-pointer whitespace-nowrap {validationResults[project.id]?.valid
-              ? 'badge-success'
-              : 'badge-warning'}"
-            onclick={() => validationModal?.openModal()}
-            disabled={!validationResults[project.id]}
-          >
-            {#if !validationResults[project.id]}
+          {#if revalidating}
+            <span class="badge badge-sm badge-neutral">
               <span class="loading loading-dots loading-xs"></span>
-            {:else if validationResults[project.id].valid}
-              ✅ Valid
-            {:else}
-              ❌ Invalid
-            {/if}
-          </button>
-
-          {#if validationResults[project.id]}
-            <Modal title="Validation Details" bind:this={validationModal}>
-              <div class="space-y-4">
-                <div class="flex items-center gap-2 mb-2">
-                  {#if validationResults[project.id].valid}
-                    <span class="text-success text-lg">✅ Valid</span>
-                  {:else}
-                    <span class="text-error text-lg">❌ Invalid</span>
-                  {/if}
-                </div>
-                <p class="text-sm text-base-content/70">{validationResults[project.id].message}</p>
-              </div>
-            </Modal>
+            </span>
+          {:else}
+            <button
+              class="badge badge-sm underline cursor-pointer whitespace-nowrap {statusBadge.cls}"
+              onclick={() => validationModal?.openModal()}
+            >
+              {statusBadge.label}
+            </button>
           {/if}
         </div>
 
@@ -110,5 +113,32 @@
     </div>
   </div>
 </div>
+
+<Modal title="Validation Details" bind:this={validationModal}>
+  <div class="space-y-4">
+    <div class="flex items-center gap-2 mb-2">
+      {#if project.validation_status === "valid"}
+        <span class="text-success text-lg">✅ Your project looks good!</span>
+      {:else if project.validation_status === "warning"}
+        <span class="text-warning text-lg">⚠️ Potential issue detected</span>
+      {:else}
+        <span class="text-base-content/70 text-lg">Validation pending…</span>
+      {/if}
+    </div>
+    {#if project.validation_message}
+      <p class="text-sm text-base-content/70">{project.validation_message}</p>
+    {/if}
+    <p class="text-xs text-base-content/50">
+      Validation warnings are informational — your project is never blocked.
+    </p>
+    <button
+      class="btn btn-sm btn-outline"
+      onclick={triggerRevalidation}
+      disabled={revalidating}
+    >
+      {revalidating ? "Re-validating…" : "Re-validate"}
+    </button>
+  </div>
+</Modal>
 
 <UpdateProjectModal preselectedProject={project} {events} bind:modal={editModal} />

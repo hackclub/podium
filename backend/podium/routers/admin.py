@@ -1,5 +1,6 @@
 """
-Admin/organizer endpoints. All routes require the requesting user to own the event.
+Admin/organizer endpoints. All routes require the requesting user to own the event
+(or be a superadmin, which bypasses the ownership check).
 Organizers can view event details, attendees, votes, referrals, and the leaderboard,
 and can remove attendees.
 """
@@ -7,11 +8,11 @@ and can remove attendees.
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Path
+from fastapi import APIRouter, Body, Depends, Path
 from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, Load
 
 from podium.db.postgres import (
     User,
@@ -55,13 +56,21 @@ class ReferralResponse(BaseModel):
 
 
 async def get_owned_event(
-    event_id: UUID, user: User, session: AsyncSession
+    event_id: UUID, user: User, session: AsyncSession, *extra_loads: Load
 ) -> Event:
-    """Get an event if the user owns it, else raise BAD_ACCESS."""
-    # Load with projects for max_votes_per_user computed field
-    stmt = select(Event).where(Event.id == event_id).options(selectinload(Event.projects))
+    """Load an event by ID, asserting ownership (or superadmin).
+
+    Pass additional selectinload() calls to load relationships in the same query,
+    avoiding a second round-trip:
+        event = await get_owned_event(id, user, session, selectinload(Event.attendees))
+    """
+    stmt = (
+        select(Event)
+        .where(Event.id == event_id)
+        .options(selectinload(Event.projects), *extra_loads)
+    )
     event = await scalar_one_or_none(session, stmt)
-    if not event or event.owner_id != user.id:
+    if not event or (event.owner_id != user.id and not user.is_superadmin):
         raise BAD_ACCESS
     return event
 
@@ -86,7 +95,6 @@ async def update_event_admin(
     """Update an event you own. Only fields provided in the body are changed."""
     event = await get_owned_event(event_id, user, session)
 
-    # exclude_unset so omitted fields stay untouched (PATCH semantics)
     for field, value in update.model_dump(exclude_unset=True).items():
         setattr(event, field, value)
 
@@ -102,17 +110,7 @@ async def get_event_attendees(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> list[UserAttendee]:
     """Get attendees of an event."""
-    await get_owned_event(event_id, user, session)
-
-    stmt = (
-        select(Event)
-        .where(Event.id == event_id)
-        .options(selectinload(Event.attendees))
-    )
-    event = await scalar_one_or_none(session, stmt)
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-
+    event = await get_owned_event(event_id, user, session, selectinload(Event.attendees))
     return [
         UserAttendee(
             id=a.id,
@@ -133,17 +131,7 @@ async def remove_attendee(
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
     """Remove an attendee from an event."""
-    await get_owned_event(event_id, user, session)
-
-    stmt = (
-        select(Event)
-        .where(Event.id == event_id)
-        .options(selectinload(Event.attendees))
-    )
-    event = await scalar_one_or_none(session, stmt)
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-
+    event = await get_owned_event(event_id, user, session, selectinload(Event.attendees))
     event.attendees = [a for a in event.attendees if a.id != user_id]
     await session.commit()
     return {"message": "Attendee removed"}
@@ -176,7 +164,6 @@ async def get_event_votes(
 ) -> list[VoteResponse]:
     """Get all votes for an event (admin only)."""
     await get_owned_event(event_id, user, session)
-
     votes = await scalar_all(session, select(Vote).where(Vote.event_id == event_id))
     return [
         VoteResponse(id=v.id, voter_id=v.voter_id, project_id=v.project_id, event_id=v.event_id)
@@ -192,7 +179,6 @@ async def get_event_referrals(
 ) -> list[ReferralResponse]:
     """Get all referrals for an event (admin only)."""
     await get_owned_event(event_id, user, session)
-
     referrals = await scalar_all(
         session, select(Referral).where(Referral.event_id == event_id)
     )

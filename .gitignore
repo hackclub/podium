@@ -10,3 +10,5 @@ backend/podium/cache/generated/
 .env
 
 **/.DS_Store
+claude-plans/
+test-results/

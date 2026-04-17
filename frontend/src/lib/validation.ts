@@ -12,18 +12,15 @@ export function isValidItchUrl(url: string): boolean {
  * Regex for GitHub URL validation
  */
 export function isValidGitHubUrl(url: string): boolean {
-  const regex =
-    /^(https?:\/\/)?(github\.com|gitee\.com)\/[a-zA-Z0-9\-_]+\/[a-zA-Z0-9\-_.]+/;
+  const regex = /^(https?:\/\/)?github\.com\/[a-zA-Z0-9\-_]+\/[a-zA-Z0-9\-_.]+/;
   return regex.test(url?.trim() || "");
 }
 
-export interface ValidationResult {
-  valid: boolean;
-  message: string;
-}
+import type { ValidationResult } from "$lib/client/types.gen";
+export type { ValidationResult };
 
 /**
- * Validate a project's demo URL via the backend itch-police validator.
+ * Queues background validation for a project.
  * Calls POST /projects/validate
  */
 export async function validateProject(

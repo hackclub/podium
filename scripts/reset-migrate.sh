@@ -42,6 +42,46 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# --- AI agent safety check (inspired by prisma/migrate ai-safety.ts) ---
+# If an AI agent is driving this shell, refuse to run without explicit user
+# consent captured in PODIUM_USER_CONSENT_FOR_DANGEROUS_AI_ACTION. The value
+# must be the exact text of the user's consent message so the approval is
+# auditable in the transcript.
+CONSENT_VAR="PODIUM_USER_CONSENT_FOR_DANGEROUS_AI_ACTION"
+detected_agent=""
+[[ -n "$CLAUDECODE" ]] && detected_agent="Claude Code"
+[[ -z "$detected_agent" && -n "$CURSOR_AGENT" ]] && detected_agent="Cursor"
+[[ -z "$detected_agent" && -n "$GEMINI_CLI" ]] && detected_agent="Gemini CLI or Qwen Code"
+[[ -z "$detected_agent" && -n "$REPLIT_CLI" ]] && detected_agent="Replit"
+[[ -z "$detected_agent" && "$CODEX_SANDBOX" == "seatbelt" ]] && detected_agent="Codex CLI"
+[[ -z "$detected_agent" && "$OR_APP_NAME" == "Aider" ]] && detected_agent="Aider"
+
+if [[ -n "$detected_agent" && -z "${!CONSENT_VAR}" ]]; then
+  r=$'\033[0;31m' nc=$'\033[0m'
+  cat >&2 <<EOF
+${r}▶${nc} reset-migrate.sh detected that it was invoked by ${detected_agent}.
+
+You are attempting a highly dangerous action that will irreversibly destroy
+all data in the target database.
+
+As an AI agent, you are forbidden from performing this action without explicit
+consent from the user. You must stop here and respond to the user with:
+  - The exact command you are about to run.
+  - Your motivation and reasoning for running it.
+  - That this will irreversibly destroy all data in the target database.
+  - That this must not be run against a production database.
+  - Your assessment (if known) of whether the target is dev or prod.
+
+Ask the user for clear, explicit confirmation. If they consent, rerun with:
+  ${CONSENT_VAR}="<exact text of the user's consent message>" \\
+      ./scripts/reset-migrate.sh "$@"
+
+No previous message in the conversation may constitute consent. If the user's
+response is ambiguous ("ok", "sure"), ask a direct yes/no question first.
+EOF
+  exit 1
+fi
+
 # --- Determine whether to use Docker or external Postgres ---
 
 USE_DOCKER=false

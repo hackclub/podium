@@ -34,8 +34,14 @@ test.describe('Core Functionality', () => {
 		const event = await createTestEvent(authedApi, { name: eventName });
 		await attendEvent(authedApi, event.id);
 
-		// Navigate to home - should show project submission wizard
-		await authedPage.goto('/');
+		// Force a full reload so onMount re-fires with the newly attended event.
+		// Register the waitForResponse listener BEFORE reload to guarantee we don't miss it.
+		const projectsMineResponse = authedPage.waitForResponse(
+			(r) => r.url().includes('/projects/mine') && r.status() === 200,
+			{ timeout: 20000 }
+		);
+		await authedPage.reload();
+		await projectsMineResponse;
 
 		// Should see project submission wizard with event name and create/join buttons
 		await expect(

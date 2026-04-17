@@ -1,13 +1,19 @@
 <script lang="ts">
-  import type { ProjectPublic, EventPrivate } from "$lib/client/types.gen";
+  import type { ProjectPrivate, EventPrivate } from "$lib/client/types.gen";
   import ProjectCard from "$lib/components/ProjectCard.svelte";
 
   interface Props {
-    projects: ProjectPublic[];
+    projects: ProjectPrivate[];
     event?: EventPrivate;
   }
 
   let { projects, event }: Props = $props();
+
+  function validationBadge(status: string) {
+    if (status === "valid") return { cls: "badge-success", label: "✅ Valid" };
+    if (status === "warning") return { cls: "badge-warning", label: "⚠️ Warning" };
+    return { cls: "badge-neutral", label: "Pending" };
+  }
 </script>
 
 <div class="card bg-base-200">
@@ -28,6 +34,11 @@
                 class="bg-base-100/90 backdrop-blur-sm rounded-lg p-2 text-xs"
               >
                 <div class="font-medium">Votes: {project.points || 0}</div>
+                <div class="mt-1">
+                  <span class="badge badge-xs {validationBadge(project.validation_status).cls}">
+                    {validationBadge(project.validation_status).label}
+                  </span>
+                </div>
               </div>
             </div>
 

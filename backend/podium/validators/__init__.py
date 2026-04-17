@@ -1,5 +1,21 @@
-"""Validators for project validation."""
+"""
+Project validators.
 
-from podium.validators.itch_police import is_playable, is_itch_url
+Public surface: import individual validator modules for their validate()
+functions, or use base.ValidationResult as the return type.
 
-__all__ = ["is_playable", "is_itch_url"]
+    from podium.validators import itch, github
+    from podium.validators.base import ValidationResult
+    from podium.validators import CUSTOM_VALIDATORS
+"""
+
+from podium.validators.base import ValidationResult
+from podium.validators import itch, github
+from podium.validators.custom import REGISTRY as CUSTOM_VALIDATORS
+
+__all__ = [
+    "ValidationResult",
+    "itch",
+    "github",
+    "CUSTOM_VALIDATORS",
+]

@@ -1,18 +1,7 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import ProjectCardWrapper from "$lib/components/ProjectCardWrapper.svelte";
-  import { onMount } from "svelte";
-  import { validateProject, type ValidationResult } from "$lib/validation";
   let { data }: { data: PageData } = $props();
-
-  let projectQualityResults: Record<string, ValidationResult> = $state({});
-
-  onMount(async () => {
-    for (const project of data.projects) {
-      const result = await validateProject(project.id);
-      projectQualityResults[project.id] = result;
-    }
-  });
 </script>
 
 <div class="max-w-6xl mx-auto space-y-8">
@@ -27,7 +16,6 @@
               <ProjectCardWrapper
                 {project}
                 events={data.events as any}
-                validationResults={projectQualityResults}
               />
             {/key}
           {/each}
