@@ -1,0 +1,22 @@
+name: Deploy to Orchard
+
+on:
+  workflow_run:
+    workflows: ['Publish Backend Docker Image']
+    types: [completed]
+    branches: ['main']
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Trigger Orchard deploy
+        env:
+          WEBHOOK_URL: ${{ secrets.ORCHARD_WEBHOOK_URL }}
+        run: |
+          curl -sf -X POST "$WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d '{"tag": "latest"}'
