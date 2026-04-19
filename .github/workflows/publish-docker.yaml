@@ -6,6 +6,7 @@ on:
     paths:
       - 'backend/**'
   workflow_dispatch:
+  workflow_call:
 
 env:
   REGISTRY: ghcr.io

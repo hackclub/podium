@@ -8,9 +8,17 @@ on:
   workflow_dispatch:
 
 jobs:
+  build:
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/publish-docker.yaml
+    permissions:
+      contents: read
+      packages: write
+
   deploy:
+    needs: [build]
+    if: always() && (github.event.workflow_run.conclusion == 'success' || needs.build.result == 'success')
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Trigger Orchard deploy
