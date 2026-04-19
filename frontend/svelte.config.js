@@ -14,7 +14,7 @@ const config = {
     // 	precompress: false,
     // 	strict: true
     // }),
-    adapter: adapter(), // auto mode
+    adapter: adapter({ runtime: 'nodejs22.x' }),
     alias: {
       $lib: "src/lib",
     },

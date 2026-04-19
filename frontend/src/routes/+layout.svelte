@@ -50,18 +50,15 @@
   const hasProject = $derived(getHasProject());
 
   // Navigation options — always show Events; show Projects only once user has submitted one
-  const navOptions = $derived(
-    hasProject
-      ? {
-          "/": { label: "Home", icon: "home" },
-          "/projects": { label: "Projects", icon: "projects" },
-          "/events": { label: "Events", icon: "events" },
-        }
-      : {
-          "/": { label: "Home", icon: "home" },
-          "/events": { label: "Events", icon: "events" },
-        },
-  );
+  const navOptions = $derived.by(() => {
+    const base = hasProject
+      ? { "/": { label: "Home", icon: "home" }, "/projects": { label: "Projects", icon: "projects" }, "/events": { label: "Events", icon: "events" } }
+      : { "/": { label: "Home", icon: "home" }, "/events": { label: "Events", icon: "events" } };
+    if (getAuthenticatedUser().user.is_superadmin) {
+      return { ...base, "/superadmin": { label: "Superadmin", icon: "create" } };
+    }
+    return base;
+  });
 
   // Reset Airtable hits counter on page navigation
   $effect(() => {

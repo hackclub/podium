@@ -12,6 +12,7 @@ export const defaultUser: UserPrivate = {
   phone: "",
   vote_ids: [],
   has_address: false,
+  is_superadmin: false,
 };
 
 export const defaultAuthenticatedUser: AuthenticatedUser = {

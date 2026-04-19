@@ -9,16 +9,24 @@ Two mechanisms protect backend endpoints from abuse:
 Unauthenticated endpoints require a Turnstile CAPTCHA token instead of IP-based rate limiting. The token comes from the Turnstile widget on the frontend and is verified server-side via the `X-Turnstile-Token` header.
 
 **Endpoints protected by Turnstile:**
-- `POST /request-login`
-- `GET /verify`
 - `POST /users/` (signup)
 - `GET /users/exists`
 
-**Config:** Set `PODIUM_TURNSTILE_SECRET_KEY` in Doppler (prod) / `settings.toml` (dev). If empty, verification is skipped — no code change needed for local dev.
+`POST /request-login` is intentionally unprotected: the signup flow reuses the same single-use token for both `POST /users/` and the immediate `POST /request-login` call, so validating twice would fail the second. The email rate limiter provides bot protection instead.
 
-> ⚠️ **Production**: Never deploy without `PODIUM_TURNSTILE_SECRET_KEY` set. Unauthenticated endpoints will be completely unprotected without it.
+**Config:**
+- **Backend:** `PODIUM_TURNSTILE_SECRET_KEY` in Doppler. If empty, server-side verification is skipped — no code change needed.
+- **Frontend:** `PUBLIC_TURNSTILE_SITE_KEY` needs to be set for the widget to render and work
+
+> ⚠️ **Production**: Both keys must be set. Without `PODIUM_TURNSTILE_SECRET_KEY` the backend accepts any request. Without `PUBLIC_TURNSTILE_SITE_KEY` the widget never renders.
 
 **Implementation:** `backend/podium/validators/turnstile.py` — `require_turnstile` FastAPI dependency.
+
+### Disposable email blocking
+
+At signup and login, the email is checked against [MailChecker](https://github.com/FGRibreau/mailchecker) (55 000+ known disposable domains). Blocked emails receive a 400 error. Fails open — if MailChecker itself throws, the request proceeds rather than blocking a real user.
+
+**Implementation:** `backend/podium/validators/email.py` — `is_disposable_email()`, called in `auth.py` and `users.py`. No config needed.
 
 ### slowapi (authenticated endpoints)
 

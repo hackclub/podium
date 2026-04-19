@@ -15,7 +15,7 @@
    * - Invalid hash values are ignored (user cannot break the flow)
    */
 
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, untrack } from "svelte";
   import { replaceState } from "$app/navigation";
   import JoinProject from "./JoinProject.svelte";
   import type { ProjectPrivate, EventPrivate } from "$lib/client";
@@ -73,7 +73,7 @@
 
   let { flagshipEvents = [], projects = $bindable([]), welcomeMessage }: Props = $props();
 
-  let currentEvent = $state(flagshipEvents[0]);
+  let currentEvent = $state(untrack(() => flagshipEvents[0]));
 
   // Address form state — only used in collectAddress step
   let addressForm = $state({ street_1: "", street_2: "", city: "", state: "", zip_code: "", country: "" });

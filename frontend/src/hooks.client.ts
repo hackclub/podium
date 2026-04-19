@@ -10,9 +10,11 @@ import { PUBLIC_API_URL } from "$env/static/public";
 // `replaysSessionSampleRate` and `replaysOnErrorSampleRate` options.
 Sentry.init({
   dsn: "https://489f4a109d07aeadfd13387bcd3197ab@o4508979744210944.ingest.de.sentry.io/4508979747553360",
+  tracesSampleRate: 1.0,
   replaysSessionSampleRate: 0,
   replaysOnErrorSampleRate: 1,
   integrations: [
+    Sentry.browserTracingIntegration(),
     Sentry.replayIntegration({
       maskAllText: false,
     }),

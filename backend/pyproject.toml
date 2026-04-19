@@ -33,6 +33,7 @@ dependencies = [
     "beautifulsoup4>=4.13.4",
     "slowapi>=0.1.9",
     "mailchecker>=6.0.1",
+    "fastapi-pagination[sqlalchemy]>=0.15.12",
 ]
 
 [project.optional-dependencies]

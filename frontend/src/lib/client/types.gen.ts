@@ -42,6 +42,7 @@ export type EventPrivate = {
     demo_validation: string;
     owner_id: string;
     custom_validator: (string | null);
+    deleted_at?: (string | null);
 };
 
 /**
@@ -185,6 +186,7 @@ export type UserPrivate = {
     phone?: string;
     vote_ids?: Array<(string)>;
     has_address?: boolean;
+    is_superadmin?: boolean;
 };
 
 /**

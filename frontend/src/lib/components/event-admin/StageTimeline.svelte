@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import { EventsService } from "$lib/client/sdk.gen";
   import type { EventPrivate } from "$lib/client/types.gen";
   import { handleError } from "$lib/misc";
@@ -13,7 +14,7 @@
 
   // Local mirror so clicking a stage updates the timeline immediately even if
   // the parent doesn't reassign the `event` prop.
-  let phase = $state(event.phase);
+  let phase = $state(untrack(() => event.phase));
   $effect(() => {
     phase = event.phase;
   });

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import { EventsService, ProjectsService } from "$lib/client/sdk.gen";
   import type { ProjectCreate, EventPublic } from "$lib/client";
   import { toast } from "svelte-sonner";
@@ -23,7 +24,7 @@
     demo: "",
     image_url: "",
     description: "",
-    event_id: preselectedEvent?.id || "",
+    event_id: untrack(() => preselectedEvent?.id || ""),
     hours_spent: 0,
   });
   let events: EventPublic[] = $state([]);

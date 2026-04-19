@@ -5,7 +5,7 @@
   let eventId: string;
 
   let { data }: { data: PageData } = $props();
-  let { projects } = data;
+  let projects = $derived(data.projects);
 </script>
 
 <div class="container mx-auto p-6">

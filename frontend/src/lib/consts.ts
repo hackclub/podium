@@ -20,9 +20,9 @@ export const themes = [
   "sleepover",
   // "undercity",
 ];
-export const lightTheme = "nord";
+export const lightTheme = "sleepover";
 // export const darkTheme = "coffee";
-export const darkTheme = "night";
+export const darkTheme = "sleepover";
 export const daisyUIThemes = createDaisyUIThemes(darkTheme, lightTheme, themes);
 
 export const loadingTextOptions = [

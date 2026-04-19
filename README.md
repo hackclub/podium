@@ -12,7 +12,7 @@ Peer-judging platform for Hack Club hackathons.
 
 ## For Organizers
 
-Events are pre-created by admins (not users). Use `backend/scripts/manage_events.py` or NocoDB to manage events.
+Events are pre-created by admins (not users). Use `backend/scripts/manage.py` or NocoDB to manage events.
 
 See [docs/architecture.md](docs/architecture.md) for system details.
 

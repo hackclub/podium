@@ -20,7 +20,6 @@ import httpx
 from podium.config import settings
 from podium.constants import BAD_AUTH
 from podium.validators.email import is_disposable_email
-from podium.validators.turnstile import require_turnstile
 from sqlalchemy.orm import selectinload
 from podium.db.postgres import User, UserPrivate, get_session, scalar_one_or_none, user_to_private
 
@@ -100,7 +99,7 @@ async def request_login(
     email = user.email.strip().lower()
     # Block disposable emails from requesting magic links
     if is_disposable_email(email):
-        raise HTTPException(status_code=400, detail="Disposable email addresses are not allowed")
+        raise HTTPException(status_code=400, detail="Temporary/disposable email addresses aren't allowed — please use your real email")
     existing = await scalar_one_or_none(session, select(User).where(User.email == email))
     if existing is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -117,7 +116,6 @@ class AuthenticatedUser(BaseModel):
 async def verify_token(
     token: Annotated[str, Query()],
     session: Annotated[AsyncSession, Depends(get_session)],
-    _turnstile: None = Depends(require_turnstile),
 ) -> AuthenticatedUser:
     """Verify a magic link token and return an access token."""
     try:

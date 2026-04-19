@@ -97,8 +97,8 @@ class UserPrivate(UserPublic):
     last_name: str
     phone: str = ""
     vote_ids: list[UUID] = []
-    # True if the user has a street address on file — safe to expose without leaking the address itself
     has_address: bool = False
+    is_superadmin: bool = False
 
 
 class UserInternal(UserPrivate, _AddressFields):
@@ -127,6 +127,7 @@ def user_to_private(user: "User") -> "UserPrivate":
         phone=user.phone,
         vote_ids=[v.id for v in user.votes],
         has_address=has_complete_address(user),
+        is_superadmin=user.is_superadmin,
     )
 
 

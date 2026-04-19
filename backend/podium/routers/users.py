@@ -83,7 +83,7 @@ async def create_user(
 ):
     email = user.email.strip().lower()
     if is_disposable_email(email):
-        raise HTTPException(status_code=400, detail="Disposable email addresses are not allowed")
+        raise HTTPException(status_code=400, detail="Temporary/disposable email addresses aren't allowed — please use your real email")
     existing = await scalar_one_or_none(session, select(User).where(User.email == email))
     if existing:
         raise HTTPException(status_code=400, detail="User already exists")

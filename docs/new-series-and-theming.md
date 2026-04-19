@@ -12,9 +12,9 @@ All official events are treated identically in the UI — users just pick which 
 
 1. **Set `ACTIVE_EVENT_SERIES`** in Doppler (production) or `settings.toml` (local dev) to the new series slug (e.g., `apocalypse-2025`)
 
-2. **Create events** using the manage_events TUI:
+2. **Create events** using the admin TUI:
    ```bash
-   cd backend && doppler run --config dev -- uv run python scripts/manage_events.py
+   cd backend && doppler run --config dev -- uv run python scripts/manage.py
    ```
    Set each event's `feature_flags_csv` to match the active series slug.
 

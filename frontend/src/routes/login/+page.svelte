@@ -17,6 +17,9 @@
 
   // Turnstile token — refreshed each time the user solves the challenge
   let turnstileToken = $state("");
+  // Set to true if the Turnstile widget fails to load (bad key, network error, etc.)
+  // In that case we fall through and let the backend decide — don't permanently block the user.
+  let turnstileFailed = $state(false);
 
   let isVerifying = $state(false);
   let showSignupFields = $state(false);
@@ -51,7 +54,8 @@
     return turnstileToken ? { "X-Turnstile-Token": turnstileToken } : {};
   }
 
-  async function checkUserExists(): Promise<boolean> {
+  // Returns true (exists), false (doesn't exist), or null (request error — already toasted).
+  async function checkUserExists(): Promise<boolean | null> {
     const { data, error: err } = await UsersService.userExistsUsersExistsGet({
       query: { email: userInfo.email },
       headers: turnstileHeaders(),
@@ -59,15 +63,13 @@
     });
     if (err || !data) {
       handleError(err);
-      return false;
+      return null;
     }
     if (data.exists) {
       showSignupFields = false;
       return true;
-    } else {
-      return false;
-      // If the user doesn't exist, login() will toast and show the signup fields
     }
+    return false;
   }
 
   // Function to handle login
@@ -79,6 +81,7 @@
     }
     // Even though error handling is done in the API, the try-finally block is used to ensure the loading state is reset
     const userExists = await checkUserExists();
+    if (userExists === null) return;
     if (userExists) {
       // Request magic link for the provided email if the user exists
       const { error: err } = await AuthService.requestLoginRequestLoginPost({
@@ -373,6 +376,7 @@
             on:timeout={() => (turnstileToken = "")}
             on:error={() => {
               turnstileToken = "";
+              turnstileFailed = true;
               toast.error("Security check failed to load. Please refresh the page.");
             }}
           />
@@ -382,7 +386,7 @@
       <div class="flex justify-center">
         <button
           class="btn btn-primary mt-4"
-          disabled={!!env.PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken}
+          disabled={!!env.PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken && !turnstileFailed}
           use:asyncClick={eitherLoginOrSignUp}
         >
           Login / Sign Up

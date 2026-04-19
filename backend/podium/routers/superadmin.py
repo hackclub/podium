@@ -5,6 +5,8 @@ Superadmins can:
   - List all events (including soft-deleted)
   - Create real events (not limited to test endpoints)
   - Soft-delete events (sets deleted_at, hides from public listings)
+  - Update any event field including owner (by email)
+  - List all users
 
 Regular admin endpoints (admin.py) already grant superadmins full owner access
 to any event via the get_owned_event helper.
@@ -15,6 +17,9 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path
+from pydantic import ConfigDict
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate
 from pydantic import BaseModel
 from secrets import token_urlsafe
 from slugify import slugify
@@ -26,8 +31,8 @@ from podium.db.postgres import (
     User,
     Event,
     EventPrivate,
+    EventUpdate,
     get_session,
-    scalar_all,
     scalar_one_or_none,
 )
 from podium.routers.auth import get_current_user
@@ -54,17 +59,26 @@ class EventCreate(BaseModel):
     feature_flags_csv: str = ""
 
 
+class SuperadminEventUpdate(EventUpdate):
+    """EventUpdate extended with superadmin-only fields."""
+    owner_email: str | None = None
+
+
+class UserSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    email: str
+    display_name: str
+    is_superadmin: bool
+
+
 @router.get("/events")
 async def list_all_events(
     user: Annotated[User, Depends(require_superadmin)],
     session: Annotated[AsyncSession, Depends(get_session)],
-) -> list[EventPrivate]:
+) -> Page[EventPrivate]:
     """List all events, including soft-deleted ones."""
-    events = await scalar_all(
-        session,
-        select(Event).options(selectinload(Event.projects)),
-    )
-    return [EventPrivate.model_validate(e) for e in events]
+    return await paginate(session, select(Event).options(selectinload(Event.projects)))
 
 
 @router.post("/events")
@@ -107,3 +121,43 @@ async def soft_delete_event(
     event.deleted_at = datetime.now(UTC)
     await session.commit()
     return {"message": "Event soft-deleted", "deleted_at": event.deleted_at.isoformat()}
+
+
+@router.patch("/events/{event_id}")
+async def update_event(
+    event_id: Annotated[UUID, Path(title="Event ID")],
+    update: SuperadminEventUpdate,
+    user: Annotated[User, Depends(require_superadmin)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> EventPrivate:
+    """Update any event field. Use owner_email to transfer ownership."""
+    event = await session.get(Event, event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    data = update.model_dump(exclude_unset=True)
+
+    if "owner_email" in data:
+        owner_email = data.pop("owner_email")
+        new_owner = await scalar_one_or_none(session, select(User).where(User.email == owner_email))
+        if not new_owner:
+            raise HTTPException(status_code=404, detail=f"User '{owner_email}' not found")
+        event.owner_id = new_owner.id
+
+    for field, value in data.items():
+        setattr(event, field, value)
+
+    await session.commit()
+
+    stmt = select(Event).where(Event.id == event.id).options(selectinload(Event.projects))
+    event = await scalar_one_or_none(session, stmt)
+    return EventPrivate.model_validate(event)
+
+
+@router.get("/users")
+async def list_users(
+    user: Annotated[User, Depends(require_superadmin)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> Page[UserSummary]:
+    """List all users."""
+    return await paginate(session, select(User))

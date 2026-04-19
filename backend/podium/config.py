@@ -103,6 +103,6 @@ settings.validators.register(
 
 try:
     settings.validators.validate()
-except Exception:
+except Exception as e:
     sys.stderr.write("\n⚠️  Configuration validation failed. Check that:\n  - Doppler is configured correctly (run 'doppler setup')\n  - No stale DOPPLER_TOKEN exists in .env\n  - Required secrets are set in Doppler\n\n")
-    raise
+    raise RuntimeError(str(e)) from None

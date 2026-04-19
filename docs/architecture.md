@@ -49,16 +49,27 @@ Key rules:
 
 ## Validation System
 
-Background validation runs after every project create/update — never blocks the user. Results are informational badges (`pending → valid | warning`).
+Validation has two independent layers:
 
-Validation is configured per-event via `repo_validation` and `demo_validation` fields:
+**1. Frontend (instant, non-blocking warnings)** — `frontend/src/lib/validation.ts`
+Shows a warning as the user types. Only implemented for `github` and `itch`; setting either field to `none` or `custom` shows no frontend warning at all. There is no frontend equivalent for custom validators.
 
-| Setting | What it does |
-|---|---|
-| `repo_validation: github` | Checks repo exists and is public via GitHub API |
-| `demo_validation: itch` | Checks itch.io page has `.game_frame` (browser-playable) |
-| `repo_validation: custom` | Calls the named entry in `validators/custom/` |
-| `none` | Skips validation for that field |
+**2. Backend (background, async)** — `backend/podium/validators/`
+Runs after every project create/update; never blocks submission. Results appear as badges (`pending → valid | warning`).
+
+Validation strategy is configured per-event via `repo_validation` and `demo_validation`:
+
+| Setting | Frontend warning | Backend check |
+|---|---|---|
+| `github` | Regex check for valid GitHub URL | GitHub public API — repo must exist |
+| `itch` | Regex check for valid itch.io URL | Scrapes itch.io for `.game_frame` (browser-playable) |
+| `custom` | None | Calls the named module from `validators/custom/REGISTRY` |
+| `none` | None | Skipped |
+
+**Adding a custom backend validator:**
+1. Create `backend/podium/validators/custom/<name>.py` implementing `validate_repo(url)` and/or `validate_demo(url)`, each returning `ValidationResult`.
+2. Register it in `validators/custom/__init__.py`: `REGISTRY["<name>"] = <module>`.
+3. Set the event's `custom_validator` field to `"<name>"` and set `repo_validation` and/or `demo_validation` to `"custom"`.
 
 Events can also set `require_address: true` to enforce that users have a shipping address on file before submitting — this is a hard block at the API level.
 
@@ -102,8 +113,8 @@ Frontend (`frontend/src/`):
 
 ## Admin Tools
 
-- `backend/scripts/manage_events.py` — TUI: create events, manage attendees, toggle superadmin, delete users/events
-- `POST /superadmin/events` — API: create real events (requires `is_superadmin`)
+- `backend/scripts/manage.py` — TUI: create events, manage attendees, toggle superadmin, delete users/events
+- `/superadmin` — Web UI (requires `is_superadmin`): list/create/delete events, edit owner and validation settings, list users
 - `PATCH /events/admin/{id}` — API: update any event field (owners and superadmins)
 - NocoDB — spreadsheet UI for the database (see nocodb.md)
 

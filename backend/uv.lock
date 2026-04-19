@@ -709,6 +709,26 @@ wheels = [
 ]
 
 [[package]]
+name = "fastapi-pagination"
+version = "0.15.12"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "pydantic" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/11/71/7381bf08f9fb6a890ec41a7ee5191ca564e0af94b899c2006fddaf07d78f/fastapi_pagination-0.15.12.tar.gz", hash = "sha256:914b41e07b8556de34c12d3568c9b7137eb62a3558420061a4acbebf7e729a08", size = 595227, upload-time = "2026-03-28T12:51:03.14Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d2/2f/644fd77ecac100da965221751ae4f7604e149c58c46c1d96c37e828bb5f7/fastapi_pagination-0.15.12-py3-none-any.whl", hash = "sha256:758e21157b2844feecb2409072f1433e24f2dc9526ae7906aa1a1b28622a970a", size = 60921, upload-time = "2026-03-28T12:51:04.288Z" },
+]
+
+[package.optional-dependencies]
+sqlalchemy = [
+    { name = "sqlakeyset" },
+    { name = "sqlalchemy" },
+]
+
+[[package]]
 name = "fastar"
 version = "0.11.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2086,6 +2106,7 @@ dependencies = [
     { name = "dynaconf" },
     { name = "fastapi", extra = ["standard"] },
     { name = "fastapi-cache2", extra = ["memcache"] },
+    { name = "fastapi-pagination", extra = ["sqlalchemy"] },
     { name = "httpx" },
     { name = "langchain" },
     { name = "langchain-google-genai" },
@@ -2135,6 +2156,7 @@ requires-dist = [
     { name = "dynaconf", specifier = ">=3.2.6,<4.0.0" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.5,<0.116.0" },
     { name = "fastapi-cache2", extras = ["memcache"], specifier = ">=0.2.2,<0.3.0" },
+    { name = "fastapi-pagination", extras = ["sqlalchemy"], specifier = ">=0.15.12" },
     { name = "httpx", specifier = ">=0.28.1,<0.29.0" },
     { name = "langchain", specifier = ">=0.3.26,<0.4.0" },
     { name = "langchain-google-genai", specifier = ">=2.1.7,<3.0.0" },
@@ -2965,6 +2987,20 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/7b/ae/2d9c981590ed9999a0d91755b47fc74f74de286b0f5cee14c9269041e6c4/soupsieve-2.8.3.tar.gz", hash = "sha256:3267f1eeea4251fb42728b6dfb746edc9acaffc4a45b27e19450b676586e8349", size = 118627, upload-time = "2026-01-20T04:27:02.457Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/46/2c/1462b1d0a634697ae9e55b3cecdcb64788e8b7d63f54d923fcd0bb140aed/soupsieve-2.8.3-py3-none-any.whl", hash = "sha256:ed64f2ba4eebeab06cc4962affce381647455978ffc1e36bb79a545b91f45a95", size = 37016, upload-time = "2026-01-20T04:27:01.012Z" },
+]
+
+[[package]]
+name = "sqlakeyset"
+version = "2.0.1775222100"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging" },
+    { name = "python-dateutil" },
+    { name = "sqlalchemy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/75/18/0a06e22a66df13debde3eb799f7f31f17bf02242836f47a20e2c8c45e44c/sqlakeyset-2.0.1775222100.tar.gz", hash = "sha256:c2988c289181fa3615f3c091308a06001d83fa6ebc0591e7d18e08d8b92ee012", size = 114403, upload-time = "2026-04-03T13:15:03.428Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d0/f7/ff211cc8bc2968459b78a63c8b62b3b6819dff0abdfd260aa5ef012a73ec/sqlakeyset-2.0.1775222100-py3-none-any.whl", hash = "sha256:5004e671ddc7d9ecf105bcbd46c079b314cc6d413db3159e63a3567e51e28fa3", size = 27369, upload-time = "2026-04-03T13:15:02.219Z" },
 ]
 
 [[package]]

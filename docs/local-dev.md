@@ -35,6 +35,26 @@ docker compose up -d
 
 Redis is optional — the app works normally without it (caching is silently disabled). To enable caching locally, set `PODIUM_REDIS_URL=redis://localhost:6379` in your Doppler dev config or `settings.toml`.
 
+## Turnstile (CAPTCHA)
+
+Leave `PUBLIC_TURNSTILE_SITE_KEY` unset locally — the widget won't render and the login form works normally.
+
+To test with Turnstile active, use [Cloudflare's test keys](https://developers.cloudflare.com/turnstile/troubleshooting/testing/) (no account needed, work on localhost):
+
+| `PUBLIC_TURNSTILE_SITE_KEY` | Behavior |
+|---|---|
+| `1x00000000000000000000AA` | Always passes (visible widget) |
+| `2x00000000000000000000AB` | Always blocks (visible widget) |
+| `3x00000000000000000000FF` | Forces interaction |
+
+Test keys generate dummy tokens (`XXXX.DUMMY.TOKEN.XXXX`) that your real production secret will reject. Set `PODIUM_TURNSTILE_SECRET_KEY` to a matching test secret:
+
+| `PODIUM_TURNSTILE_SECRET_KEY` | Behavior |
+|---|---|
+| `1x0000000000000000000000000000000AA` | Always passes |
+| `2x0000000000000000000000000000000AA` | Always fails |
+| `3x0000000000000000000000000000000AA` | Returns "token already spent" |
+
 ## Regenerate API Client
 
 After backend API changes:

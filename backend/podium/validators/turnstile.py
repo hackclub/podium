@@ -22,7 +22,7 @@ async def require_turnstile(request: Request) -> None:
 
     token = request.headers.get("X-Turnstile-Token", "")
     if not token:
-        raise HTTPException(status_code=403, detail="Missing Turnstile token")
+        raise HTTPException(status_code=403, detail="Security check required — please complete the CAPTCHA and try again")
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -32,7 +32,7 @@ async def require_turnstile(request: Request) -> None:
             )
         result = response.json()
     except (httpx.RequestError, ValueError) as exc:
-        raise HTTPException(status_code=503, detail="Turnstile verification unavailable") from exc
+        raise HTTPException(status_code=503, detail="Security check is temporarily unavailable — please try again in a moment") from exc
 
     if not result.get("success"):
-        raise HTTPException(status_code=403, detail="Turnstile verification failed")
+        raise HTTPException(status_code=403, detail="Security check failed — please refresh the page and try again")

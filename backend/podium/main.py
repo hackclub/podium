@@ -5,6 +5,7 @@ from typing import AsyncIterator
 
 import sentry_sdk
 from fastapi import FastAPI
+from fastapi_pagination import add_pagination
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -81,6 +82,8 @@ for router_file in routers_dir.glob("*.py"):
         )
         if hasattr(module, "router"):
             app.include_router(module.router)
+
+add_pagination(app)
 
 
 def main():

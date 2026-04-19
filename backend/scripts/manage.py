@@ -1,10 +1,18 @@
 #!/usr/bin/env python3
 """
-TUI for managing events in the database.
+TUI for managing Podium events and users.
 
 Usage:
     cd backend
-    doppler run --config dev -- uv run python scripts/manage_events.py
+    doppler run --config dev -- uv run python scripts/manage.py
+
+Keybindings:
+    q           Quit
+    r           Refresh data from DB
+    Tab         Switch between Events / Users tabs
+    n           New event  (Events tab only)
+    a           Manage attendees  (Events tab only)
+    d           Delete selected row
 """
 
 import re
@@ -12,7 +20,11 @@ import sys
 import traceback
 from uuid import UUID
 
-from textual import on, work
+try:
+    from textual import on, work
+except ImportError:
+    print("Error: 'textual' not found. Run this script from the backend/ directory:\n  doppler run --config dev -- uv run scripts/manage.py", file=sys.stderr)
+    sys.exit(1)
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Horizontal, Vertical, VerticalScroll
@@ -331,6 +343,8 @@ class ManageAttendeesScreen(ModalScreen[bool]):
 class EventManagerApp(App):
     """TUI for managing Podium events and users."""
 
+    TITLE = "Podium Admin"
+
     CSS = """
     #confirm-dialog, #create-dialog {
         align: center middle;
@@ -379,12 +393,12 @@ class EventManagerApp(App):
     """
 
     BINDINGS = [
-        Binding("q", "quit", "Quit"),
-        Binding("ctrl+c", "quit", "Quit", show=False),
-        Binding("r", "refresh", "Refresh"),
-        Binding("n", "new_event", "New Event"),
-        Binding("a", "manage_attendees", "Attendees"),
-        Binding("d", "delete_item", "Delete"),
+        Binding("q", "quit", "Quit", priority=True),
+        Binding("ctrl+c", "quit", "Quit", show=False, priority=True),
+        Binding("r", "refresh", "Refresh", priority=True),
+        Binding("n", "new_event", "New Event", priority=True),
+        Binding("a", "manage_attendees", "Attendees", priority=True),
+        Binding("d", "delete_item", "Delete", priority=True),
         Binding("ctrl+left_square_bracket", "prev_tab", "Prev Tab", show=False),
         Binding("ctrl+right_square_bracket", "next_tab", "Next Tab", show=False),
     ]
@@ -442,28 +456,37 @@ class EventManagerApp(App):
     def action_next_tab(self) -> None:
         self.action_prev_tab()
 
+    def on_tabbed_content_tab_activated(self, _: TabbedContent.TabActivated) -> None:
+        self.refresh_bindings()
+
+    def check_action(self, action: str, parameters: tuple) -> bool | None:
+        if action in ("new_event", "manage_attendees") and self.get_active_tab() != "events-tab":
+            return False
+        return True
+
     @work(exclusive=True)
     async def load_data(self) -> None:
         self.query_one("#status-bar", Static).update("Loading...")
         try:
             db = get_db()
             if not db:
-                self.db_error = "Database not configured. Run with: doppler run --config dev -- uv run python scripts/manage_events.py"
+                self.db_error = "Database not configured. Run with: doppler run --config dev -- uv run python scripts/manage.py"
                 self.query_one("#status-bar", Static).update(f"ERROR: {self.db_error}")
+                self.notify(self.db_error, title="No database connection", severity="error", timeout=30)
                 return
 
             from podium.db.postgres import Event, User
 
             async with db() as session:
-                events_result = await session.execute(select(Event))
+                events_rows = await session.scalars(select(Event))
                 self.events = [
                     {**e.__dict__, "id": e.id, "owner_id": e.owner_id}
-                    for e in events_result.scalars().all()
+                    for e in events_rows.all()
                 ]
-                users_result = await session.execute(select(User))
+                users_rows = await session.scalars(select(User))
                 self.users = [
                     {**u.__dict__, "id": u.id}
-                    for u in users_result.scalars().all()
+                    for u in users_rows.all()
                 ]
 
             self.refresh_events_table()
@@ -475,6 +498,7 @@ class EventManagerApp(App):
         except Exception as e:
             self.db_error = str(e)
             self.query_one("#status-bar", Static).update(f"ERROR: {e}")
+            self.notify(str(e), title="Load failed", severity="error", timeout=10)
             traceback.print_exc()
 
     def refresh_events_table(self) -> None:
