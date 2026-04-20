@@ -86,12 +86,12 @@
     </div>
   {:else}
     <div class="space-y-4">
-      <label class="input input-bordered flex items-center gap-2">
+      <div class="relative">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 16 16"
           fill="currentColor"
-          class="h-4 w-4 opacity-70"
+          class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-70 pointer-events-none"
         >
           <path
             fill-rule="evenodd"
@@ -101,11 +101,11 @@
         </svg>
         <input
           type="text"
-          class="grow"
+          class="input input-bordered w-full pl-9"
           placeholder="Search events..."
           bind:value={searchQuery}
         />
-      </label>
+      </div>
 
       <div class="grid gap-3 max-h-96 overflow-y-auto">
         {#each filteredEvents() as event (event.id)}
