@@ -12,7 +12,13 @@
   let attendingEvents = $state<EventPublic[]>([]);
   let loading = $state(true);
 
-  const currentEvent = $derived(() => attendingEvents[0]);
+  // Only consider events the user is enrolled in AND are currently official
+  const activeAttendingEvents = $derived(() => {
+    const officialIds = new Set(officialEvents.map((e) => e.id));
+    return attendingEvents.filter((e) => officialIds.has(e.id));
+  });
+
+  const currentEvent = $derived(() => activeAttendingEvents()[0]);
 
   // Keep global project state in sync
   $effect(() => {
@@ -167,7 +173,7 @@
       {:else}
         <!-- Attending an event — submit/manage project -->
         <ProjectSubmissionWizard
-          flagshipEvents={attendingEvents as any}
+          flagshipEvents={activeAttendingEvents() as any}
           {projects}
         />
       {/if}
