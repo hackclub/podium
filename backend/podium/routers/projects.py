@@ -20,7 +20,7 @@ from podium.db.postgres import (
     scalar_one_or_none,
 )
 from podium.db.postgres.base import async_session_factory
-from podium.db.postgres.user import has_complete_address
+from podium.db.postgres.user import has_ysws_pii
 from podium.routers.auth import get_current_user
 from podium.limiter import limiter
 from podium.validators import itch, github, CUSTOM_VALIDATORS
@@ -144,8 +144,8 @@ async def create_project(
     if user not in event.attendees:
         raise HTTPException(status_code=403, detail="Owner not part of event")
 
-    if event.require_address and not has_complete_address(user):
-        raise HTTPException(status_code=400, detail="This event requires a shipping address on your profile before you can submit a project")
+    if event.require_ysws_pii and not has_ysws_pii(user):
+        raise HTTPException(status_code=400, detail="This event requires your shipping address and date of birth on your profile before you can submit a project")
 
     while True:
         join_code = token_urlsafe(3).upper()

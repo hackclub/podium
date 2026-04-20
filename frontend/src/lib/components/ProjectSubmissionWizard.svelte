@@ -80,7 +80,7 @@
   let addressSubmitting = $state(false);
 
   const needsAddress = $derived(
-    currentEvent?.require_address && !getAuthenticatedUser().user.has_address
+    currentEvent?.require_ysws_pii && !getAuthenticatedUser().user.has_ysws_pii
   );
   let validationResult = $state<any>(null); // Store full validation result
   let updateProjectModal: Modal = $state() as Modal;

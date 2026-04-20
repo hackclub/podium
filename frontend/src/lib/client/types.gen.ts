@@ -36,7 +36,7 @@ export type EventPrivate = {
     description: string;
     phase: string;
     demo_links_optional: boolean;
-    require_address: boolean;
+    require_ysws_pii: boolean;
     max_votes_per_user: number;
     repo_validation: string;
     demo_validation: string;
@@ -55,7 +55,7 @@ export type EventPublic = {
     description: string;
     phase: string;
     demo_links_optional: boolean;
-    require_address: boolean;
+    require_ysws_pii: boolean;
     max_votes_per_user: number;
     repo_validation: string;
     demo_validation: string;
@@ -69,7 +69,7 @@ export type EventUpdate = {
     description?: (string | null);
     phase?: (string | null);
     demo_links_optional?: (boolean | null);
-    require_address?: (boolean | null);
+    require_ysws_pii?: (boolean | null);
     repo_validation?: (string | null);
     demo_validation?: (string | null);
     custom_validator?: (string | null);
@@ -185,7 +185,7 @@ export type UserPrivate = {
     last_name: string;
     phone?: string;
     vote_ids?: Array<(string)>;
-    has_address?: boolean;
+    has_ysws_pii?: boolean;
     is_superadmin?: boolean;
 };
 

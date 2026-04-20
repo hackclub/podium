@@ -11,7 +11,7 @@ export const defaultUser: UserPrivate = {
   last_name: "",
   phone: "",
   vote_ids: [],
-  has_address: false,
+  has_ysws_pii: false,
   is_superadmin: false,
 };
 

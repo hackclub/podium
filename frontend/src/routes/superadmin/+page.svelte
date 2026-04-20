@@ -31,6 +31,7 @@
   let editRepoValidation = $state("");
   let editDemoValidation = $state("");
   let editCustomValidator = $state("");
+  let editRequireYswsPii = $state(false);
   let saving = $state(false);
 
   async function loadEvents(page = eventsPage.page) {
@@ -78,18 +79,20 @@
     editRepoValidation = event.repo_validation;
     editDemoValidation = event.demo_validation;
     editCustomValidator = event.custom_validator ?? "";
+    editRequireYswsPii = event.require_ysws_pii;
   }
 
   async function saveEdit() {
     if (!editing) return;
     saving = true;
-    const body: Record<string, string | null> = {};
+    const body: Record<string, string | boolean | null> = {};
     const ownerChanged = editOwnerEmail && usersPage.items.find((u) => u.id === editing!.owner_id)?.email !== editOwnerEmail;
     if (ownerChanged) body.owner_email = editOwnerEmail;
     if (editRepoValidation !== editing.repo_validation) body.repo_validation = editRepoValidation;
     if (editDemoValidation !== editing.demo_validation) body.demo_validation = editDemoValidation;
     const newCustom = editCustomValidator.trim() || null;
     if (newCustom !== (editing.custom_validator ?? null)) body.custom_validator = newCustom;
+    if (editRequireYswsPii !== editing.require_ysws_pii) body.require_ysws_pii = editRequireYswsPii;
 
     if (Object.keys(body).length > 0) {
       const { error } = await client.patch<EventPrivate, unknown>({
@@ -201,6 +204,10 @@
                             <label class="form-control">
                               <span class="label-text mb-1">Custom validator key</span>
                               <input class="input input-bordered input-sm font-mono" placeholder="(none)" bind:value={editCustomValidator} />
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                              <input type="checkbox" class="checkbox checkbox-sm" bind:checked={editRequireYswsPii} />
+                              <span class="label-text">Require YSWS PII (address + DOB)</span>
                             </label>
                           </div>
                           <div class="flex gap-2">

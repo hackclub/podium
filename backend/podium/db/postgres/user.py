@@ -97,7 +97,7 @@ class UserPrivate(UserPublic):
     last_name: str
     phone: str = ""
     vote_ids: list[UUID] = []
-    has_address: bool = False
+    has_ysws_pii: bool = False
     is_superadmin: bool = False
 
 
@@ -107,9 +107,9 @@ class UserInternal(UserPrivate, _AddressFields):
     pass
 
 
-def has_complete_address(user: "User") -> bool:
-    """Minimum viable address: street, city, and country must all be present."""
-    return bool(user.street_1 and user.city and user.country)
+def has_ysws_pii(user: "User") -> bool:
+    """YSWS prize eligibility: requires address (street, city, country) and DOB."""
+    return bool(user.street_1 and user.city and user.country and user.dob)
 
 
 def user_to_private(user: "User") -> "UserPrivate":
@@ -126,7 +126,7 @@ def user_to_private(user: "User") -> "UserPrivate":
         last_name=user.last_name,
         phone=user.phone,
         vote_ids=[v.id for v in user.votes],
-        has_address=has_complete_address(user),
+        has_ysws_pii=has_ysws_pii(user),
         is_superadmin=user.is_superadmin,
     )
 

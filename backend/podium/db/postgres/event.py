@@ -50,8 +50,8 @@ class Event(SQLModel, table=True):
 
     owner_id: UUID = Field(foreign_key="users.id")
 
-    # Require attendees to have a shipping address on file before submitting a project
-    require_address: bool = Field(default=False)
+    # PII policy — require attendees to have YSWS PII (address + DOB) before submitting
+    require_ysws_pii: bool = Field(default=False)
 
     # Soft-delete — NULL means active; set to a timestamp to hide the event.
     deleted_at: datetime | None = Field(default=None)
@@ -127,7 +127,7 @@ class EventPublic(SQLModel):
     description: str
     phase: str
     demo_links_optional: bool
-    require_address: bool
+    require_ysws_pii: bool
     max_votes_per_user: int
     # Expose validation config so the frontend can drive instant warnings
     repo_validation: str
@@ -149,7 +149,7 @@ class EventUpdate(SQLModel):
     description: str | None = None
     phase: str | None = None
     demo_links_optional: bool | None = None
-    require_address: bool | None = None
+    require_ysws_pii: bool | None = None
     repo_validation: str | None = None
     demo_validation: str | None = None
     custom_validator: str | None = None
