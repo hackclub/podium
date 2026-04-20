@@ -8,7 +8,7 @@ airtable_votes_table_id = "tbl0OfcZu5TWs2j19"
 production_url = "https://podium.hackclub.com"
 loops_transactional_id = "cmg1hjhed4xyi0r0ijvfyyqa1"
 enable_test_endpoints = false  # SECURITY: Must be explicitly set to true for /test-token endpoint
-active_event_series = "campfire"
+active_event_series = "flagship"
 
 [development]
 airtable_base_id = "appec7U14eWSv08R4"
