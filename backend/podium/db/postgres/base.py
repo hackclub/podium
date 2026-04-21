@@ -11,6 +11,7 @@ In development (database_url_ro not set), both point to the same instance.
 
 from collections.abc import AsyncGenerator, Sequence
 from typing import TypeVar, cast
+import ssl
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from sqlalchemy import Select
@@ -35,11 +36,12 @@ def _build_async_engine(url: str):
 
     normalized_url = urlunparse(parsed._replace(query=urlencode(qs, doseq=True)))
 
-    connect_args: dict[str, str] = {}
-    if sslmode:
-        connect_args["ssl"] = sslmode
-    elif parsed.hostname and parsed.hostname not in {"localhost", "127.0.0.1"}:
-        connect_args["ssl"] = "require"
+    connect_args: dict = {}
+    if sslmode == "require" or (parsed.hostname and parsed.hostname not in {"localhost", "127.0.0.1"}):
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        connect_args["ssl"] = ctx
 
     return create_async_engine(normalized_url, echo=False, connect_args=connect_args)
 
