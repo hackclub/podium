@@ -3,7 +3,7 @@ import { test as base, expect } from '@playwright/test';
 base.describe('Authentication', () => {
 	base('should sign up new user', async ({ page }) => {
 		const timestamp = Date.now();
-		const email = `signup+${timestamp}@test.local`;
+		const email = `signup+${timestamp}@example.com`;
 		const displayName = 'Test Signup User';
 
 		await page.goto('/login');
