@@ -63,7 +63,7 @@ info "Backing up database (using $CONTAINER)..."
 # 1. Full database dump (custom format - compressed, restorable)
 info "Creating full dump..."
 $CONTAINER run --rm --platform "$PLATFORM" \
-  -e PGPASSWORD="$PG_PASS" \
+  -e PGPASSWORD="$PG_PASS" -e PGSSLMODE=require \
   postgres:17 pg_dump \
   -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$PG_DB" \
   --format=custom --compress=9 \
@@ -81,7 +81,7 @@ for table in "${TABLES[@]}"; do
   
   # Export raw CSV
   $CONTAINER run --rm --platform "$PLATFORM" \
-    -e PGPASSWORD="$PG_PASS" \
+    -e PGPASSWORD="$PG_PASS" -e PGSSLMODE=require \
     postgres:17 psql \
     -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$PG_DB" \
     -c "\COPY $table TO STDOUT WITH (FORMAT CSV, HEADER true)" \

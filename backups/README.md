@@ -14,9 +14,6 @@ Creates:
 ## Restore
 
 ```bash
-# Full restore from latest .dump
-docker run --rm -i postgres:17 pg_restore \
-  -d "$(doppler secrets get PODIUM_DATABASE_URL --config dev --plain | sed 's/+asyncpg//' | sed 's/@localhost/@host.docker.internal/')" \
-  --clean --if-exists \
-  < $(ls -t backups/*.dump | head -1)
+doppler run --config dev -- ./scripts/restore-db.sh            # latest .dump
+doppler run --config prd -- ./scripts/restore-db.sh backups/podium_20260421_120000.dump  # specific file
 ```
