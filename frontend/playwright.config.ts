@@ -60,7 +60,9 @@ export default defineConfig({
 			timeout: 120000,
 			reuseExistingServer: true,
 			env: {
-				PUBLIC_API_URL: 'http://127.0.0.1:8000'
+				PUBLIC_API_URL: 'http://127.0.0.1:8000',
+				// Disable Turnstile widget in test environment so the login button stays enabled
+				PUBLIC_TURNSTILE_SITE_KEY: ''
 			}
 		}
 	],
