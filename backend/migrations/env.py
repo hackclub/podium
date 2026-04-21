@@ -11,6 +11,7 @@ You rarely need to edit this file. The main things it does:
 """
 
 import os
+from urllib.parse import urlparse, urlencode, parse_qs, urlunparse
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
@@ -27,8 +28,15 @@ config = context.config
 database_url = os.environ.get("PODIUM_DATABASE_URL") or os.environ.get("DATABASE_URL")
 if database_url:
     # Alembic needs a sync driver. Convert asyncpg -> psycopg2
-    # Example: postgresql+asyncpg://... -> postgresql+psycopg2://...
     sync_url = database_url.replace("+asyncpg", "+psycopg2")
+    # Strip sslrootcert and sslmode from the URL — psycopg2 rejects sslmode=require
+    # when sslrootcert=system is present. sslmode=require is re-applied via connect_args.
+    parsed = urlparse(sync_url)
+    if parsed.query:
+        qs = parse_qs(parsed.query, keep_blank_values=True)
+        qs.pop("sslrootcert", None)
+        qs.pop("sslmode", None)
+        sync_url = urlunparse(parsed._replace(query=urlencode(qs, doseq=True)))
     config.set_main_option("sqlalchemy.url", sync_url)
 
 # Tell Alembic about our table definitions
@@ -54,13 +62,21 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     """Run migrations with a live database connection.
-    
+
     This is the normal mode - connects to the database and applies changes.
     """
+    url = config.get_main_option("sqlalchemy.url") or ""
+    # For remote DBs, use sslmode=require (encrypted, no CA verification).
+    # The production host uses a private CA not in the local trust store.
+    connect_args: dict = {}
+    if "localhost" not in url and "127.0.0.1" not in url:
+        connect_args["sslmode"] = "require"
+
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args=connect_args,
     )
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
