@@ -7,8 +7,10 @@ The access token is a short-lived JWT (default 2 days) stored in localStorage by
 
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from sqlmodel import select
@@ -29,6 +31,10 @@ SECRET_KEY = settings.jwt_secret
 ALGORITHM = str(settings.jwt_algorithm)
 ACCESS_TOKEN_EXPIRE_MINUTES: int = settings.jwt_expire_minutes  # type: ignore
 MAGIC_LINK_EXPIRE_MINUTES = 30
+
+HC_AUTHORIZE_URL = "https://auth.hackclub.com/oauth/authorize"
+HC_TOKEN_URL = "https://auth.hackclub.com/oauth/token"
+HC_ME_URL = "https://auth.hackclub.com/api/v1/me"
 
 
 class UserLoginPayload(BaseModel):
@@ -142,6 +148,89 @@ async def verify_token(
         token_type="access",
         user=user_to_private(user),
     )
+
+
+@router.get("/auth/hackclub")
+async def hackclub_login() -> RedirectResponse:
+    """Initiate Hack Club OAuth login. Redirects the browser to the HC authorization page."""
+    if not settings.hackclub_client_id:
+        raise HTTPException(status_code=501, detail="Hack Club auth is not configured")
+    state = create_access_token(
+        data={"sub": "csrf"},
+        expires_delta=timedelta(minutes=10),
+        token_type="oauth_state",
+    )
+    params = urlencode({
+        "client_id": settings.hackclub_client_id,
+        "redirect_uri": settings.hackclub_redirect_uri,
+        "response_type": "code",
+        "scope": "email",
+        "state": state,
+    })
+    return RedirectResponse(f"{HC_AUTHORIZE_URL}?{params}")
+
+
+@router.get("/auth/hackclub/callback")
+async def hackclub_callback(
+    code: Annotated[str, Query()],
+    state: Annotated[str, Query()],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> RedirectResponse:
+    """Handle the HC OAuth callback, issue a magic-link token, and redirect to the frontend."""
+    # Validate CSRF state token
+    try:
+        state_payload = jwt.decode(state, SECRET_KEY, algorithms=[ALGORITHM])
+        if state_payload.get("token_type") != "oauth_state":
+            raise HTTPException(status_code=400, detail="Invalid OAuth state")
+    except PyJWTError:
+        raise HTTPException(status_code=400, detail="Invalid OAuth state")
+
+    # Exchange authorization code for HC access token, then fetch user email
+    try:
+        async with httpx.AsyncClient() as hc:
+            token_resp = await hc.post(HC_TOKEN_URL, data={
+                "client_id": settings.hackclub_client_id,
+                "client_secret": settings.hackclub_client_secret,
+                "redirect_uri": settings.hackclub_redirect_uri,
+                "code": code,
+                "grant_type": "authorization_code",
+            })
+            token_resp.raise_for_status()
+            hc_access_token = token_resp.json()["access_token"]
+
+            me_resp = await hc.get(HC_ME_URL, headers={"Authorization": f"Bearer {hc_access_token}"})
+            me_resp.raise_for_status()
+            me = me_resp.json()
+    except Exception:
+        raise HTTPException(status_code=502, detail="Failed to authenticate with Hack Club")
+    # HC token is discarded — only the email is kept
+
+    identity: dict = me.get("identity", {})
+    email: str = identity.get("primary_email", "").strip().lower()
+    if not email:
+        raise HTTPException(status_code=400, detail="No email returned from Hack Club")
+
+    stmt = select(User).where(User.email == email).options(selectinload(User.votes))
+    user = await scalar_one_or_none(session, stmt)
+    if user is None:
+        # Parse name for new users — split "First Last" if available
+        full_name: str = identity.get("name", "")
+        name_parts = full_name.split(" ", 1)
+        first_name = name_parts[0] if name_parts else ""
+        last_name = name_parts[1] if len(name_parts) > 1 else ""
+        user = User(email=email, first_name=first_name, last_name=last_name)
+        session.add(user)
+        await session.commit()
+        stmt = select(User).where(User.email == email).options(selectinload(User.votes))
+        user = await scalar_one_or_none(session, stmt)
+
+    # Issue a short-lived magic-link token so the existing frontend /verify flow handles the rest
+    token = create_access_token(
+        data={"sub": email},
+        expires_delta=timedelta(minutes=15),
+        token_type="magic_link",
+    )
+    return RedirectResponse(f"{settings.production_url}/login?token={token}")
 
 
 security = HTTPBearer()

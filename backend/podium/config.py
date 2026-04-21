@@ -98,6 +98,19 @@ settings.validators.register(
             "database_url_ro",
             default="",
         ),
+        # Hack Club OAuth — empty client_id disables the HC login option entirely
+        Validator(
+            "hackclub_client_id",
+            default="",
+        ),
+        Validator(
+            "hackclub_client_secret",
+            default="",
+        ),
+        Validator(
+            "hackclub_redirect_uri",
+            default="http://localhost:8000/auth/hackclub/callback",
+        ),
     ],
 )
 

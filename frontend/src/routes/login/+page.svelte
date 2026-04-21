@@ -12,6 +12,8 @@
   import { asyncClick } from "$lib/actions/asyncClick";
   import { Turnstile } from "svelte-turnstile";
   import { env } from "$env/dynamic/public";
+  // @ts-ignore
+  import { PUBLIC_API_URL, PUBLIC_HACKCLUB_CLIENT_ID } from "$env/static/public";
   // rest is the extra props passed to the component
   let { ...rest } = $props();
 
@@ -216,6 +218,18 @@
       <p class="mt-2">Verifying your magic link...</p>
     </div>
   {:else}
+    {#if PUBLIC_HACKCLUB_CLIENT_ID}
+      <a
+        href="{PUBLIC_API_URL}/auth/hackclub"
+        class="btn w-full mb-1 gap-2"
+        style="background-color: #ec3750; color: white; border-color: #ec3750;"
+      >
+        <img src="https://assets.hackclub.com/icon-rounded.svg" alt="Hack Club" class="w-5 h-5" />
+        Login with Hack Club
+      </a>
+      <div class="divider my-2">or</div>
+    {/if}
+
     <fieldset
       class="fieldset bg-base-200 border-base-300 rounded-box border p-4"
     >
@@ -393,6 +407,7 @@
         </button>
       </div>
     </fieldset>
+
   {/if}
   <div class="text-center mt-4">
     <a href="/" class="btn-sm btn-secondary btn">← Back Home</a>
