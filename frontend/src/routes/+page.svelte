@@ -63,6 +63,11 @@
     window.location.reload();
   }
 
+  // Slug → hero image URL for events that have branded artwork
+  const eventHeroImages: Record<string, string> = {
+    sleepover: "https://sleepover.hackclub.com/background/sleepover_logo.PNG",
+  };
+
   // Human-readable phase labels and badge styles
   const phaseLabel: Record<string, string> = {
     draft: "Draft",
@@ -93,22 +98,51 @@
       <a href="/login" class="btn btn-primary btn-lg mt-2">Sign in to participate</a>
     </div>
 
-    <!-- Divider with label -->
-    <div class="divider text-base-content/40 text-sm font-medium">
-      {#if loading}
-        Events
-      {:else if officialEvents.length > 0}
-        {officialEvents.length} event{officialEvents.length === 1 ? "" : "s"}
-      {:else}
-        Events
-      {/if}
-    </div>
-
     {#if loading}
       <div class="flex justify-center py-12">
         <span class="loading loading-spinner loading-lg text-primary"></span>
       </div>
-    {:else if officialEvents.length > 0}
+    {:else if officialEvents.length === 1}
+      <!-- Single featured event — show as a prominent hero card -->
+      <div class="flex justify-center">
+        <a
+          href={`/events/${officialEvents[0].slug}`}
+          class="card bg-base-100 border border-base-300 shadow-sm hover:shadow-md hover:border-primary/30 transition-all group w-full max-w-lg"
+        >
+          {#if eventHeroImages[officialEvents[0].slug]}
+            <figure class="px-10 pt-8 pb-2">
+              <img
+                src={eventHeroImages[officialEvents[0].slug]}
+                alt={officialEvents[0].name}
+                class="h-36 object-contain"
+              />
+            </figure>
+          {/if}
+          <div class="card-body gap-4 items-center text-center">
+            <div class="flex flex-col items-center gap-2">
+              <span class="badge {phaseBadge[officialEvents[0].phase] ?? 'badge-ghost'} text-xs">
+                {phaseLabel[officialEvents[0].phase] ?? officialEvents[0].phase}
+              </span>
+              <h2 class="card-title text-2xl group-hover:text-primary transition-colors">
+                {officialEvents[0].name}
+              </h2>
+            </div>
+            {#if officialEvents[0].description}
+              <p class="text-base-content/60 text-sm">
+                {officialEvents[0].description}
+              </p>
+            {/if}
+            <div class="card-actions mt-2">
+              <span class="btn btn-primary btn-sm">View event →</span>
+            </div>
+          </div>
+        </a>
+      </div>
+    {:else if officialEvents.length > 1}
+      <!-- Divider with label -->
+      <div class="divider text-base-content/40 text-sm font-medium">
+        {officialEvents.length} events
+      </div>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {#each officialEvents as event (event.id)}
           <a
