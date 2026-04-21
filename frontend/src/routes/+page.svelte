@@ -65,7 +65,7 @@
 
   // Slug → hero image URL for events that have branded artwork
   const eventHeroImages: Record<string, string> = {
-    sleepover: "https://sleepover.hackclub.com/background/sleepover_logo.PNG",
+    sleepover: "https://wsrv.nl/?url=sleepover.hackclub.com/background/sleepover_logo.PNG&output=webp&h=288&fit=contain",
   };
 
   // Human-readable phase labels and badge styles

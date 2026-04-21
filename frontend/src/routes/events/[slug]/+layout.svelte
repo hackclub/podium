@@ -3,7 +3,7 @@
 
   // TEMPORARY: remove this block when Sleepover is over
   const eventHeroImages: Record<string, string> = {
-    sleepover: "https://sleepover.hackclub.com/background/sleepover_logo.PNG",
+    sleepover: "https://wsrv.nl/?url=sleepover.hackclub.com/background/sleepover_logo.PNG&output=webp&h=288&fit=contain",
   };
   // END TEMPORARY
 </script>
