@@ -20,6 +20,18 @@ test.describe('Project Submission Wizard', () => {
 		await authedPage.reload();
 		await projectsMineResponse;
 
+		// api-coverage tests run on the same worker and create projects for older attended
+		// events. If one of those events is currentEvent, the wizard auto-validates instead
+		// of showing the choose step. Wait for the button; if the wizard already jumped to
+		// validateProject, dispatch popstate with #choose to bring it back.
+		const createButton = authedPage.getByRole('button', { name: /create.*project/i }).first();
+		await createButton.waitFor({ state: 'visible', timeout: 12000 }).catch(async () => {
+			await authedPage.evaluate(() => {
+				history.pushState(null, '', '/#choose');
+				window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
+			});
+		});
+
 		// Should see project submission wizard with welcome message and action buttons
 		await expect(authedPage.getByRole('heading', { name: /welcome/i }).first()).toBeVisible({ timeout: 15000 });
 		await expect(authedPage.getByRole('button', { name: /create.*project/i })).toBeVisible({ timeout: 15000 });
@@ -39,6 +51,14 @@ test.describe('Project Submission Wizard', () => {
 		await authedPage.reload();
 		await projectsMineResponse;
 
+		const createButton = authedPage.getByRole('button', { name: /create.*project/i }).first();
+		await createButton.waitFor({ state: 'visible', timeout: 12000 }).catch(async () => {
+			await authedPage.evaluate(() => {
+				history.pushState(null, '', '/#choose');
+				window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
+			});
+		});
+
 		await authedPage.getByRole('button', { name: /create.*project/i }).click();
 
 		await expect(authedPage.locator('#project_name, input[name="name"]').first()).toBeVisible({ timeout: 10000 });
@@ -56,6 +76,14 @@ test.describe('Project Submission Wizard', () => {
 		);
 		await authedPage.reload();
 		await projectsMineResponse;
+
+		await authedPage.getByRole('button', { name: /create.*project/i }).first()
+			.waitFor({ state: 'visible', timeout: 12000 }).catch(async () => {
+				await authedPage.evaluate(() => {
+					history.pushState(null, '', '/#choose');
+					window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
+				});
+			});
 
 		await authedPage.getByRole('button', { name: /join.*project/i }).click();
 

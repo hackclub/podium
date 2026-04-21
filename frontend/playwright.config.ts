@@ -14,6 +14,7 @@ export default defineConfig({
 		['html', { outputFolder: 'playwright-report', open: 'never' }]
 	],
 	timeout: 60000,
+	expect: { timeout: 10000 },
 
 	use: {
 		baseURL: externalBaseURL ?? 'http://127.0.0.1:4173',
@@ -23,9 +24,6 @@ export default defineConfig({
 		extraHTTPHeaders: {
 			'Cache-Control': 'no-store',
 			Pragma: 'no-cache'
-		},
-		expect: {
-			timeout: 10000
 		},
 		actionTimeout: 15000,
 		navigationTimeout: 30000
