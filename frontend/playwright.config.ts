@@ -37,8 +37,8 @@ export default defineConfig({
 	webServer: isExternal ? undefined : [
 		{
 			// Backend runs with Doppler for secrets management
-			// Use --preserve-env to allow CI to override PODIUM_DATABASE_URL
-			command: 'cd ../backend && doppler run --project podium --config dev --preserve-env=PODIUM_DATABASE_URL -- uv run podium --log-level warning',
+			// Use --preserve-env to allow CI to override PODIUM_DATABASE_URL and disable Turnstile
+			command: 'cd ../backend && doppler run --project podium --config dev --preserve-env=PODIUM_DATABASE_URL,PODIUM_TURNSTILE_SECRET_KEY -- uv run podium --log-level warning',
 			port: 8000,
 			timeout: 120000,
 			reuseExistingServer: true,
@@ -48,7 +48,9 @@ export default defineConfig({
 				PYTHONIOENCODING: 'utf-8',
 				PYTHONWARNINGS: 'ignore',
 				// Pass through PODIUM_DATABASE_URL if set (for CI)
-				...(process.env.PODIUM_DATABASE_URL && { PODIUM_DATABASE_URL: process.env.PODIUM_DATABASE_URL })
+				...(process.env.PODIUM_DATABASE_URL && { PODIUM_DATABASE_URL: process.env.PODIUM_DATABASE_URL }),
+				// Always disable Turnstile in test environment so fixtures can create users without CAPTCHA
+				PODIUM_TURNSTILE_SECRET_KEY: ''
 			}
 		},
 		{
