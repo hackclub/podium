@@ -3,8 +3,8 @@
 ## Create Backup
 
 ```bash
-./scripts/backup-db.sh              # Dev database
-./scripts/backup-db.sh --config prd # Production database
+doppler run --config dev -- ./scripts/backup-db.sh
+doppler run --config prd -- ./scripts/backup-db.sh
 ```
 
 Creates:

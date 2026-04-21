@@ -11,6 +11,7 @@ In development (database_url_ro not set), both point to the same instance.
 
 from collections.abc import AsyncGenerator, Sequence
 from typing import TypeVar, cast
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
@@ -22,11 +23,31 @@ from podium.config import settings
 DATABASE_URL = settings.get("database_url", "")
 DATABASE_URL_RO = settings.get("database_url_ro", "") or DATABASE_URL  # fall back to rw in dev
 
+
+def _build_async_engine(url: str):
+    """Create an async engine while normalizing SSL params for asyncpg."""
+    parsed = urlparse(url)
+    qs = parse_qs(parsed.query, keep_blank_values=True)
+
+    # asyncpg does not accept sslmode/sslrootcert as direct kwargs.
+    sslmode = qs.pop("sslmode", [None])[-1]
+    qs.pop("sslrootcert", None)
+
+    normalized_url = urlunparse(parsed._replace(query=urlencode(qs, doseq=True)))
+
+    connect_args: dict[str, str] = {}
+    if sslmode:
+        connect_args["ssl"] = sslmode
+    elif parsed.hostname and parsed.hostname not in {"localhost", "127.0.0.1"}:
+        connect_args["ssl"] = "require"
+
+    return create_async_engine(normalized_url, echo=False, connect_args=connect_args)
+
 # Read-write engine — use for all mutations
-engine = create_async_engine(DATABASE_URL, echo=False) if DATABASE_URL else None
+engine = _build_async_engine(DATABASE_URL) if DATABASE_URL else None
 
 # Read-only engine — use for public read endpoints (leaderboard, project listing, etc.)
-ro_engine = create_async_engine(DATABASE_URL_RO, echo=False) if DATABASE_URL_RO else engine
+ro_engine = _build_async_engine(DATABASE_URL_RO) if DATABASE_URL_RO else engine
 
 async_session_factory = (
     async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

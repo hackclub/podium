@@ -2,8 +2,8 @@
 # Backup Podium database to multiple formats
 #
 # Usage:
-#   ./scripts/backup-db.sh              # Backup dev database
-#   ./scripts/backup-db.sh --config prd # Backup production database
+#   doppler run --config dev -- ./scripts/backup-db.sh
+#   doppler run --config prd -- ./scripts/backup-db.sh
 
 set -e
 cd "$(dirname "$0")/.."
@@ -15,19 +15,40 @@ NC='\033[0m'
 info() { echo -e "${GREEN}▶${NC} $1"; }
 warn() { echo -e "${YELLOW}▶${NC} $1"; }
 
-# Parse config argument
-CONFIG="dev"
-if [[ "$1" == "--config" ]]; then
-  CONFIG="$2"
-  shift 2
+# Get database URL from environment
+[[ -z "$PODIUM_DATABASE_URL" ]] && { echo "PODIUM_DATABASE_URL is not set. Run via: doppler run --config <env> -- $0"; exit 1; }
+
+# Detect container runtime
+if command -v docker &>/dev/null; then
+  CONTAINER="docker"
+elif command -v podman &>/dev/null; then
+  CONTAINER="podman"
+else
+  echo "Neither docker nor podman found"; exit 1
 fi
 
-# Get database URL
-DB_URL=$(doppler secrets get PODIUM_DATABASE_URL --config "$CONFIG" --plain 2>/dev/null)
-[[ -z "$DB_URL" ]] && { echo "Failed to get PODIUM_DATABASE_URL from Doppler config '$CONFIG'"; exit 1; }
+# Use native image for the host architecture to avoid Rosetta/QEMU emulation issues
+case "$(uname -m)" in
+  arm64|aarch64) PLATFORM="linux/arm64" ;;
+  x86_64)        PLATFORM="linux/amd64" ;;
+  *)             PLATFORM="linux/$(uname -m)" ;;
+esac
 
-# Convert async URL to psql-compatible and fix localhost for Docker
-PSQL_URL=$(echo "$DB_URL" | sed 's/+asyncpg//' | sed 's/@localhost/@host.docker.internal/g')
+# Parse connection params safely (URL via env var, not shell-interpolated into Python source)
+eval "$(PARSE_ME="$PODIUM_DATABASE_URL" python3 -c "
+import os, shlex
+from urllib.parse import urlparse, unquote
+url = os.environ['PARSE_ME'].replace('+asyncpg', '')
+if '://' not in url:
+    url = 'postgresql://' + url
+u = urlparse(url)
+host = u.hostname or 'localhost'
+if host == 'localhost': host = 'host.docker.internal'
+for k, v in [('PG_HOST', host), ('PG_PORT', str(u.port or 5432)),
+             ('PG_USER', unquote(u.username or '')), ('PG_PASS', unquote(u.password or '')),
+             ('PG_DB', u.path.lstrip('/').split('?')[0])]:
+    print(k + '=' + shlex.quote(v))
+")"
 
 # Create backup directory
 BACKUP_DIR="backups"
@@ -35,16 +56,16 @@ mkdir -p "$BACKUP_DIR"
 
 # Timestamp for filenames
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-PREFIX="${BACKUP_DIR}/podium_${CONFIG}_${TIMESTAMP}"
+PREFIX="${BACKUP_DIR}/podium_${TIMESTAMP}"
 
-info "Backing up database (config: $CONFIG)..."
+info "Backing up database (using $CONTAINER)..."
 
 # 1. Full database dump (custom format - compressed, restorable)
 info "Creating full dump..."
-docker run --rm postgres:17 pg_dump "$PSQL_URL" \
-  --format=custom --compress=9 \
-  > "${PREFIX}.dump" 2>/dev/null || \
-podman run --rm postgres:17 pg_dump "$PSQL_URL" \
+$CONTAINER run --rm --platform "$PLATFORM" \
+  -e PGPASSWORD="$PG_PASS" \
+  postgres:17 pg_dump \
+  -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$PG_DB" \
   --format=custom --compress=9 \
   > "${PREFIX}.dump"
 
@@ -59,9 +80,11 @@ for table in "${TABLES[@]}"; do
   TMP_CSV="${CSV_DIR}/${table}.csv.tmp"
   
   # Export raw CSV
-  docker run --rm postgres:17 psql "$PSQL_URL" -c "\COPY $table TO STDOUT WITH (FORMAT CSV, HEADER true)" \
-    > "$TMP_CSV" 2>/dev/null || \
-  podman run --rm postgres:17 psql "$PSQL_URL" -c "\COPY $table TO STDOUT WITH (FORMAT CSV, HEADER true)" \
+  $CONTAINER run --rm --platform "$PLATFORM" \
+    -e PGPASSWORD="$PG_PASS" \
+    postgres:17 psql \
+    -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$PG_DB" \
+    -c "\COPY $table TO STDOUT WITH (FORMAT CSV, HEADER true)" \
     > "$TMP_CSV"
   
   # Align columns with spaces for readability
