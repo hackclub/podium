@@ -145,7 +145,7 @@ async def create_project(
         raise HTTPException(status_code=403, detail="Owner not part of event")
 
     if event.require_ysws_pii and not has_ysws_pii(user):
-        raise HTTPException(status_code=400, detail="This event requires your shipping address and date of birth on your profile before you can submit a project")
+        raise HTTPException(status_code=400, detail="This event requires your address and date of birth on your profile before you can submit a project")
 
     while True:
         join_code = token_urlsafe(3).upper()

@@ -21,6 +21,7 @@
   import type { ProjectPrivate, EventPrivate } from "$lib/client";
   import { validateProject } from "$lib/validation";
   import { ProjectsService, UsersService } from "$lib/client/sdk.gen";
+  import AddressFields from "./AddressFields.svelte";
   import CreateProject from "./CreateProject.svelte";
   import UpdateProjectModal from "./UpdateProjectModal.svelte";
   import Modal from "./Modal.svelte";
@@ -76,7 +77,7 @@
   let currentEvent = $state(untrack(() => flagshipEvents[0]));
 
   // Address form state — only used in collectAddress step
-  let addressForm = $state({ street_1: "", street_2: "", city: "", state: "", zip_code: "", country: "" });
+  let addressForm = $state<{ street_1: string; street_2: string; city: string; state: string; zip_code: string; country: string; dob: string | null }>({ street_1: "", street_2: "", city: "", state: "", zip_code: "", country: "", dob: null });
   let addressSubmitting = $state(false);
 
   const needsAddress = $derived(
@@ -414,33 +415,16 @@
         <div class="mb-4">
           <button class="btn btn-ghost btn-sm" onclick={goBack}>← Back</button>
         </div>
-        <h2 class="card-title text-xl mb-1">Shipping Address Required</h2>
+        <h2 class="card-title text-xl mb-1">Address Required</h2>
         <p class="text-sm text-base-content/70 mb-4">
-          <span class="underline">{currentEvent.name}</span> needs your shipping address to send prizes.
+          <span class="underline">{currentEvent.name}</span> requires your address.
         </p>
         <fieldset class="fieldset space-y-2" disabled={addressSubmitting}>
-          <label class="label" for="addr_street_1">Address Line 1 <span class="text-error">*</span></label>
-          <input id="addr_street_1" type="text" bind:value={addressForm.street_1} placeholder="123 Main St" class="input input-bordered w-full" required />
-
-          <label class="label" for="addr_street_2">Address Line 2</label>
-          <input id="addr_street_2" type="text" bind:value={addressForm.street_2} placeholder="Apt 4B" class="input input-bordered w-full" />
-
-          <label class="label" for="addr_city">City <span class="text-error">*</span></label>
-          <input id="addr_city" type="text" bind:value={addressForm.city} placeholder="New York" class="input input-bordered w-full" required />
-
-          <label class="label" for="addr_state">State / Province</label>
-          <input id="addr_state" type="text" bind:value={addressForm.state} placeholder="NY" class="input input-bordered w-full" />
-
-          <label class="label" for="addr_zip">ZIP / Postal Code</label>
-          <input id="addr_zip" type="text" bind:value={addressForm.zip_code} placeholder="10001" class="input input-bordered w-full" />
-
-          <label class="label" for="addr_country">Country <span class="text-error">*</span></label>
-          <input id="addr_country" type="text" bind:value={addressForm.country} placeholder="United States" class="input input-bordered w-full" required />
-
+          <AddressFields bind:data={addressForm} markRequired />
           <button
             class="btn btn-primary btn-block mt-4"
             onclick={submitAddress}
-            disabled={addressSubmitting || !addressForm.street_1 || !addressForm.city || !addressForm.country}
+            disabled={addressSubmitting || !addressForm.street_1 || !addressForm.city || !addressForm.country || !addressForm.dob}
           >
             {addressSubmitting ? "Saving…" : "Save & Continue"}
           </button>
