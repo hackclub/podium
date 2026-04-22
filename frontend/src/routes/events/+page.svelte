@@ -4,6 +4,7 @@
   import { EventsService } from "$lib/client/sdk.gen";
   import type { EventPublic } from "$lib/client";
   import { getAuthenticatedUser } from "$lib/user.svelte";
+  import OfficialEventsDisplay from "$lib/components/OfficialEventsDisplay.svelte";
 
   let { data }: { data: PageData } = $props();
 
@@ -11,7 +12,7 @@
   let loadingOfficial = $state(true);
   let loadError = $state(false);
 
-  // Phase display helpers (same as root page)
+  // Phase display helpers for the "Your Events" table
   const phaseLabel: Record<string, string> = {
     draft: "Draft",
     submission: "Submissions Open",
@@ -103,44 +104,6 @@
       {/if}
     </div>
 
-    <!-- Official events grid -->
-    {#if loadingOfficial}
-      <div class="flex justify-center py-8">
-        <span class="loading loading-spinner loading-lg text-primary"></span>
-      </div>
-    {:else if loadError}
-      <div class="alert alert-error">
-        <span>Failed to load events. Please refresh the page.</span>
-      </div>
-    {:else if officialEvents.length > 0}
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {#each officialEvents as event (event.id)}
-          <a
-            href={`/events/${event.slug}`}
-            class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow"
-          >
-            <div class="card-body">
-              <div class="flex items-start justify-between gap-2">
-                <h2 class="card-title text-base">{event.name}</h2>
-                <span
-                  class="badge {phaseBadge[event.phase] ?? 'badge-ghost'} shrink-0"
-                >
-                  {phaseLabel[event.phase] ?? event.phase}
-                </span>
-              </div>
-              {#if event.description}
-                <p class="text-base-content/70 text-sm line-clamp-2">
-                  {event.description}
-                </p>
-              {/if}
-            </div>
-          </a>
-        {/each}
-      </div>
-    {:else}
-      <p class="text-center text-base-content/70">
-        No events available right now.
-      </p>
-    {/if}
+    <OfficialEventsDisplay events={officialEvents} loading={loadingOfficial} error={loadError} />
   {/if}
 </div>
