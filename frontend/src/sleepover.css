@@ -251,6 +251,19 @@
   font-weight: 900;
 }
 
+/* Links inside gradient headings: keep the gradient on hover instead of the
+   opaque bg-primary that hover-link applies (which would paint over the gradient
+   and make transparent text invisible against the page background). */
+[data-theme="sleepover"] h1 a,
+[data-theme="sleepover"] h2 a,
+[data-theme="sleepover"] h1 a:hover,
+[data-theme="sleepover"] h2 a:hover {
+  background: linear-gradient(135deg, #4a6fd4 0%, #b8476a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 [data-theme="sleepover"] h3,
 [data-theme="sleepover"] h4,
 [data-theme="sleepover"] h5,
