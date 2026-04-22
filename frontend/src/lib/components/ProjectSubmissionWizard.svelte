@@ -417,7 +417,7 @@
         </div>
         <h2 class="card-title text-xl mb-1">Address Required</h2>
         <p class="text-sm text-base-content/70 mb-4">
-          <span class="underline">{currentEvent.name}</span> requires your address.
+          <span class="underline">{currentEvent.name}</span> requires your address and date of birth.
         </p>
         <fieldset class="fieldset space-y-2" disabled={addressSubmitting}>
           <AddressFields bind:data={addressForm} markRequired />
