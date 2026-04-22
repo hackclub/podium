@@ -107,10 +107,6 @@ settings.validators.register(
             "hackclub_client_secret",
             default="",
         ),
-        Validator(
-            "hackclub_redirect_uri",
-            default="http://localhost:8000/auth/hackclub/callback",
-        ),
     ],
 )
 

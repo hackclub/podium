@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Annotated
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends, Request
 from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -151,7 +151,7 @@ async def verify_token(
 
 
 @router.get("/auth/hackclub")
-async def hackclub_login() -> RedirectResponse:
+async def hackclub_login(request: Request) -> RedirectResponse:
     """Initiate Hack Club OAuth login. Redirects the browser to the HC authorization page."""
     if not settings.hackclub_client_id:
         raise HTTPException(status_code=501, detail="Hack Club auth is not configured")
@@ -160,9 +160,11 @@ async def hackclub_login() -> RedirectResponse:
         expires_delta=timedelta(minutes=10),
         token_type="oauth_state",
     )
+    # Derived from request so it works in all environments without an env var
+    redirect_uri = str(request.base_url) + "auth/hackclub/callback"
     params = urlencode({
         "client_id": settings.hackclub_client_id,
-        "redirect_uri": settings.hackclub_redirect_uri,
+        "redirect_uri": redirect_uri,
         "response_type": "code",
         "scope": "email",
         "state": state,
@@ -172,6 +174,7 @@ async def hackclub_login() -> RedirectResponse:
 
 @router.get("/auth/hackclub/callback")
 async def hackclub_callback(
+    request: Request,
     code: Annotated[str, Query()],
     state: Annotated[str, Query()],
     session: Annotated[AsyncSession, Depends(get_session)],
@@ -188,10 +191,11 @@ async def hackclub_callback(
     # Exchange authorization code for HC access token, then fetch user email
     try:
         async with httpx.AsyncClient() as hc:
+            redirect_uri = str(request.base_url) + "auth/hackclub/callback"
             token_resp = await hc.post(HC_TOKEN_URL, data={
                 "client_id": settings.hackclub_client_id,
                 "client_secret": settings.hackclub_client_secret,
-                "redirect_uri": settings.hackclub_redirect_uri,
+                "redirect_uri": redirect_uri,
                 "code": code,
                 "grant_type": "authorization_code",
             })

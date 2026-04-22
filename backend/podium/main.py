@@ -11,6 +11,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from starlette.middleware.base import BaseHTTPMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from podium.limiter import limiter, get_user_or_ip_for_sentry
 
 sentry_sdk.init(
@@ -49,6 +50,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# Required for request.base_url to reflect https:// behind Vercel's proxy
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 class SentryUserMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
