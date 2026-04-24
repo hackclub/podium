@@ -13,14 +13,6 @@
   let updateModal: Modal = $state() as Modal;
 
   async function updateUser() {
-    // If display_name is empty or whitespace, set it to 'FirstName LastInitial.'
-    if (!user.display_name || user.display_name.trim() === "") {
-      const first = user.first_name?.trim() || "";
-      const lastInitial = user.last_name?.trim()
-        ? user.last_name.trim()[0] + "."
-        : "";
-      user.display_name = `${first} ${lastInitial}`.trim();
-    }
     const { data, error: err } =
       await UsersService.updateCurrentUserUsersCurrentPut({
         body: user,

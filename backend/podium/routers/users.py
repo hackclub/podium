@@ -16,6 +16,7 @@ from podium.db.postgres import (
     get_ro_session,
     scalar_one_or_none,
     user_to_private,
+    default_display_name,
 )
 from podium.routers.auth import get_current_user
 from podium.validators.email import is_disposable_email
@@ -57,6 +58,12 @@ async def update_current_user(
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
 
+    # If display_name is being cleared, fall back to "First L."
+    if "display_name" in update_data and not update_data["display_name"].strip():
+        first = update_data.get("first_name", current_user.first_name)
+        last = update_data.get("last_name", current_user.last_name)
+        update_data["display_name"] = default_display_name(first, last)
+
     current_user.sqlmodel_update(update_data)
 
     await session.commit()
@@ -88,12 +95,12 @@ async def create_user(
     if existing:
         raise HTTPException(status_code=400, detail="User already exists")
 
-    # Convert None values to empty strings for optional fields
-    user_data = user.model_dump()
-    for field in ["last_name", "display_name", "phone", "street_1", "street_2", "city", "state", "zip_code", "country"]:
-        if user_data.get(field) is None:
-            user_data[field] = ""
+    # exclude_none lets the User model's field defaults ("") apply for unprovided optional fields
+    user_data = user.model_dump(exclude_none=True)
     user_data["email"] = email
+    # Default display_name to "First L." if not explicitly provided
+    if not user_data.get("display_name", "").strip():
+        user_data["display_name"] = default_display_name(user_data["first_name"], user_data.get("last_name", ""))
 
     new_user = User.model_validate(user_data)
     session.add(new_user)

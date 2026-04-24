@@ -107,6 +107,13 @@ class UserInternal(UserPrivate, _AddressFields):
     pass
 
 
+def default_display_name(first_name: str, last_name: str) -> str:
+    """Derive a display name from first name + last initial (e.g. 'Angad B.').
+    Used as the default whenever display_name is blank — on signup, update, and OAuth."""
+    parts = [first_name, f"{last_name[0]}." if last_name else ""]
+    return " ".join(p for p in parts if p)
+
+
 def has_ysws_pii(user: "User") -> bool:
     """YSWS prize eligibility: requires address (street, city, country) and DOB."""
     return bool(user.street_1 and user.city and user.country and user.dob)

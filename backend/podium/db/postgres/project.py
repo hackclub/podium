@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from podium.db.postgres.vote import Vote
 
 
+
 class Project(SQLModel, table=True):
     """Hackathon project submission - maps to 'projects' table."""
 
@@ -47,6 +48,20 @@ class Project(SQLModel, table=True):
     def points(self) -> int:
         """Vote count - computed from votes relationship."""
         return len(self.votes)
+
+    @computed_field
+    @property
+    def owner_display_name(self) -> str:
+        """Owner's display name — requires selectinload(Project.owner)."""
+        if not self.owner:
+            return ""
+        return self.owner.display_name
+
+    @computed_field
+    @property
+    def collaborator_display_names(self) -> list[str]:
+        """Collaborator display names — requires selectinload(Project.collaborators)."""
+        return [c.display_name for c in (self.collaborators or [])]
 
     # Foreign keys
     owner_id: UUID = Field(foreign_key="users.id")
@@ -78,6 +93,8 @@ class ProjectPublic(SQLModel):
     description: str
     points: int
     owner_id: UUID
+    owner_display_name: str = ""
+    collaborator_display_names: list[str] = []
 
 
 class ProjectPrivate(ProjectPublic):

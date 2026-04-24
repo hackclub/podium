@@ -13,17 +13,12 @@
 
   let { project, isSelected, toggle, selectable = false }: Props = $props();
   onMount(() => {
-    // Use lookup fields from Airtable to avoid N+1 queries
-    // Note: Airtable lookup fields return arrays even for single records
-    const p = project as any;
     const allNames = [
-      ...(p.collaborator_display_names || []),
-      ...(p.owner_display_name || []),
-    ].filter(Boolean); // Remove empty strings
+      project.owner_display_name,
+      ...(project.collaborator_display_names ?? []),
+    ].filter((n): n is string => Boolean(n));
 
-    // Only format if we have valid names
     if (allNames.length > 0) {
-      // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/ListFormat/ListFormat#parameters
       const formatter = new Intl.ListFormat("en", {
         style: "short",
         type: "conjunction",

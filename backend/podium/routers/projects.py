@@ -111,8 +111,16 @@ async def get_projects(
         select(User)
         .where(User.id == user.id)
         .options(
-            selectinload(User.owned_projects).selectinload(Project.votes),
-            selectinload(User.projects_collaborating).selectinload(Project.votes),
+            selectinload(User.owned_projects).options(
+                selectinload(Project.votes),
+                selectinload(Project.owner),
+                selectinload(Project.collaborators),
+            ),
+            selectinload(User.projects_collaborating).options(
+                selectinload(Project.votes),
+                selectinload(Project.owner),
+                selectinload(Project.collaborators),
+            ),
         )
     )
     u = await scalar_one_or_none(session, stmt)

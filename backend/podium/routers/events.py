@@ -232,7 +232,11 @@ async def get_event_projects(
         session,
         select(Project)
         .where(Project.event_id == event_id)
-        .options(selectinload(Project.votes)),
+        .options(
+            selectinload(Project.votes),
+            selectinload(Project.owner),
+            selectinload(Project.collaborators),
+        ),
     )
 
     if leaderboard:

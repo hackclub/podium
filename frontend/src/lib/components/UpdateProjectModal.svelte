@@ -64,6 +64,8 @@
     description: "",
     points: 0,
     owner_id: "",
+    owner_display_name: "",
+    collaborator_display_names: [],
   };
   // Derive           project = { ...chosenProject };
   let project: ProjectUpdate = $derived({ ...preselectedProject });

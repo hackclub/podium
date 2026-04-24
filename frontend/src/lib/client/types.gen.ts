@@ -80,6 +80,22 @@ export type HTTPValidationError = {
     detail?: Array<ValidationError>;
 };
 
+export type Page_EventPrivate_ = {
+    items: Array<EventPrivate>;
+    total: number;
+    page: number;
+    size: number;
+    pages: number;
+};
+
+export type Page_UserSummary_ = {
+    items: Array<UserSummary>;
+    total: number;
+    page: number;
+    size: number;
+    pages: number;
+};
+
 /**
  * Request body for creating a project.
  */
@@ -105,6 +121,8 @@ export type ProjectPrivate = {
     description: string;
     points: number;
     owner_id: string;
+    owner_display_name?: string;
+    collaborator_display_names?: Array<(string)>;
     join_code: string;
     hours_spent: number;
     event_id: string;
@@ -124,6 +142,8 @@ export type ProjectPublic = {
     description: string;
     points: number;
     owner_id: string;
+    owner_display_name?: string;
+    collaborator_display_names?: Array<(string)>;
 };
 
 /**
@@ -143,6 +163,22 @@ export type ReferralResponse = {
     content: string;
     user_id: string;
     event_id: string;
+};
+
+/**
+ * EventUpdate extended with superadmin-only fields.
+ */
+export type SuperadminEventUpdate = {
+    name?: (string | null);
+    description?: (string | null);
+    phase?: (string | null);
+    demo_links_optional?: (boolean | null);
+    require_ysws_pii?: (boolean | null);
+    repo_validation?: (string | null);
+    demo_validation?: (string | null);
+    custom_validator?: (string | null);
+    feature_flags_csv?: (string | null);
+    owner_email?: (string | null);
 };
 
 /**
@@ -215,6 +251,13 @@ export type UserSignup = {
     first_name: string;
 };
 
+export type UserSummary = {
+    id: string;
+    email: string;
+    display_name: string;
+    is_superadmin: boolean;
+};
+
 /**
  * Request body for profile update. None fields are excluded from the update.
  */
@@ -236,6 +279,10 @@ export type ValidationError = {
     loc: Array<(string | number)>;
     msg: string;
     type: string;
+    input?: unknown;
+    ctx?: {
+        [key: string]: unknown;
+    };
 };
 
 /**
@@ -273,6 +320,21 @@ export type VerifyTokenVerifyGetData = {
 export type VerifyTokenVerifyGetResponse = (AuthenticatedUser);
 
 export type VerifyTokenVerifyGetError = (HTTPValidationError);
+
+export type HackclubLoginAuthHackclubGetResponse = (unknown);
+
+export type HackclubLoginAuthHackclubGetError = unknown;
+
+export type HackclubCallbackAuthHackclubCallbackGetData = {
+    query: {
+        code: string;
+        state: string;
+    };
+};
+
+export type HackclubCallbackAuthHackclubCallbackGetResponse = (unknown);
+
+export type HackclubCallbackAuthHackclubCallbackGetError = (HTTPValidationError);
 
 export type ListOfficialEventsEventsOfficialGetResponse = (Array<EventPublic>);
 
@@ -489,9 +551,22 @@ export type ValidateProjectProjectsValidatePostResponse = (ValidationResult);
 
 export type ValidateProjectProjectsValidatePostError = (HTTPValidationError);
 
-export type ListAllEventsSuperadminEventsGetResponse = (Array<EventPrivate>);
+export type ListAllEventsSuperadminEventsGetData = {
+    query?: {
+        /**
+         * Page number
+         */
+        page?: number;
+        /**
+         * Page size
+         */
+        size?: number;
+    };
+};
 
-export type ListAllEventsSuperadminEventsGetError = unknown;
+export type ListAllEventsSuperadminEventsGetResponse = (Page_EventPrivate_);
+
+export type ListAllEventsSuperadminEventsGetError = (HTTPValidationError);
 
 export type CreateEventSuperadminEventsPostData = {
     body: EventCreate;
@@ -510,6 +585,34 @@ export type SoftDeleteEventSuperadminEventsEventIdDeleteData = {
 export type SoftDeleteEventSuperadminEventsEventIdDeleteResponse = (unknown);
 
 export type SoftDeleteEventSuperadminEventsEventIdDeleteError = (HTTPValidationError);
+
+export type UpdateEventSuperadminEventsEventIdPatchData = {
+    body: SuperadminEventUpdate;
+    path: {
+        event_id: string;
+    };
+};
+
+export type UpdateEventSuperadminEventsEventIdPatchResponse = (EventPrivate);
+
+export type UpdateEventSuperadminEventsEventIdPatchError = (HTTPValidationError);
+
+export type ListUsersSuperadminUsersGetData = {
+    query?: {
+        /**
+         * Page number
+         */
+        page?: number;
+        /**
+         * Page size
+         */
+        size?: number;
+    };
+};
+
+export type ListUsersSuperadminUsersGetResponse = (Page_UserSummary_);
+
+export type ListUsersSuperadminUsersGetError = (HTTPValidationError);
 
 export type UserExistsUsersExistsGetData = {
     query: {
