@@ -174,7 +174,7 @@ class CreateEventScreen(ModalScreen[bool]):
 
             owner = next((u for u in self.users if u["email"].lower() == owner_email), None)
             if not owner:
-                self.notify(f"User not found: {owner_email}", severity="error")
+                self.notify(f"User not found: {owner_email}", severity="error", markup=False)
                 return
 
             event_slug = slug or slugify(name)
@@ -188,7 +188,7 @@ class CreateEventScreen(ModalScreen[bool]):
             async with db() as session:
                 existing = await session.execute(select(Event).where(Event.slug == event_slug))
                 if existing.scalars().first():
-                    self.notify(f"Slug '{event_slug}' already exists", severity="error")
+                    self.notify(f"Slug '{event_slug}' already exists", severity="error", markup=False)
                     return
 
                 event = Event(
@@ -203,10 +203,10 @@ class CreateEventScreen(ModalScreen[bool]):
                 session.add(event)
                 await session.commit()
 
-            self.notify(f"Created: {name}")
+            self.notify(f"Created: {name}", markup=False)
             self.dismiss(True)
         except Exception as e:
-            self.notify(f"Error: {e}", severity="error")
+            self.notify(f"Error: {e}", severity="error", markup=False)
             traceback.print_exc()
 
 
@@ -248,7 +248,7 @@ class ManageAttendeesScreen(ModalScreen[bool]):
                 self.attendee_ids = {link.user_id for link in result.scalars().all()}
             self.refresh_table()
         except Exception as e:
-            self.notify(f"Error loading attendees: {e}", severity="error")
+            self.notify(f"Error loading attendees: {e}", severity="error", markup=False)
             traceback.print_exc()
 
     def refresh_table(self) -> None:
@@ -287,10 +287,10 @@ class ManageAttendeesScreen(ModalScreen[bool]):
             return
         user = next((u for u in self.users if u["email"].lower() == email), None)
         if not user:
-            self.notify(f"User not found: {email}", severity="error")
+            self.notify(f"User not found: {email}", severity="error", markup=False)
             return
         if user["id"] in self.attendee_ids:
-            self.notify(f"{email} is already an attendee", severity="warning")
+            self.notify(f"{email} is already an attendee", severity="warning", markup=False)
             return
         try:
             db = get_db()
@@ -304,9 +304,9 @@ class ManageAttendeesScreen(ModalScreen[bool]):
             self.attendee_ids.add(user["id"])
             self.refresh_table()
             self.query_one("#add-email", Input).value = ""
-            self.notify(f"Added: {email}")
+            self.notify(f"Added: {email}", markup=False)
         except Exception as e:
-            self.notify(f"Error: {e}", severity="error")
+            self.notify(f"Error: {e}", severity="error", markup=False)
             traceback.print_exc()
 
     @on(Button.Pressed, "#btn-remove-attendee")
@@ -334,9 +334,9 @@ class ManageAttendeesScreen(ModalScreen[bool]):
                     await session.commit()
             self.attendee_ids.discard(user["id"])
             self.refresh_table()
-            self.notify(f"Removed: {user['email']}")
+            self.notify(f"Removed: {user['email']}", markup=False)
         except Exception as e:
-            self.notify(f"Error: {e}", severity="error")
+            self.notify(f"Error: {e}", severity="error", markup=False)
             traceback.print_exc()
 
 
@@ -472,7 +472,7 @@ class EventManagerApp(App):
             if not db:
                 self.db_error = "Database not configured. Run with: doppler run --config dev -- uv run python scripts/manage.py"
                 self.query_one("#status-bar", Static).update(f"ERROR: {self.db_error}")
-                self.notify(self.db_error, title="No database connection", severity="error", timeout=30)
+                self.notify(self.db_error, title="No database connection", severity="error", timeout=30, markup=False)
                 return
 
             from podium.db.postgres import Event, User
@@ -498,7 +498,7 @@ class EventManagerApp(App):
         except Exception as e:
             self.db_error = str(e)
             self.query_one("#status-bar", Static).update(f"ERROR: {e}")
-            self.notify(str(e), title="Load failed", severity="error", timeout=10)
+            self.notify(str(e), title="Load failed", severity="error", timeout=10, markup=False)
             traceback.print_exc()
 
     def refresh_events_table(self) -> None:
@@ -521,7 +521,7 @@ class EventManagerApp(App):
                     key=str(event["id"]),
                 )
         except Exception as e:
-            self.notify(f"Error refreshing events: {e}", severity="error")
+            self.notify(f"Error refreshing events: {e}", severity="error", markup=False)
 
     def refresh_users_table(self) -> None:
         try:
@@ -545,7 +545,7 @@ class EventManagerApp(App):
                     key=str(user["id"]),
                 )
         except Exception as e:
-            self.notify(f"Error refreshing users: {e}", severity="error")
+            self.notify(f"Error refreshing users: {e}", severity="error", markup=False)
 
     def get_selected_event(self) -> dict | None:
         try:
@@ -640,10 +640,10 @@ class EventManagerApp(App):
                 if db_event:
                     await session.delete(db_event)
                     await session.commit()
-            self.notify(f"Deleted: {event['name']}")
+            self.notify(f"Deleted: {event['name']}", markup=False)
             self.load_data()
         except Exception as e:
-            self.notify(f"Error: {e}", severity="error")
+            self.notify(f"Error: {e}", severity="error", markup=False)
             traceback.print_exc()
 
     @on(Button.Pressed, "#btn-delete")
@@ -680,10 +680,10 @@ class EventManagerApp(App):
                 db_user.is_superadmin = not db_user.is_superadmin
                 await session.commit()
                 new_state = db_user.is_superadmin
-            self.notify(f"Superadmin {'granted' if new_state else 'revoked'} for {user['email']}")
+            self.notify(f"Superadmin {'granted' if new_state else 'revoked'} for {user['email']}", markup=False)
             self.load_data()
         except Exception as e:
-            self.notify(f"Error: {e}", severity="error")
+            self.notify(f"Error: {e}", severity="error", markup=False)
             traceback.print_exc()
 
     def _prompt_delete_user(self) -> None:
@@ -715,10 +715,10 @@ class EventManagerApp(App):
                 if db_user:
                     await session.delete(db_user)
                     await session.commit()
-            self.notify(f"Deleted: {user['email']}")
+            self.notify(f"Deleted: {user['email']}", markup=False)
             self.load_data()
         except Exception as e:
-            self.notify(f"Error: {e}", severity="error")
+            self.notify(f"Error: {e}", severity="error", markup=False)
             traceback.print_exc()
 
 
