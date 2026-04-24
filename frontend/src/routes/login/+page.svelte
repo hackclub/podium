@@ -111,14 +111,6 @@
       document.getElementById("email")?.focus();
       return;
     }
-    // Generate display name if not provided or only whitespace
-    if (!userInfo.display_name || userInfo.display_name.trim() === "") {
-      const first = userInfo.first_name?.trim() || "";
-      const lastInitial = userInfo.last_name?.trim()
-        ? userInfo.last_name.trim()[0] + "."
-        : "";
-      userInfo.display_name = `${first} ${lastInitial}`.trim();
-    }
     const signupEmail = userInfo.email;
     const { error: signupErr } = await UsersService.createUserUsersPost({
       body: userInfo,
@@ -225,10 +217,10 @@
         <img src="https://assets.hackclub.com/icon-rounded.svg" alt="Hack Club" class="w-5 h-5" />
         Login with Hack Club
       </a>
-      <div class="divider my-2">or</div>
+      <!-- <div class="divider my-2">or</div> -->
     {/if}
 
-    <fieldset
+    <!-- <fieldset
       class="fieldset bg-base-200 border-base-300 rounded-box border p-4"
     >
       <label class="label flex justify-between" for="email">
@@ -276,19 +268,9 @@
           bind:value={userInfo.last_name}
         />
 
-        <!-- Display name; if it's not set, use first name and last initial -->
-        <label class="label flex justify-between" for="display_name">
-          <span>Display Name</span>
-          <span>Optional, default is First Name + Last Initial</span>
-        </label>
-        <input
-          id="display_name"
-          type="text"
-          class="input input-bordered w-full"
-          placeholder="Abc X."
-          bind:value={userInfo.display_name}
-        />
-        <!-- Removed display name preview -->
+        <p class="text-sm text-base-content/60">
+          Your display name will default to First Name + Last Initial (e.g. Alex B.) and can be changed later in your profile.
+        </p>
 
         <label class="label flex justify-between" for="phone">
           <span>Phone</span>
@@ -404,7 +386,7 @@
           Login / Sign Up
         </button>
       </div>
-    </fieldset>
+    </fieldset> -->
 
   {/if}
   <div class="text-center mt-4">

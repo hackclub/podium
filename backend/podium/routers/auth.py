@@ -23,7 +23,7 @@ from podium.config import settings
 from podium.constants import BAD_AUTH
 from podium.validators.email import is_disposable_email
 from sqlalchemy.orm import selectinload
-from podium.db.postgres import User, UserPrivate, get_session, scalar_one_or_none, user_to_private
+from podium.db.postgres import User, UserPrivate, get_session, scalar_one_or_none, user_to_private, default_display_name
 
 router = APIRouter(tags=["auth"])
 
@@ -160,8 +160,9 @@ async def hackclub_login(request: Request) -> RedirectResponse:
         expires_delta=timedelta(minutes=10),
         token_type="oauth_state",
     )
-    # Derived from request so it works in all environments without an env var
-    redirect_uri = str(request.base_url) + "auth/hackclub/callback"
+    # Derived from request so it works in all environments without an env var.
+    # Normalize 127.0.0.1 → localhost so the URI matches what's registered with HC OAuth.
+    redirect_uri = str(request.base_url).replace("127.0.0.1", "localhost") + "auth/hackclub/callback"
     params = urlencode({
         "client_id": settings.hackclub_client_id,
         "redirect_uri": redirect_uri,
@@ -191,7 +192,7 @@ async def hackclub_callback(
     # Exchange authorization code for HC access token, then fetch user email
     try:
         async with httpx.AsyncClient() as hc:
-            redirect_uri = str(request.base_url) + "auth/hackclub/callback"
+            redirect_uri = str(request.base_url).replace("127.0.0.1", "localhost") + "auth/hackclub/callback"
             token_resp = await hc.post(HC_TOKEN_URL, data={
                 "client_id": settings.hackclub_client_id,
                 "client_secret": settings.hackclub_client_secret,
@@ -222,7 +223,12 @@ async def hackclub_callback(
         name_parts = full_name.split(" ", 1)
         first_name = name_parts[0] if name_parts else ""
         last_name = name_parts[1] if len(name_parts) > 1 else ""
-        user = User(email=email, first_name=first_name, last_name=last_name)
+        user = User(
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            display_name=default_display_name(first_name, last_name),
+        )
         session.add(user)
         await session.commit()
         stmt = select(User).where(User.email == email).options(selectinload(User.votes))
