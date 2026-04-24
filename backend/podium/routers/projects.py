@@ -3,6 +3,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Path, Query, Request
+from sqlalchemy import func
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -158,7 +159,7 @@ async def create_project(
     while True:
         join_code = token_urlsafe(3).upper()
         code_exists = await scalar_one_or_none(
-            session, select(Project).where(Project.join_code == join_code)
+            session, select(Project).where(func.upper(Project.join_code) == join_code)
         )
         if not code_exists:
             break
@@ -189,7 +190,7 @@ async def join_project(
     """Join a project as a collaborator."""
     stmt = (
         select(Project)
-        .where(Project.join_code == join_code.upper())
+        .where(func.upper(Project.join_code) == join_code.upper())
         .options(selectinload(Project.collaborators))
     )
     project = await scalar_one_or_none(session, stmt)
