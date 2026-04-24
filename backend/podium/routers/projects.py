@@ -226,7 +226,11 @@ async def update_project(
         session,
         select(Project)
         .where(Project.id == project_id)
-        .options(selectinload(Project.votes)),
+        .options(
+            selectinload(Project.votes),
+            selectinload(Project.owner),
+            selectinload(Project.collaborators),
+        ),
     )
     if not project or project.owner_id != user.id:
         raise BAD_ACCESS
@@ -276,7 +280,11 @@ async def get_project_endpoint(
         session,
         select(Project)
         .where(Project.id == project_id)
-        .options(selectinload(Project.votes)),
+        .options(
+            selectinload(Project.votes),
+            selectinload(Project.owner),
+            selectinload(Project.collaborators),
+        ),
     )
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")

@@ -150,7 +150,11 @@ async def get_event_leaderboard(
         session,
         select(Project)
         .where(Project.event_id == event_id)
-        .options(selectinload(Project.votes)),
+        .options(
+            selectinload(Project.votes),
+            selectinload(Project.owner),
+            selectinload(Project.collaborators),
+        ),
     )
     projects.sort(key=lambda p: p.points, reverse=True)
     return [ProjectPrivate.model_validate(p) for p in projects]
