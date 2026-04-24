@@ -167,7 +167,7 @@ async def hackclub_login(request: Request) -> RedirectResponse:
         "client_id": settings.hackclub_client_id,
         "redirect_uri": redirect_uri,
         "response_type": "code",
-        "scope": "email",
+        "scope": "email name",
         "state": state,
     })
     return RedirectResponse(f"{HC_AUTHORIZE_URL}?{params}")
@@ -215,14 +215,12 @@ async def hackclub_callback(
     if not email:
         raise HTTPException(status_code=400, detail="No email returned from Hack Club")
 
+    first_name: str = identity.get("first_name", "").strip()
+    last_name: str = identity.get("last_name", "").strip()
+
     stmt = select(User).where(User.email == email).options(selectinload(User.votes))
     user = await scalar_one_or_none(session, stmt)
     if user is None:
-        # Parse name for new users — split "First Last" if available
-        full_name: str = identity.get("name", "")
-        name_parts = full_name.split(" ", 1)
-        first_name = name_parts[0] if name_parts else ""
-        last_name = name_parts[1] if len(name_parts) > 1 else ""
         user = User(
             email=email,
             first_name=first_name,
@@ -230,6 +228,14 @@ async def hackclub_callback(
             display_name=default_display_name(first_name, last_name),
         )
         session.add(user)
+        await session.commit()
+        stmt = select(User).where(User.email == email).options(selectinload(User.votes))
+        user = await scalar_one_or_none(session, stmt)
+    elif not user.first_name and first_name:
+        # Backfill name for existing users who registered before HCA name scope was added
+        user.first_name = first_name
+        user.last_name = last_name
+        user.display_name = default_display_name(first_name, last_name)
         await session.commit()
         stmt = select(User).where(User.email == email).options(selectinload(User.votes))
         user = await scalar_one_or_none(session, stmt)
