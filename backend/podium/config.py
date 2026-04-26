@@ -98,6 +98,11 @@ settings.validators.register(
             "database_url_ro",
             default="",
         ),
+        # GitHub token — empty string falls back to unauthenticated (60 req/hr)
+        Validator(
+            "github_token",
+            default="",
+        ),
         # Hack Club OAuth — empty client_id disables the HC login option entirely
         Validator(
             "hackclub_client_id",

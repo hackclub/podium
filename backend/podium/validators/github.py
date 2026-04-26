@@ -2,14 +2,15 @@
 GitHub repository validator.
 
 Instant check: regex match on the URL shape (used frontend-side too).
-Background check: calls the public GitHub REST API to verify the repo exists
-and is accessible. No auth token required for public repos — rate limit is
-60 req/hr per IP, which is fine for background validation.
+Background check: calls the GitHub REST API to verify the repo exists and is
+accessible. Set PODIUM_GITHUB_TOKEN to authenticate (5,000 req/hr); without
+it the unauthenticated limit of 60 req/hr per IP applies.
 """
 
 import re
 import httpx
 
+from podium.config import settings
 from podium.validators.base import ValidationResult
 
 GITHUB_URL_PATTERN = re.compile(
@@ -52,11 +53,12 @@ async def validate(repo_url: str, timeout: float = 10.0) -> ValidationResult:
     repo = repo.removesuffix(".git")
 
     api_url = GITHUB_API.format(owner=owner, repo=repo)
+    headers = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
+    token = settings.get("github_token", "")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     try:
-        async with httpx.AsyncClient(
-            timeout=timeout,
-            headers={"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"},
-        ) as client:
+        async with httpx.AsyncClient(timeout=timeout, headers=headers) as client:
             response = await client.get(api_url)
 
         if response.status_code == 200:
