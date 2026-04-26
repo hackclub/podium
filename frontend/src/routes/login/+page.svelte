@@ -217,10 +217,10 @@
         <img src="https://assets.hackclub.com/icon-rounded.svg" alt="Hack Club" class="w-5 h-5" />
         Login with Hack Club
       </a>
-      <!-- <div class="divider my-2">or</div> -->
+      <div class="divider my-2">or</div>
     {/if}
 
-    <!-- <fieldset
+    <fieldset
       class="fieldset bg-base-200 border-base-300 rounded-box border p-4"
     >
       <label class="label flex justify-between" for="email">
@@ -386,7 +386,7 @@
           Login / Sign Up
         </button>
       </div>
-    </fieldset> -->
+    </fieldset>
 
   {/if}
   <div class="text-center mt-4">
