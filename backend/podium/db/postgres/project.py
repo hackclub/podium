@@ -31,7 +31,7 @@ class Project(SQLModel, table=True):
     # Core fields
     name: str = Field(max_length=255)
     repo: str = Field(default="")  # TEXT - URLs can be long
-    image_url: str = Field(default="")  # TEXT - URLs with tokens can be very long
+    image_url: str = Field()  # TEXT - URLs with tokens can be very long
     demo: str = Field(default="")  # TEXT - URLs can be long
     description: str = Field(default="")
     join_code: str = Field(max_length=20, unique=True)
