@@ -306,10 +306,13 @@ async def validate_project(
     The actual validation runs asynchronously after this response. Poll
     GET /projects/{id} to see the updated validation_status once done.
     """
-    project = await session.get(Project, project_id)
+    project = await scalar_one_or_none(
+        session,
+        select(Project).where(Project.id == project_id).options(selectinload(Project.collaborators)),
+    )
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    if project.owner_id != user.id:
+    if project.owner_id != user.id and user not in project.collaborators:
         raise BAD_ACCESS
 
     project.validation_status = ValidationStatus.PENDING

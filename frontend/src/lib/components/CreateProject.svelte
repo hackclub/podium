@@ -147,7 +147,9 @@
       placeholder="Image URL"
       class="input input-bordered w-full"
     />
-
+    <div class="text-sm text-base-content/70 mt-1">
+      If you're in the Hack Club Slack, you can upload your image to #cdn. Please do not link to images on Google Drive or similar services.
+    </div>
     <label class="label" for="demo_url">
       URL to a deployed version of your project
       {#if demoLinksOptional}
