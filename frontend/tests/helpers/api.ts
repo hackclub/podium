@@ -244,3 +244,31 @@ export async function adminGetReferrals(api: APIRequestContext, eventId: string)
 
 /** Backwards-compat alias used by older specs. */
 export const getLeaderboard = adminGetLeaderboard;
+
+// =============================================================================
+// SUPERADMIN
+// =============================================================================
+
+export async function promoteSuperadmin(api: APIRequestContext) {
+	const response = await api.post(`${API_URL}/users/test/promote-superadmin`);
+	await assertOk(response, 'promoteSuperadmin');
+	return response.json();
+}
+
+export async function superadminExportCsv(
+	api: APIRequestContext,
+	params: { event_id?: string; series?: string }
+) {
+	const url = new URL(`${API_URL}/superadmin/export-csv`);
+	if (params.event_id) url.searchParams.set('event_id', params.event_id);
+	if (params.series) url.searchParams.set('series', params.series);
+	return api.get(url.toString());
+}
+
+export async function superadminPatchEvent(
+	api: APIRequestContext,
+	eventId: string,
+	data: Record<string, unknown>
+) {
+	return api.patch(`${API_URL}/superadmin/events/${eventId}`, { data });
+}

@@ -8,6 +8,7 @@ logs/
 backend/podium/cache/generated/
 # Local secrets (docker compose + act)
 .env
+.secrets
 
 **/.DS_Store
 claude-plans/

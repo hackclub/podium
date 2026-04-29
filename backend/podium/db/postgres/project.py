@@ -5,6 +5,7 @@ A Project is a hackathon submission that belongs to an Event.
 """
 
 from typing import TYPE_CHECKING
+from urllib.parse import urlparse
 from uuid import UUID, uuid4
 
 from pydantic import computed_field
@@ -12,6 +13,25 @@ from sqlmodel import Field, SQLModel, Relationship
 
 from podium.constants import ValidationStatus
 from podium.db.postgres.links import ProjectCollaboratorLink
+
+
+def github_username_from_repo(repo_url: str) -> str:
+    """Extract the GitHub username from a github.com repo URL.
+
+    Returns empty string for non-GitHub URLs or malformed input.
+    Example: https://github.com/hackclub/sprig -> 'hackclub'
+    """
+    if not repo_url:
+        return ""
+    try:
+        p = urlparse(repo_url)
+        if p.netloc in ("github.com", "www.github.com"):
+            parts = p.path.strip("/").split("/")
+            if parts and parts[0]:
+                return parts[0]
+    except Exception:
+        pass
+    return ""
 
 if TYPE_CHECKING:
     from podium.db.postgres.user import User

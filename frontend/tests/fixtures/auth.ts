@@ -56,7 +56,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
 			};
 
 			const createResp = await api.post('/users/', {
-				headers: { 'Content-Type': 'application/json' },
+				headers: { 'Content-Type': 'application/json', 'X-Turnstile-Token': 'e2e-test' },
 				data: signupPayload
 			});
 

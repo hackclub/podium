@@ -42,6 +42,7 @@ export type EventPrivate = {
     demo_validation: string;
     owner_id: string;
     custom_validator: (string | null);
+    feature_flags_csv?: string;
     deleted_at?: (string | null);
 };
 
@@ -596,6 +597,17 @@ export type UpdateEventSuperadminEventsEventIdPatchData = {
 export type UpdateEventSuperadminEventsEventIdPatchResponse = (EventPrivate);
 
 export type UpdateEventSuperadminEventsEventIdPatchError = (HTTPValidationError);
+
+export type ExportProjectsCsvSuperadminExportCsvGetData = {
+    query?: {
+        event_id?: (string | null);
+        series?: (string | null);
+    };
+};
+
+export type ExportProjectsCsvSuperadminExportCsvGetResponse = (unknown);
+
+export type ExportProjectsCsvSuperadminExportCsvGetError = (HTTPValidationError);
 
 export type ListUsersSuperadminUsersGetData = {
     query?: {

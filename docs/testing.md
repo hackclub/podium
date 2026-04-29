@@ -14,6 +14,12 @@ npx playwright test --headed         # see browser
 
 Use `npx`, not `bunx`, for Playwright.
 
+To run via `act` (local GitHub Actions simulation), use the helper script — it generates a short-lived Doppler service token and injects it automatically:
+
+```bash
+./scripts/run-e2e-act.sh
+```
+
 ## How Auth Works
 
 Tests create users on-the-fly via `/users/` endpoint, then get a JWT via `/verify` using a magic link token (created with `signMagicLinkToken()`). The JWT is stored in localStorage and reused for UI navigation.
@@ -29,6 +35,7 @@ Tests create users on-the-fly via `/users/` endpoint, then get a JWT via `/verif
 | `admin.spec.ts` | Admin panel: phase change, attendee removal, leaderboard badges |
 | `permissions.spec.ts` | Owner vs non-owner vs unauthenticated access |
 | `api-coverage.spec.ts` | API contract tests (one test per endpoint) |
+| `superadmin.spec.ts` | Superadmin CSV export (API-level) |
 
 ## Key Patterns
 

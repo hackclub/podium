@@ -33,7 +33,7 @@ export async function createUserAndGetToken(
 	const lastName = rest.join(' ') || 'User';
 
 	const signupResp = await api.post('/users/', {
-		headers: { 'Content-Type': 'application/json' },
+		headers: { 'Content-Type': 'application/json', 'X-Turnstile-Token': 'e2e-test' },
 		data: {
 			email,
 			first_name: firstName,

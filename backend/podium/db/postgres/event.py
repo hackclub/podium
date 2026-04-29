@@ -139,6 +139,7 @@ class EventPrivate(EventPublic):
 
     owner_id: UUID
     custom_validator: str | None
+    feature_flags_csv: str = ""
     deleted_at: datetime | None = None
 
 

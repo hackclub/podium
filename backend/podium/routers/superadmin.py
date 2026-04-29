@@ -5,18 +5,22 @@ Superadmins can:
   - List all events (including soft-deleted)
   - Create real events (not limited to test endpoints)
   - Soft-delete events (sets deleted_at, hides from public listings)
-  - Update any event field including owner (by email)
+  - Update any event field including owner (by email) and feature flags
+  - Export project + owner PII as CSV for YSWS unified DB import
   - List all users
 
 Regular admin endpoints (admin.py) already grant superadmins full owner access
 to any event via the get_owned_event helper.
 """
 
+import csv
+import io
 from datetime import datetime, UTC
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from fastapi.responses import StreamingResponse
 from pydantic import ConfigDict
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
@@ -34,9 +38,22 @@ from podium.db.postgres import (
     EventUpdate,
     get_session,
     scalar_one_or_none,
+    scalar_all,
 )
+from podium.db.postgres.project import Project, github_username_from_repo
+from podium.db.postgres.queries import list_active_events
 from podium.routers.auth import get_current_user
 from podium.constants import BAD_ACCESS, EventPhase
+
+
+_CSV_COLUMNS = [
+    "First Name", "Last Name", "Email",
+    "Playable URL", "Code URL", "Screenshot", "Description",
+    "GitHub Username",
+    "Address (Line 1)", "Address (Line 2)", "City", "State / Province",
+    "Country", "ZIP / Postal Code", "Birthday",
+    "Override Hours Spent",
+]
 
 router = APIRouter(prefix="/superadmin", tags=["superadmin"])
 
@@ -152,6 +169,80 @@ async def update_event(
     stmt = select(Event).where(Event.id == event.id).options(selectinload(Event.projects))
     event = await scalar_one_or_none(session, stmt)
     return EventPrivate.model_validate(event)
+
+
+@router.get("/export-csv")
+async def export_projects_csv(
+    user: Annotated[User, Depends(require_superadmin)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    event_id: UUID | None = Query(default=None),
+    series: str | None = Query(default=None),
+) -> StreamingResponse:
+    """Export project + owner PII as CSV for YSWS unified DB import.
+
+    Pass either event_id (single event) or series (all active events with that feature flag).
+    All rows are included regardless of missing fields — validate downstream.
+    """
+    if not event_id and not series:
+        raise HTTPException(status_code=400, detail="Provide either event_id or series")
+    if event_id and series:
+        raise HTTPException(status_code=400, detail="Provide either event_id or series, not both")
+
+    date_str = datetime.now(UTC).strftime("%Y-%m-%d")
+
+    if event_id:
+        event = await session.get(Event, event_id)
+        slug = event.slug if event else str(event_id)
+        stmt = (
+            select(Project)
+            .where(Project.event_id == event_id)
+            .options(selectinload(Project.owner))
+        )
+        filename = f"projects-{slug}-{date_str}.csv"
+    else:
+        all_events = await list_active_events(session)
+        matching_ids = [e.id for e in all_events if series in e.feature_flags_list]
+        if not matching_ids:
+            raise HTTPException(status_code=404, detail=f"No active events found with series '{series}'")
+        stmt = (
+            select(Project)
+            .where(Project.event_id.in_(matching_ids))
+            .options(selectinload(Project.owner))
+        )
+        filename = f"projects-{series}-{date_str}.csv"
+
+    projects = await scalar_all(session, stmt)
+
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=_CSV_COLUMNS)
+    writer.writeheader()
+
+    for project in projects:
+        owner = project.owner
+        writer.writerow({
+            "First Name": owner.first_name,
+            "Last Name": owner.last_name,
+            "Email": owner.email,
+            "Playable URL": project.demo,
+            "Code URL": project.repo,
+            "Screenshot": project.image_url,
+            "Description": project.description,
+            "GitHub Username": github_username_from_repo(project.repo),
+            "Address (Line 1)": owner.street_1,
+            "Address (Line 2)": owner.street_2,
+            "City": owner.city,
+            "State / Province": owner.state,
+            "Country": owner.country,
+            "ZIP / Postal Code": owner.zip_code,
+            "Birthday": owner.dob.isoformat() if owner.dob else "",
+            "Override Hours Spent": project.hours_spent or "",
+        })
+
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 @router.get("/users")

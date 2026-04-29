@@ -61,7 +61,7 @@
             "problemMatcher": [],
             "label": "npm: svelte-check - frontend",
             "detail": "svelte-check --threshold error"
-        }
+        },
     ],
     "inputs": [
         {

@@ -13,7 +13,7 @@
         },
         {
           "label": "Production",
-          "value": "prd"
+          "value": "prd_local" // Local production: sets turnstile to test key to approve all reqs, set loops key to an empty string to disable email sending, and set PODIUM_PRODUCTION_URL to http://localhost:5173 
         }
       ],
       "default": "dev"
@@ -36,9 +36,9 @@
       "request": "launch",
       "module": "uvicorn",
       "args": ["podium.main:app", "--reload"],
-      // Alternative: doppler run --config ${input:doppler_environment} -- uv run uvicorn podium.main:app
       "env": {
-        "DOPPLER_ENV": "${input:doppler_environment}"
+        "DOPPLER_ENV": "1",
+        "DOPPLER_CONFIG": "${input:doppler_environment}"
       },
       "cwd": "${workspaceFolder}/backend",
       "justMyCode": true

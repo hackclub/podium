@@ -3,6 +3,8 @@
   import { SuperadminService, client } from "$lib/client/sdk.gen";
   import type { EventPrivate } from "$lib/client/types.gen";
   import { toast } from "svelte-sonner";
+  import { PUBLIC_API_URL } from "$env/static/public";
+  import { getAuthenticatedUser } from "$lib/user.svelte";
 
   type UserSummary = { id: string; email: string; display_name: string; is_superadmin: boolean };
 
@@ -32,6 +34,7 @@
   let editDemoValidation = $state("");
   let editCustomValidator = $state("");
   let editRequireYswsPii = $state(false);
+  let editFeatureFlags = $state("");
   let saving = $state(false);
 
   async function loadEvents(page = eventsPage.page) {
@@ -80,6 +83,7 @@
     editDemoValidation = event.demo_validation;
     editCustomValidator = event.custom_validator ?? "";
     editRequireYswsPii = event.require_ysws_pii;
+    editFeatureFlags = event.feature_flags_csv ?? "";
   }
 
   async function saveEdit() {
@@ -93,6 +97,8 @@
     const newCustom = editCustomValidator.trim() || null;
     if (newCustom !== (editing.custom_validator ?? null)) body.custom_validator = newCustom;
     if (editRequireYswsPii !== editing.require_ysws_pii) body.require_ysws_pii = editRequireYswsPii;
+    const newFlags = editFeatureFlags.trim();
+    if (newFlags !== (editing.feature_flags_csv ?? "")) body.feature_flags_csv = newFlags;
 
     if (Object.keys(body).length > 0) {
       const { error } = await client.patch<EventPrivate, unknown>({
@@ -117,6 +123,42 @@
     if (error) { toast.error("Failed to delete event"); return; }
     toast.success("Event deleted");
     await loadEvents();
+  }
+
+  // Export state
+  let exportScope = $state<"series" | "event">("series");
+  let exportSeries = $state("");
+  let exportEventId = $state("");
+  let exporting = $state(false);
+
+  async function downloadCsv() {
+    const params = new URLSearchParams();
+    if (exportScope === "series") {
+      if (!exportSeries.trim()) { toast.error("Enter a series flag"); return; }
+      params.set("series", exportSeries.trim());
+    } else {
+      if (!exportEventId) { toast.error("Select an event"); return; }
+      params.set("event_id", exportEventId);
+    }
+    exporting = true;
+    try {
+      const resp = await fetch(`${PUBLIC_API_URL}/superadmin/export-csv?${params}`, {
+        headers: { Authorization: `Bearer ${getAuthenticatedUser().access_token}` },
+      });
+      if (!resp.ok) { toast.error("Export failed"); return; }
+      const disposition = resp.headers.get("content-disposition") ?? "";
+      const match = disposition.match(/filename=([^;]+)/);
+      const filename = match ? match[1] : "projects-export.csv";
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      exporting = false;
+    }
   }
 
   onMount(load);
@@ -154,7 +196,7 @@
         <div class="overflow-x-auto">
           <table class="table table-zebra w-full">
             <thead>
-              <tr><th>Name</th><th>Phase</th><th>Repo</th><th>Demo</th><th>Owner</th><th>Deleted</th><th></th></tr>
+              <tr><th>Name</th><th>Phase</th><th>Repo</th><th>Demo</th><th>Flags</th><th>Owner</th><th>Deleted</th><th></th></tr>
             </thead>
             <tbody>
               {#each eventsPage.items as event (event.id)}
@@ -169,6 +211,7 @@
                   <td><span class="badge {phaseBadge[event.phase] ?? 'badge-ghost'}">{event.phase}</span></td>
                   <td class="font-mono text-sm">{event.repo_validation}</td>
                   <td class="font-mono text-sm">{event.demo_validation}</td>
+                  <td class="font-mono text-xs text-base-content/70">{event.feature_flags_csv || "—"}</td>
                   <td class="text-sm">{usersPage.items.find((u) => u.id === event.owner_id)?.email ?? event.owner_id}</td>
                   <td>{event.deleted_at ? new Date(event.deleted_at).toLocaleDateString() : "—"}</td>
                   <td class="flex gap-2">
@@ -180,7 +223,7 @@
                 </tr>
                 {#if editing?.id === event.id}
                   <tr>
-                    <td colspan="7">
+                    <td colspan="8">
                       <div class="card bg-base-200 my-2">
                         <div class="card-body gap-3 py-4">
                           <h3 class="font-semibold">Edit: {editing.name}</h3>
@@ -204,6 +247,10 @@
                             <label class="form-control">
                               <span class="label-text mb-1">Custom validator key</span>
                               <input class="input input-bordered input-sm font-mono" placeholder="(none)" bind:value={editCustomValidator} />
+                            </label>
+                            <label class="form-control">
+                              <span class="label-text mb-1">Feature flags (comma-separated)</span>
+                              <input class="input input-bordered input-sm font-mono" placeholder="e.g. sleepover,flagship" bind:value={editFeatureFlags} />
                             </label>
                             <label class="flex items-center gap-2 cursor-pointer">
                               <input type="checkbox" class="checkbox checkbox-sm" bind:checked={editRequireYswsPii} />
@@ -233,6 +280,41 @@
           </div>
         {/if}
       {/if}
+    </div>
+  </div>
+
+  <!-- Export CSV -->
+  <div class="card bg-base-100 shadow-lg">
+    <div class="card-body">
+      <h2 class="card-title">Export Projects (YSWS CSV)</h2>
+      <div class="flex flex-wrap gap-3 items-end">
+        <label class="form-control">
+          <span class="label-text mb-1">Scope</span>
+          <select class="select select-bordered select-sm" bind:value={exportScope}>
+            <option value="series">Series (all events with flag)</option>
+            <option value="event">Single event</option>
+          </select>
+        </label>
+        {#if exportScope === "series"}
+          <label class="form-control flex-1 min-w-48">
+            <span class="label-text mb-1">Series flag</span>
+            <input class="input input-bordered input-sm font-mono" placeholder="e.g. sleepover" bind:value={exportSeries} />
+          </label>
+        {:else}
+          <label class="form-control flex-1 min-w-48">
+            <span class="label-text mb-1">Event</span>
+            <select class="select select-bordered select-sm" bind:value={exportEventId}>
+              <option value="">— select —</option>
+              {#each eventsPage.items.filter(e => !e.deleted_at) as e (e.id)}
+                <option value={e.id}>{e.name}</option>
+              {/each}
+            </select>
+          </label>
+        {/if}
+        <button class="btn btn-primary btn-sm" onclick={downloadCsv} disabled={exporting}>
+          {exporting ? "Exporting…" : "Download CSV"}
+        </button>
+      </div>
     </div>
   </div>
 

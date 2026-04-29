@@ -16,6 +16,7 @@ from podium.db.postgres import (
     User,
     Event,
     EventPublic,
+    EventPrivate,
     Project,
     ProjectPublic,
     Vote,
@@ -279,7 +280,7 @@ async def create_test_event(
     event_data: TestEventCreate,
     user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
-) -> EventPublic:
+) -> EventPrivate:
     """Create a test event. Only available when enable_test_endpoints is true."""
     if not getattr(settings, "enable_test_endpoints", False):
         raise HTTPException(status_code=404, detail="Not found")
@@ -315,7 +316,7 @@ async def create_test_event(
     )
     event = await scalar_one_or_none(session, stmt)
 
-    return EventPublic.model_validate(event)
+    return EventPrivate.model_validate(event)
 
 
 @router.post("/test/cleanup")

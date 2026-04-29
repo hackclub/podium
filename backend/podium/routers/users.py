@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from podium.config import settings
 from podium.db.postgres import (
     User,
     UserPublic,
@@ -107,3 +108,17 @@ async def create_user(
     await session.commit()
     await session.refresh(new_user)
     return {"id": str(new_user.id)}
+
+
+@router.post("/test/promote-superadmin")
+async def promote_to_superadmin(
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    """Promote the calling user to superadmin. Only available when enable_test_endpoints is true."""
+    if not getattr(settings, "enable_test_endpoints", False):
+        raise HTTPException(status_code=404, detail="Not found")
+    user.is_superadmin = True
+    session.add(user)
+    await session.commit()
+    return {"message": "Promoted to superadmin"}
