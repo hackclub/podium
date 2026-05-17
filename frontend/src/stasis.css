@@ -177,9 +177,10 @@
 [data-theme="stasis"] .btn-outline {
   --st-btn-fg: #3b3026;
   --st-btn-color: transparent;
-  --st-btn-shadow: #3b3026;
+  --st-btn-shadow: #8c826f;
   --st-btn-outline: rgba(59, 48, 38, 0.2);
-  border: 2px solid #3b3026 !important;
+  border: 1px solid #8c826f !important;
+  background-color: #f5f3ef !important;
 }
 
 [data-theme="stasis"] .btn-ghost {
@@ -273,6 +274,46 @@
 [data-theme="stasis"] .badge {
   border-radius: 0;
   font-weight: 700;
+  font-family: "Departure Mono", monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+}
+
+/* Per-variant overrides — the neutral token (#2a2219) is too dark for badge-ghost */
+[data-theme="stasis"] .badge-ghost {
+  background-color: #d5ccb7 !important;
+  color: #3b3026 !important;
+  border: 1px solid #c4b9a2 !important;
+}
+
+[data-theme="stasis"] .badge-success {
+  background-color: #d4e4d4 !important;
+  color: #2a4428 !important;
+  border: 1px solid #a8c4a8 !important;
+}
+
+[data-theme="stasis"] .badge-warning {
+  background-color: #f0dfa0 !important;
+  color: #5a3a00 !important;
+  border: 1px solid #d4b860 !important;
+}
+
+[data-theme="stasis"] .badge-info {
+  background-color: #ddd8cf !important;
+  color: #3b3026 !important;
+  border: 1px solid #c4b9a2 !important;
+}
+
+[data-theme="stasis"] .badge-error {
+  background-color: #f0d4c8 !important;
+  color: #6b1e0a !important;
+  border: 1px solid #d4907a !important;
+}
+
+[data-theme="stasis"] .badge-primary {
+  background-color: #e86a3a !important;
+  color: #ffffff !important;
+  border: 1px solid #3b3026 !important;
 }
 
 /* ── Tables ─────────────────────────────────────────────────────── */
