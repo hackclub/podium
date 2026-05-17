@@ -17,12 +17,14 @@ export const themes = [
   "night",
   "retro",
   "dracula",
-  "sleepover",
+  "stasis", // TEMPORARY: remove when Stasis is over
   // "undercity",
 ];
-export const lightTheme = "sleepover";
+// TEMPORARY: revert lightTheme / darkTheme when Stasis is over
+export const lightTheme = "stasis";
 // export const darkTheme = "coffee";
-export const darkTheme = "sleepover";
+export const darkTheme = "stasis";
+// END TEMPORARY
 export const daisyUIThemes = createDaisyUIThemes(darkTheme, lightTheme, themes);
 
 export const loadingTextOptions = [

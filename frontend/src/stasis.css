@@ -1,0 +1,303 @@
+/* ─────────────────────────────────────────────────────────────────
+   Stasis theme — terminal/retro hardware hackathon aesthetic
+   Inspired by stasis.hackclub.com (OSS: github.com/hackclub/stasis)
+
+   To enable:  add `@import "./stasis.css";` to app.css
+               add "stasis" to the themes array in consts.ts
+   To revert:  remove the import line above
+   ───────────────────────────────────────────────────────────────── */
+
+/* ── Fonts ──────────────────────────────────────────────────────── */
+
+@font-face {
+  font-family: "Departure Mono";
+  src: url("https://stasis.hackclub.com/fonts/DepartureMono-Regular.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── Background ────────────────────────────────────────────────── */
+
+[data-theme="stasis"] body,
+[data-theme="stasis"] html {
+  height: max-content;
+  min-height: 100vh;
+  font-family: "Space Grotesk", "Phantom Sans", sans-serif;
+}
+
+[data-theme="stasis"] body {
+  background-color: #ebe8e0;
+  position: relative;
+}
+
+/* Noise texture overlay — matches stasis.hackclub.com grain */
+[data-theme="stasis"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: url("https://stasis.hackclub.com/noise-smooth.png") repeat;
+  background-size: 200px;
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 0;
+}
+
+[data-theme="stasis"] body > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Landing (unauthenticated) layout ─────────────────────────── */
+
+[data-theme="stasis"] #landing {
+  background: none;
+}
+
+[data-theme="stasis"] #landing-navbar {
+  background-color: #d5ccb7;
+  border-bottom: 2px solid #e86a3a;
+}
+
+[data-theme="stasis"] #landing-content {
+  background-color: #ebe8e0;
+  border: 2px solid #e86a3a;
+  border-radius: 0;
+  box-shadow: 4px 4px 0 #3b3026;
+  width: max-content;
+  min-width: 32rem;
+  margin-inline: auto;
+}
+
+[data-theme="stasis"] #landing-content h1 {
+  color: #2a2219;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+[data-theme="stasis"] #landing-content p {
+  color: #3b3026;
+}
+
+/* ── Sidebar ───────────────────────────────────────────────────── */
+
+[data-theme="stasis"] #sidebar-ui {
+  background-color: #d5ccb7;
+  border-right: 2px solid #e86a3a;
+  position: relative;
+}
+
+[data-theme="stasis"] #sidebar-top a,
+[data-theme="stasis"] #sidebar-top span {
+  color: #2a2219;
+}
+
+[data-theme="stasis"] #sidebar-top p {
+  color: #3b3026;
+}
+
+[data-theme="stasis"] #sidebar :not(#sidebar-top) a,
+[data-theme="stasis"] #sidebar :not(#sidebar-top) button {
+  color: #3b3026;
+  border-radius: 0;
+  font-weight: 700;
+}
+
+[data-theme="stasis"] #sidebar :not(#sidebar-top) a:hover {
+  background-color: rgba(232, 106, 58, 0.12);
+}
+
+[data-theme="stasis"] #sidebar :not(#sidebar-top) a.bg-primary {
+  background: #e86a3a !important;
+  color: #ffffff !important;
+  font-weight: 800;
+}
+
+/* Account card in sidebar */
+[data-theme="stasis"] #sidebar .card {
+  background-color: #ebe8e0;
+  border: 2px solid #c4b9a2;
+  border-radius: 0;
+}
+
+/* ── Buttons ───────────────────────────────────────────────────── */
+
+[data-theme="stasis"] .btn,
+[data-theme="stasis"] .btn-primary,
+[data-theme="stasis"] .btn-secondary,
+[data-theme="stasis"] .btn-outline,
+[data-theme="stasis"] .btn-ghost,
+[data-theme="stasis"] .btn-info,
+[data-theme="stasis"] .btn-success,
+[data-theme="stasis"] .btn-warning,
+[data-theme="stasis"] .btn-error,
+[data-theme="stasis"] .btn-accent {
+  --st-btn-fg: #ffffff;
+  --st-btn-color: #e86a3a;
+  --st-btn-shadow: #3b3026;
+  --st-btn-outline: rgba(232, 106, 58, 0.3);
+
+  background-color: var(--st-btn-color) !important;
+  color: var(--st-btn-fg) !important;
+  border: 2px solid var(--st-btn-shadow) !important;
+  border-radius: 0 !important;
+  font-family: "Departure Mono", monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: box-shadow 0.1s, transform 0.1s;
+}
+
+[data-theme="stasis"] .btn:not(:hover):not(:focus) {
+  box-shadow: none !important;
+}
+
+[data-theme="stasis"] .btn:hover {
+  box-shadow: 3px 3px 0 var(--st-btn-shadow) !important;
+  transform: translate(-1px, -1px);
+}
+
+[data-theme="stasis"] .btn:active {
+  box-shadow: none !important;
+  transform: translate(1px, 1px);
+}
+
+[data-theme="stasis"] .btn:focus {
+  box-shadow: 0 0 0 3px var(--st-btn-outline) !important;
+}
+
+[data-theme="stasis"] .btn-secondary {
+  --st-btn-fg: #2a2219;
+  --st-btn-color: #e1ab55;
+  --st-btn-shadow: #3b3026;
+  --st-btn-outline: rgba(225, 171, 85, 0.4);
+}
+
+[data-theme="stasis"] .btn-outline {
+  --st-btn-fg: #3b3026;
+  --st-btn-color: transparent;
+  --st-btn-shadow: #3b3026;
+  --st-btn-outline: rgba(59, 48, 38, 0.2);
+  border: 2px solid #3b3026 !important;
+}
+
+[data-theme="stasis"] .btn-ghost {
+  --st-btn-color: transparent;
+  --st-btn-fg: #3b3026;
+  --st-btn-shadow: transparent;
+  --st-btn-outline: rgba(59, 48, 38, 0.15);
+  border: none !important;
+  box-shadow: none !important;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+[data-theme="stasis"] .btn-ghost:hover {
+  box-shadow: none !important;
+  background-color: rgba(232, 106, 58, 0.1) !important;
+  transform: none;
+}
+
+/* ── Cards & modals ────────────────────────────────────────────── */
+
+[data-theme="stasis"] .card,
+[data-theme="stasis"] .modal-box {
+  background-color: #ebe8e0;
+  border: 2px solid #c4b9a2;
+  border-radius: 0;
+  box-shadow: 4px 4px 0 rgba(59, 48, 38, 0.15);
+}
+
+/* ── Inputs ────────────────────────────────────────────────────── */
+
+[data-theme="stasis"] .input,
+[data-theme="stasis"] input[type="text"],
+[data-theme="stasis"] input[type="email"],
+[data-theme="stasis"] input[type="password"],
+[data-theme="stasis"] input[type="number"],
+[data-theme="stasis"] input[type="search"] {
+  border: 2px solid #c4b9a2 !important;
+  border-radius: 0 !important;
+  background-color: #f5f3ef !important;
+  color: #3b3026 !important;
+}
+
+[data-theme="stasis"] textarea,
+[data-theme="stasis"] select {
+  border: 2px solid #c4b9a2 !important;
+  border-radius: 0 !important;
+  background-color: #f5f3ef !important;
+  color: #3b3026 !important;
+}
+
+/* ── Typography ────────────────────────────────────────────────── */
+
+[data-theme="stasis"] p,
+[data-theme="stasis"] li {
+  color: #3b3026;
+}
+
+[data-theme="stasis"] h1,
+[data-theme="stasis"] h2 {
+  color: #2a2219;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+}
+
+[data-theme="stasis"] h1 a,
+[data-theme="stasis"] h2 a,
+[data-theme="stasis"] h1 a:hover,
+[data-theme="stasis"] h2 a:hover {
+  color: #e86a3a;
+}
+
+[data-theme="stasis"] h3,
+[data-theme="stasis"] h4,
+[data-theme="stasis"] h5,
+[data-theme="stasis"] h6 {
+  color: #3b3026;
+  font-weight: 800;
+}
+
+/* ── Navbar (authenticated mobile top bar) ─────────────────────── */
+
+[data-theme="stasis"] #home-navbar {
+  background-color: #d5ccb7;
+  border-bottom: 2px solid #e86a3a;
+}
+
+/* ── Badges ─────────────────────────────────────────────────────── */
+
+[data-theme="stasis"] .badge {
+  border-radius: 0;
+  font-weight: 700;
+}
+
+/* ── Tables ─────────────────────────────────────────────────────── */
+
+[data-theme="stasis"] .table th {
+  background-color: #d5ccb7;
+  color: #2a2219;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.75rem;
+}
+
+[data-theme="stasis"] .table tr:nth-child(even) td {
+  background-color: #f0ede6;
+}
+
+/* ── Steps / timeline ─────────────────────────────────────────── */
+
+[data-theme="stasis"] .steps .step-primary::before,
+[data-theme="stasis"] .steps .step-primary::after {
+  background-color: #e86a3a;
+}
+
+[data-theme="stasis"] .steps .step-primary .step-circle {
+  background-color: #e86a3a;
+  color: #ffffff;
+}

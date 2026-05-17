@@ -13,9 +13,10 @@ repo validation will be skipped for that custom validator (and vice versa).
 """
 
 from types import ModuleType
-from podium.validators.custom import sleepover
+from podium.validators.custom import stasis
 
 # Maps custom_validator event field value → module
 REGISTRY: dict[str, ModuleType] = {
-    "sleepover": sleepover,
+    "stasis": stasis,
+    "sleepover": stasis,  # alias for existing event rows created during Sleepover
 }

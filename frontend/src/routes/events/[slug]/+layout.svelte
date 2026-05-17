@@ -1,14 +1,14 @@
 <script lang="ts">
   let { children, data } = $props();
 
-  // TEMPORARY: remove this block when Sleepover is over
+  // TEMPORARY: remove this block when Stasis is over
   const eventHeroImages: Record<string, string> = {
-    sleepover: "https://wsrv.nl/?url=sleepover.hackclub.com/background/sleepover_logo.PNG&output=webp&h=288&fit=contain",
+    stasis: "https://wsrv.nl/?url=stasis.hackclub.com/stasis-logo-center.svg&output=webp&h=288&fit=contain",
   };
   // END TEMPORARY
 </script>
 
-<!-- TEMPORARY: remove this block when Sleepover is over -->
+<!-- TEMPORARY: remove this block when Stasis is over -->
 {#if eventHeroImages[data.event.slug]}
   <div class="flex justify-center pt-6 pb-2">
     <img

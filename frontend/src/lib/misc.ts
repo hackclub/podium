@@ -51,7 +51,7 @@ export function setSystemTheme() {
   }
   if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
     document.documentElement.setAttribute("data-theme", darkTheme);
-  } else if (window.matchMedia("(prefers-color-scheme: light)").matches) {
+  } else {
     document.documentElement.setAttribute("data-theme", lightTheme);
   }
 }

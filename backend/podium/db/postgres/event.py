@@ -45,7 +45,7 @@ class Event(SQLModel, table=True):
     # repo_validation or demo_validation is set to "custom".
     custom_validator: str | None = Field(default=None, max_length=50)
 
-    # Comma-separated feature flags (e.g. "flagship,sleepover")
+    # Comma-separated feature flags (e.g. "flagship,stasis")
     feature_flags_csv: str = Field(default="", max_length=500)
 
     owner_id: UUID = Field(foreign_key="users.id")

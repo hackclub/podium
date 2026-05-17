@@ -1,6 +1,8 @@
-@import url("https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,700&display=swap");
+/* TEMPORARY: remove Space Grotesk import and stasis.css when Stasis is over */
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
-@import "./sleepover.css";
+@import "./stasis.css";
+/* END TEMPORARY */
 
 @plugin '@tailwindcss/typography';
 
@@ -10,43 +12,45 @@
     night --prefersdark, night,
     retro,
     dracula,
-    sleepover;
+    stasis --default;
 }
 
-/* Sleepover theme — pastel kawaii inspired by sleepover.hackclub.com */
+/* TEMPORARY: remove stasis theme block when Stasis is over */
+/* Stasis theme — terminal/retro aesthetic inspired by stasis.hackclub.com */
 @plugin "daisyui/theme" {
-  name: "sleepover";
-  default: false;
+  name: "stasis";
+  default: true;
   prefersdark: false;
-  --color-base-100: #c8caf0;
-  --color-base-200: #b4b8e8;
-  --color-base-300: #9aa0dc;
-  --color-base-content: #2d3a7a;
-  --color-primary: #6c8be1;
+  --color-base-100: #ebe8e0;
+  --color-base-200: #d5ccb7;
+  --color-base-300: #c4b9a2;
+  --color-base-content: #3b3026;
+  --color-primary: #e86a3a;
   --color-primary-content: #ffffff;
-  --color-secondary: #dfa1aa;
-  --color-secondary-content: #2d1a3d;
-  --color-accent: #f5e2a0;
-  --color-accent-content: #3a2c00;
-  --color-neutral: #3d4b8f;
-  --color-neutral-content: #ffffff;
-  --color-info: #91baf2;
-  --color-info-content: #1a2040;
-  --color-success: #a8e8c4;
-  --color-success-content: #023818;
-  --color-warning: #f5e2a0;
-  --color-warning-content: #3a2c00;
-  --color-error: #dfa1aa;
-  --color-error-content: #2d1a3d;
-  --radius-selector: 9999px;
-  --radius-field: 9999px;
-  --radius-box: 1.25rem;
+  --color-secondary: #e1ab55;
+  --color-secondary-content: #2a2219;
+  --color-accent: #d95d39;
+  --color-accent-content: #ffffff;
+  --color-neutral: #2a2219;
+  --color-neutral-content: #ebe8e0;
+  --color-info: #9c8f88;
+  --color-info-content: #ffffff;
+  --color-success: #6a9975;
+  --color-success-content: #ffffff;
+  --color-warning: #e1ab55;
+  --color-warning-content: #2a2219;
+  --color-error: #d95d39;
+  --color-error-content: #ffffff;
+  --radius-selector: 0;
+  --radius-field: 0;
+  --radius-box: 0;
 }
+/* END TEMPORARY */
 
 /* Hack Club brand theme — red primary, clean whites */
 @plugin "daisyui/theme" {
   name: "hackclub";
-  default: true;
+  default: false;
   prefersdark: false;
   --color-base-100: #ffffff;
   --color-base-200: #f6f6f6;

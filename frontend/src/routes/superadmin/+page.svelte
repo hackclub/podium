@@ -250,7 +250,7 @@
                             </label>
                             <label class="form-control">
                               <span class="label-text mb-1">Feature flags (comma-separated)</span>
-                              <input class="input input-bordered input-sm font-mono" placeholder="e.g. sleepover,flagship" bind:value={editFeatureFlags} />
+                              <input class="input input-bordered input-sm font-mono" placeholder="e.g. stasis,flagship" bind:value={editFeatureFlags} />
                             </label>
                             <label class="flex items-center gap-2 cursor-pointer">
                               <input type="checkbox" class="checkbox checkbox-sm" bind:checked={editRequireYswsPii} />
@@ -298,7 +298,7 @@
         {#if exportScope === "series"}
           <label class="form-control flex-1 min-w-48">
             <span class="label-text mb-1">Series flag</span>
-            <input class="input input-bordered input-sm font-mono" placeholder="e.g. sleepover" bind:value={exportSeries} />
+            <input class="input input-bordered input-sm font-mono" placeholder="e.g. stasis" bind:value={exportSeries} />
           </label>
         {:else}
           <label class="form-control flex-1 min-w-48">

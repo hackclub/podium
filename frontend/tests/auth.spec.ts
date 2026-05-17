@@ -1,6 +1,4 @@
-// TODO: Re-enable after Sleepover event. The POC requested email login be
-// disabled for the event, so the email/magic-link UI is currently commented
-// out in /login. These tests will fail until it's restored.
+// TODO: Unskip these tests once auth flow is stable in CI.
 import { test as base, expect } from '@playwright/test';
 
 base.describe('Authentication', () => {
