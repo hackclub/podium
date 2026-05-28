@@ -51,7 +51,8 @@
     </button>
     <p class="text-info-content pr-8">
       If Podium isn't working and you need urgent help, DM @Angad Behl on Slack
-      or call +1 (415) 570-4995.
+      or email
+      <a href="mailto:angad@hackclub.com" class="hover-link">angad@hackclub.com</a>.
     </p>
   </div>
 {/if}
@@ -88,8 +89,8 @@
   </p>
   <p class="py-2">
     <strong>Urgent Help:</strong> If Podium isn't working and you need immediate
-    assistance, DM @Angad Behl on Slack or call
-    <a href="tel:+14155704995" class="hover-link">+1 (415) 570-4995</a>.
+    assistance, DM @Angad Behl on Slack or email
+    <a href="mailto:angad@hackclub.com" class="hover-link">angad@hackclub.com</a>.
   </p>
   <p class="text-right">
     <a href="https://github.com/slashtechno" class="hover-link">-Angad Behl</a>
