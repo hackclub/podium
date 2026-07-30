@@ -87,26 +87,28 @@ for table in "${TABLES[@]}"; do
     -c "\COPY $table TO STDOUT WITH (FORMAT CSV, HEADER true)" \
     > "$TMP_CSV"
   
-  # Align columns with spaces for readability
+  # Align columns with spaces for readability (still valid CSV — uses csv.writer
+  # so fields containing commas/quotes/newlines get properly re-quoted instead
+  # of silently shifting columns)
   python3 -c "
 import csv
 import sys
 
 # Read CSV and calculate column widths
-with open('$TMP_CSV', 'r') as f:
+with open('$TMP_CSV', 'r', newline='') as f:
     reader = csv.reader(f)
     rows = list(reader)
-    
+
 if not rows:
     sys.exit(0)
 
 widths = [max(len(str(row[i])) for row in rows) for i in range(len(rows[0]))]
 
 # Write aligned CSV
-with open('${CSV_DIR}/${table}.csv', 'w') as f:
+with open('${CSV_DIR}/${table}.csv', 'w', newline='') as f:
+    writer = csv.writer(f)
     for row in rows:
-        aligned = ', '.join(str(val).ljust(widths[i]) for i, val in enumerate(row))
-        f.write(aligned + '\n')
+        writer.writerow([str(val).ljust(widths[i]) for i, val in enumerate(row)])
 "
   rm "$TMP_CSV"
 done

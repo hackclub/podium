@@ -122,6 +122,14 @@ Manual, not scheduled. See [backups/README.md](../backups/README.md).
 
 `.dump` is the restorable artifact (`pg_restore --clean --if-exists`). CSVs are for inspection only.
 
+**Scoped backup** — dump only one event's data (the event, its projects/votes/referrals/attendees/collaborators, and just the users involved), instead of the whole DB:
+
+```bash
+doppler run --config prd -- ./scripts/backup-db-scoped.sh <event-slug>
+```
+
+Produces a plain-SQL `.sql` file (schema + filtered data, in FK-safe load order) restorable via `psql -f`.
+
 ## Caching
 
 Redis-backed, optional. Module: `backend/podium/cache/`. Helpers: `cache_get`, `cache_set`, `cache_delete`.
