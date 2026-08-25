@@ -1,0 +1,30 @@
+/* ─────────────────────────────────────────────────────────────────
+   Sunbeam theme — sunny beach / boardwalk aesthetic
+   Palette and fonts pulled from the Sunbeam app (Galindo + Outfit,
+   orange/pink/yellow with a navy-blue ink accent)
+
+   To enable:  add `@import "./sunbeam.css";` to app.css
+               add "sunbeam" to the themes array in consts.ts
+   To revert:  remove the import line above
+   ───────────────────────────────────────────────────────────────── */
+
+/* ── Fonts ──────────────────────────────────────────────────────── */
+
+@import url("https://fonts.googleapis.com/css2?family=Galindo&family=Outfit:wght@400;500;600;700&display=swap");
+
+[data-theme="sunbeam"] body,
+[data-theme="sunbeam"] html {
+  font-family: "Outfit", "Phantom Sans", sans-serif;
+}
+
+[data-theme="sunbeam"] h1,
+[data-theme="sunbeam"] h2,
+[data-theme="sunbeam"] h3 {
+  font-family: "Galindo", sans-serif;
+}
+
+/* ── Background ────────────────────────────────────────────────── */
+
+[data-theme="sunbeam"] body {
+  background: linear-gradient(to bottom, #eaf7fb 0%, #fff0f3 100%);
+}

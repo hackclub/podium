@@ -18,6 +18,7 @@ export const themes = [
   "retro",
   "dracula",
   "stasis", // TEMPORARY: remove when Stasis is over
+  "sunbeam",
   // "undercity",
 ];
 // TEMPORARY: revert lightTheme / darkTheme when Stasis is over
