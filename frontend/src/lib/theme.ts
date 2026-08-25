@@ -35,7 +35,7 @@ export const defaultThemes: Record<string, Omit<EventTheme, 'logo'>> = {
 	sunbeam: {
 		background: '/sunbeam-background.webp',
 		font: '"Galindo", sans-serif',
-		primary: '#f9a636',
+		primary: '#0e387a',
 		selected: '#F59E0B'
 	}
 };
