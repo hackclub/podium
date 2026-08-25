@@ -1,6 +1,7 @@
 import CampfireFlagship from './logos/CampfireFlagship.svelte';
 import CampfireSatLogo from './logos/CampfireSat.svelte';
 import SleepoverLogo from './logos/Sleepover.svelte';
+import SunbeamLogo from './logos/Sunbeam.svelte';
 import type { ApiEvent } from './api';
 
 export type EventTheme = {
@@ -30,12 +31,19 @@ export const defaultThemes: Record<string, Omit<EventTheme, 'logo'>> = {
 		font: '"Ember& Fire", sans-serif',
 		primary: '#49B6F3',
 		selected: '#F59E0B'
+	},
+	sunbeam: {
+		background: '/sunbeam-background.webp',
+		font: '"Galindo", sans-serif',
+		primary: '#f9a636',
+		selected: '#F59E0B'
 	}
 };
 
 export function getLogo(themeName: string): import('svelte').Component<any> {
 	if (themeName === 'flagship') return CampfireFlagship;
 	if (themeName === 'sleepover') return SleepoverLogo;
+	if (themeName === 'sunbeam') return SunbeamLogo;
 	return CampfireSatLogo;
 }
 

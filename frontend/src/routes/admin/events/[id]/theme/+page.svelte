@@ -92,6 +92,7 @@
 						<option value="campfire">Campfire (Satellite)</option>
 						<option value="flagship">Flagship</option>
 						<option value="sleepover">Sleepover</option>
+						<option value="sunbeam">Sunbeam</option>
 					</select>
 					<button
 						type="button"
