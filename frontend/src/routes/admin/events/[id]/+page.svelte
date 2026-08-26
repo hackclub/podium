@@ -225,21 +225,23 @@
 					{syncing ? 'Syncing...' : 'Sync from Cockpit'}
 				</button>
 			</div>
-			<div class="flex items-center gap-4 p-4 rounded-lg bg-white/5 border border-white/10 mb-6">
-				<div class="flex-1">
-					<p class="text-sm text-white/80 font-medium">Airtable Sync</p>
-					<p class="text-xs text-white/40">Sync all projects and participants from this event to Airtable</p>
-				</div>
-				<button
-					type="button"
-					onclick={handleAirtableSync}
-					disabled={airtableSyncing}
-					class="px-4 py-2 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-md text-sm hover:bg-purple-500/30 transition-colors disabled:opacity-50 shrink-0"
-				>
-					{airtableSyncing ? 'Syncing to Airtable...' : 'Sync All Projects to Airtable'}
-				</button>
-			</div>
 		{/if}
+
+		<!-- Airtable Sync (any event) -->
+		<div class="flex items-center gap-4 p-4 rounded-lg bg-white/5 border border-white/10 mb-6">
+			<div class="flex-1">
+				<p class="text-sm text-white/80 font-medium">Airtable Sync</p>
+				<p class="text-xs text-white/40">Sync all projects and participants from this event to Airtable</p>
+			</div>
+			<button
+				type="button"
+				onclick={handleAirtableSync}
+				disabled={airtableSyncing}
+				class="px-4 py-2 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-md text-sm hover:bg-purple-500/30 transition-colors disabled:opacity-50 shrink-0"
+			>
+				{airtableSyncing ? 'Syncing to Airtable...' : 'Sync All Projects to Airtable'}
+			</button>
+		</div>
 
 		<!-- Event Stage -->
 		<div class="flex flex-col gap-4 p-6 rounded-lg bg-white/5 border border-white/10 mb-6">
