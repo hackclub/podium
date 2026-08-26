@@ -8,7 +8,7 @@
 	let loading = $state(true);
 	let error = $state('');
 	let search = $state('');
-	let statusFilter = $state<'all' | 'enabled' | 'disabled'>('enabled');
+	let statusFilter = $state<'all' | 'enabled' | 'disabled'>('all');
 	let typeFilter = $state<'all' | 'campfire' | 'other'>('all');
 
 	const isSuperadmin = $derived(getAdminUser()?.is_superadmin ?? false);
