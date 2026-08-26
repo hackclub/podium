@@ -49,12 +49,8 @@
 		/^https?:\/\/github\.com\/[a-zA-Z0-9\-_.]+\/[a-zA-Z0-9\-_.]+\/?$/.test(repoLink.trim())
 	);
 
-	const isValidItchUrl = $derived(
-		/^(https?:\/\/)?[a-zA-Z0-9\-_]+\.itch\.io\/[a-zA-Z0-9\-_]+/i.test(playableLink.trim())
-	);
-
 	const canSubmit = $derived(
-		projectName.trim() !== '' && isValidItchUrl && isValidGitHubUrl &&
+		projectName.trim() !== '' && playableLink.trim() !== '' && isValidGitHubUrl &&
 		description.trim() !== '' && String(hoursSpent).trim() !== '' && parseInt(String(hoursSpent)) > 0 &&
 		screenshot !== null
 	);
@@ -166,12 +162,9 @@
 				</div>
 
 				<div class="group flex flex-col gap-1">
-					<Label selectedColor={eventTheme.selected}>Itch.io URL *</Label>
-					<p class="text-xs text-white/60 drop-shadow-md">This must be a link on itch.io that anyone can click on to play your game!</p>
-					<Input bind:value={playableLink} placeholder="https://username.itch.io/game" selectedColor={eventTheme.selected} />
-					{#if playableLink.trim() !== '' && !isValidItchUrl}
-						<p class="text-xs text-red-300 drop-shadow-md">Please enter a valid itch.io URL (e.g. https://username.itch.io/game)</p>
-					{/if}
+					<Label selectedColor={eventTheme.selected}>Playable Link *</Label>
+					<p class="text-xs text-white/60 drop-shadow-md">This must be a link that anyone can click on to play your game!</p>
+					<Input bind:value={playableLink} placeholder="https://example.com/play" selectedColor={eventTheme.selected} />
 				</div>
 
 				<div class="group flex flex-col gap-1">

@@ -200,10 +200,7 @@ export class ProjectsService {
     }
 
     // Fetch platform-level validation toggles (sub-ms Redis reads)
-    const [githubEnabled, itchEnabled] = await Promise.all([
-      this.platformSettings.isGitHubValidationEnabled(),
-      this.platformSettings.isItchValidationEnabled(),
-    ]);
+    const githubEnabled = await this.platformSettings.isGitHubValidationEnabled();
 
     // Validate GitHub repo is accessible (cached + rate-limited)
     // null = rate-limited (429), skip the check rather than blocking the user
@@ -212,25 +209,6 @@ export class ProjectsService {
         'GitHub repository not found — make sure the URL is correct and the repo is public',
         HttpStatus.UNPROCESSABLE_ENTITY,
       );
-    }
-
-    // Validate itch.io demo link if provided
-    // Skip itch checks entirely if disabled for this specific event
-    if (data.demo && data.demo.trim() && !event.itch_verification_disabled) {
-      if (!isItchUrl(data.demo)) {
-        throw new HttpException(
-          'Demo URL must be an itch.io game page (e.g. https://username.itch.io/game)',
-          HttpStatus.UNPROCESSABLE_ENTITY,
-        );
-      }
-      // Rate-limited: queued at max 1 req/sec to itch.io
-      // null = rate-limited (429), skip the check rather than blocking the user
-      if (itchEnabled && (await this.itchValidator.isPlayable(data.demo)) === false) {
-        throw new HttpException(
-          "Game is not browser-playable — enable 'Run game in browser' in your itch.io project settings",
-          HttpStatus.UNPROCESSABLE_ENTITY,
-        );
-      }
     }
 
     if (event.ysws_checks_enabled) {
