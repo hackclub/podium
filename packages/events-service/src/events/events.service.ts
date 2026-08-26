@@ -1632,29 +1632,29 @@ export class EventsService {
 
       for (const u of participants) {
         const fields: Record<string, any> = {
-          'fldM8dvaeqsnZzSGj': p.repo || '',                    // Code URL
-          'fldpIJmCQu1YcqIIo': p.demo || '',                    // Playable URL
-          'fldMtDgBFPPtLZhaW': u.first_name || '',              // First Name
-          'fldPUsofPv5qCyNz2': u.last_name || '',               // Last Name
-          'fldnzPNUA9MITRwVd': u.email,                         // Email
-          'fld6Ftv1uIi6hGeiK': p.description || '',             // Description
-          'fldpfhr4TzdnzrJLQ': u.street_1 || '',                // Address (Line 1)
-          'fldNmlSPKvYzRysIj': u.street_2 || '',                // Address (Line 2)
-          'fldVisMSOsoUiMt0d': u.city || '',                    // City
-          'flddqf2FyQiaCFu01': u.state || '',                   // State / Province
-          'fldlmKpglzyJ6F5hQ': u.country || '',                 // Country
-          'fldojg2Bhx7GMW1Ch': u.zip_code || '',                // ZIP / Postal Code
-          'fldg5wAWQzC2FMZaO': p.hours_spent || 0,              // Optional - Override Hours Spent
+          'Code URL': p.repo || '',
+          'Playable URL': p.demo || '',
+          'First Name': u.first_name || '',
+          'Last Name': u.last_name || '',
+          'Email': u.email,
+          'Description': p.description || '',
+          'Address (Line 1)': u.street_1 || '',
+          'Address (Line 2)': u.street_2 || '',
+          'City': u.city || '',
+          'State / Province': u.state || '',
+          'Country': u.country || '',
+          'ZIP / Postal Code': u.zip_code || '',
+          'Optional - Override Hours Spent': p.hours_spent || 0,
         };
 
         // Birthday (date field, needs ISO format)
         if (u.dob) {
-          fields['fldCTWBJ4H7rvQdVq'] = u.dob;
+          fields['Birthday'] = u.dob;
         }
 
         // Screenshot attachment
         if (p.image_url) {
-          fields['fldY9H3WlDPE0k1rK'] = [{ url: p.image_url }];
+          fields['Screenshot'] = [{ url: p.image_url }];
         }
 
         records.push({ fields });
@@ -1678,7 +1678,7 @@ export class EventsService {
           body: JSON.stringify({
             records: batch,
             performUpsert: {
-              fieldsToMergeOn: ['fldnzPNUA9MITRwVd'], // Email
+              fieldsToMergeOn: ['Email'],
             },
             typecast: true,
           }),
