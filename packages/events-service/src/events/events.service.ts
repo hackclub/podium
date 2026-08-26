@@ -1632,6 +1632,7 @@ export class EventsService {
 
       for (const u of participants) {
         const fields: Record<string, any> = {
+          'Event Slug': p.event?.slug || '',
           'Code URL': p.repo || '',
           'Playable URL': p.demo || '',
           'First Name': u.first_name || '',
