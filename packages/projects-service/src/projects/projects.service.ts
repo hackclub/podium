@@ -6,7 +6,7 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 import * as crypto from 'crypto';
 import {
   DRIZZLE_RW,
@@ -20,6 +20,7 @@ import {
   eventAttendees,
   projectCollaborators,
   getFeatureFlagsList,
+  isRosterOnly,
   BAD_ACCESS,
   PlatformSettingsService,
 } from '@podium/shared';
@@ -37,6 +38,33 @@ export class ProjectsService {
     private readonly githubValidator: GitHubValidatorService,
     private readonly platformSettings: PlatformSettingsService,
   ) {}
+
+  /**
+   * Roster-only events: every teammate must already be on the event's roster,
+   * so adding a teammate can't put someone new on it.
+   */
+  private async assertTeammatesOnRoster(
+    event: { id: string; feature_flags_csv: string },
+    emails: string[],
+  ): Promise<void> {
+    if (!isRosterOnly(event) || emails.length === 0) return;
+
+    const rows = await this.dbRw
+      .select({ email: users.email })
+      .from(eventAttendees)
+      .innerJoin(users, eq(users.id, eventAttendees.user_id))
+      .where(and(eq(eventAttendees.event_id, event.id), inArray(users.email, emails)));
+    const onRoster = new Set(rows.map((r) => r.email));
+    const missing = emails.filter((e) => !onRoster.has(e));
+
+    if (missing.length > 0) {
+      throw new HttpException(
+        `${missing.join(', ')} ${missing.length === 1 ? "isn't" : "aren't"} registered for this event. ` +
+          'Teammates have to be signed up for this event with that email.',
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
+  }
 
   private generateJoinCode(): string {
     // 5 random bytes → 8 base64url chars → ~1 trillion combinations.
@@ -249,6 +277,15 @@ export class ProjectsService {
         );
       }
     }
+
+    // Check teammates before inserting, so a rejected teammate doesn't leave a
+    // half-created project behind.
+    await this.assertTeammatesOnRoster(
+      event,
+      [...new Set((data.teammates ?? []).map((m) => m.email.trim().toLowerCase()))].filter(
+        (e) => e !== user.email,
+      ),
+    );
 
     // Attempt the insert with a fresh join code. On the rare collision the DB
     // UNIQUE constraint fires; retry up to 3 times before giving up.
@@ -776,6 +813,7 @@ export class ProjectsService {
     if (email === user.email) {
       throw new HttpException('Cannot add yourself as a collaborator', HttpStatus.BAD_REQUEST);
     }
+    await this.assertTeammatesOnRoster(event, [email]);
 
     let teammate = await this.dbRw.query.users.findFirst({
       where: eq(users.email, email),

@@ -17,6 +17,7 @@ import { ClientKafka } from '@nestjs/microservices';
 import { Observable } from 'rxjs';
 import { User, JwtAuthGuard, OptionalJwtAuthGuard, AdminGuard, SuperAdminGuard, CurrentUser } from '@podium/shared';
 import { EventsService } from './events.service';
+import { HavenService } from './haven.service';
 import { IsArray, IsString, IsUUID, IsOptional, IsEmail, IsInt, Min, ValidateIf } from 'class-validator';
 
 class CreateVotesDto {
@@ -103,6 +104,7 @@ class AdminCreateEventDto {
 export class EventsController {
   constructor(
     private readonly eventsService: EventsService,
+    private readonly havenService: HavenService,
     @Inject('KAFKA_SERVICE')
     private readonly kafkaClient: ClientKafka,
   ) {}
@@ -240,6 +242,20 @@ export class EventsController {
     return this.eventsService.validateItchGames(user);
   }
 
+  // ── Haven (superadmin) endpoints ────────────────────────────────
+
+  @Post('admin/haven/sync-all')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async syncAllHavenEvents(@CurrentUser() user: User) {
+    return this.havenService.syncAll(user);
+  }
+
+  @Post('admin/haven/sync-airtable')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async syncHavenProjectsToAirtable(@CurrentUser() user: User) {
+    return this.havenService.exportAllClosed(user);
+  }
+
   @Get('admin/:event_id')
   @UseGuards(JwtAuthGuard, AdminGuard)
   async adminGetEvent(@Param('event_id') eventId: string) {
@@ -295,12 +311,25 @@ export class EventsController {
     return this.eventsService.syncCampfireEventByPodiumId(eventId);
   }
 
+  @Post('admin/:event_id/sync-haven')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async adminSyncFromHaven(
+    @Param('event_id', ParseUUIDPipe) eventId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.havenService.syncEvent(eventId, user);
+  }
+
   @Post('admin/:event_id/sync-airtable')
   @UseGuards(JwtAuthGuard, AdminGuard)
   async adminSyncEventToAirtable(
-    @Param('event_id') eventId: string,
+    @Param('event_id', ParseUUIDPipe) eventId: string,
     @CurrentUser() user: User,
   ) {
+    // Haven events export to Haven's own base, never the shared AIRTABLE_* table
+    if (await this.havenService.isHavenEvent(eventId)) {
+      return this.havenService.exportEvent(eventId, user);
+    }
     return this.eventsService.syncEventProjectsToAirtable(eventId, user);
   }
 

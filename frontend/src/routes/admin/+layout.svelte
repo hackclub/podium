@@ -109,6 +109,12 @@
 						Campfire Job
 					</a>
 					<a
+						href="/admin/haven"
+						class="px-3 py-2 rounded-md text-sm transition-colors {currentPath === '/admin/haven' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}"
+					>
+						Haven
+					</a>
+					<a
 						href="/admin/settings"
 						class="px-3 py-2 rounded-md text-sm transition-colors {currentPath === '/admin/settings' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}"
 					>

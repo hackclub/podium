@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PlatformSettingsService } from '@podium/shared';
 import { EventsController } from './events.controller';
 import { EventsService } from './events.service';
+import { HavenService } from './haven.service';
 
 @Module({
   imports: [
@@ -28,7 +29,7 @@ import { EventsService } from './events.service';
     ]),
   ],
   controllers: [EventsController],
-  providers: [EventsService, PlatformSettingsService],
+  providers: [EventsService, HavenService, PlatformSettingsService],
   exports: [EventsService],
 })
 export class EventsModule {}

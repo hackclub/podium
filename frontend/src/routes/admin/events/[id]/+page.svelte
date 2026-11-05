@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { onMount, getContext } from 'svelte';
-	import { adminGetEvent, adminUpdateEvent, adminDeleteEvent, adminSyncFromCockpit, adminSyncEventToAirtable, type ApiAdminEvent, type ApiUser } from '$lib/api';
+	import { adminGetEvent, adminUpdateEvent, adminDeleteEvent, adminSyncFromCockpit, adminSyncFromHaven, adminSyncEventToAirtable, type ApiAdminEvent, type ApiUser } from '$lib/api';
 	import { toast } from 'svelte-sonner';
 
 	const getAdminUser = getContext<() => ApiUser | null>('adminUser');
@@ -12,6 +12,7 @@
 	let event: ApiAdminEvent | null = $state(null);
 	const isCampfire = $derived((event as ApiAdminEvent | null)?.feature_flags_csv?.includes('campfire') ?? false);
 	const isFlagship = $derived((event as ApiAdminEvent | null)?.feature_flags_csv?.includes('flagship') ?? false);
+	const isHaven = $derived((event as ApiAdminEvent | null)?.feature_flags_csv?.includes('haven') ?? false);
 	const isPocOrRm = $derived.by(() => {
 		const u = getAdminUser();
 		if (!u || !event) return false;
@@ -127,6 +128,23 @@
 		}
 	}
 
+	async function handleHavenSync() {
+		syncing = true;
+		syncResult = '';
+		error = '';
+		try {
+			const result = await adminSyncFromHaven(eventId);
+			syncResult = result.disabled
+				? 'Event disabled (no longer active in Haven)'
+				: `Synced ${result.attendees_synced} new attendee${result.attendees_synced === 1 ? '' : 's'}`;
+			event = await adminGetEvent(eventId);
+		} catch (e: any) {
+			error = e.message || 'Failed to sync from Haven';
+		} finally {
+			syncing = false;
+		}
+	}
+
 	async function handleAirtableSync() {
 		if (airtableSyncing) return;
 		airtableSyncing = true;
@@ -223,6 +241,27 @@
 					class="px-4 py-2 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-md text-sm hover:bg-blue-500/30 transition-colors disabled:opacity-50 shrink-0"
 				>
 					{syncing ? 'Syncing...' : 'Sync from Cockpit'}
+				</button>
+			</div>
+		{/if}
+
+		<!-- Haven Sync (Haven events only) -->
+		{#if isHaven}
+			<div class="flex items-center gap-4 p-4 rounded-lg bg-white/5 border border-white/10 mb-6">
+				<div class="flex-1">
+					<p class="text-sm text-white/80 font-medium">Haven Sync</p>
+					<p class="text-xs text-white/40">Pull new signups from Haven. Only people on the roster can submit and vote.</p>
+				</div>
+				{#if syncResult}
+					<p class="text-sm text-green-400">{syncResult}</p>
+				{/if}
+				<button
+					type="button"
+					onclick={handleHavenSync}
+					disabled={syncing}
+					class="px-4 py-2 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-md text-sm hover:bg-blue-500/30 transition-colors disabled:opacity-50 shrink-0"
+				>
+					{syncing ? 'Syncing...' : 'Sync from Haven'}
 				</button>
 			</div>
 		{/if}

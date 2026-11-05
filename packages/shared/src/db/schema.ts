@@ -185,6 +185,15 @@ export function getFeatureFlagsList(event: { feature_flags_csv: string }): strin
     .filter(Boolean);
 }
 
+/**
+ * Roster-only events only accept attendees an admin or an import put on the
+ * roster: users can't join them on their own, and voting or adding a teammate
+ * doesn't add anyone to the roster.
+ */
+export function isRosterOnly(event: { feature_flags_csv: string }): boolean {
+  return getFeatureFlagsList(event).includes('roster-only');
+}
+
 export function getMaxVotesPerUser(): number {
   return 3;
 }

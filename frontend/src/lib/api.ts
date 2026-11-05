@@ -372,6 +372,13 @@ export function adminSyncFromCockpit(eventId: string) {
 	);
 }
 
+export function adminSyncFromHaven(eventId: string) {
+	return apiFetch<{ message: string; event_id: string; attendees_synced: number; disabled: boolean }>(
+		`/events/admin/${eventId}/sync-haven`,
+		{ method: 'POST' }
+	);
+}
+
 export function adminSyncEventToAirtable(eventId: string) {
 	return apiFetch<{
 		message: string;
@@ -636,6 +643,33 @@ export function adminValidateItchGames() {
 		not_playable: number;
 		results: ItchValidationResult[];
 	}>('/events/admin/campfire/validate-itch', {
+		method: 'POST'
+	});
+}
+
+export type HavenSyncResult = {
+	slug: string;
+	name: string;
+	event_id?: string;
+	created?: boolean;
+	disabled?: boolean;
+	attendees_added: number;
+	error?: string;
+};
+
+export function adminSyncAllHavenEvents() {
+	return apiFetch<{ message: string; results: HavenSyncResult[] }>('/events/admin/haven/sync-all', {
+		method: 'POST'
+	});
+}
+
+export function adminSyncHavenProjectsToAirtable() {
+	return apiFetch<{
+		message: string;
+		synced: number;
+		total: number;
+		errors?: string[];
+	}>('/events/admin/haven/sync-airtable', {
 		method: 'POST'
 	});
 }

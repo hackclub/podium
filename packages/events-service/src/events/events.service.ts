@@ -25,8 +25,25 @@ import {
   projectCollaborators,
   getMaxVotesPerUser,
   getFeatureFlagsList,
+  isRosterOnly,
   PlatformSettingsService,
 } from '@podium/shared';
+
+/** User fields an attendee import (Cockpit, Haven) can fill in. */
+export type AttendeeUserData = {
+  email: string;
+  display_name: string;
+  first_name: string;
+  last_name: string;
+  phone: string;
+  street_1: string;
+  street_2: string;
+  city: string;
+  state: string;
+  zip_code: string;
+  country: string;
+  dob: string | null;
+};
 
 function mapEventPublic(e: any) {
   return {
@@ -182,15 +199,29 @@ export class EventsService {
     }
   }
 
-  /** Auto-registers the user as an attendee if they aren't already. */
+  /**
+   * Auto-registers the user as an attendee if they aren't already. Roster-only
+   * events reject users who aren't on the roster instead.
+   */
   async ensureAttendee(eventId: string, userId: string): Promise<void> {
-    const attendee = await this.dbRw.query.eventAttendees.findFirst({
-      where: and(
-        eq(eventAttendees.event_id, eventId),
-        eq(eventAttendees.user_id, userId),
-      ),
-    });
+    const [event, attendee] = await Promise.all([
+      this.dbRw.query.events.findFirst({
+        where: eq(events.id, eventId),
+        columns: { feature_flags_csv: true },
+      }),
+      this.dbRw.query.eventAttendees.findFirst({
+        where: and(
+          eq(eventAttendees.event_id, eventId),
+          eq(eventAttendees.user_id, userId),
+        ),
+      }),
+    ]);
     if (!attendee) {
+      if (event && isRosterOnly(event)) {
+        throw new ForbiddenException(
+          "You're not on this event's roster. Sign in with the email you registered with, or ask your organizer to add you.",
+        );
+      }
       await this.dbRw
         .insert(eventAttendees)
         .values({ event_id: eventId, user_id: userId })
@@ -249,6 +280,12 @@ export class EventsService {
         message: 'Already attending this event',
         event_id: event.id,
       };
+    }
+
+    if (isRosterOnly(event) && !user.is_superadmin) {
+      throw new ForbiddenException(
+        "You're not on this event's roster. Sign in with the email you registered with, or ask your organizer to add you.",
+      );
     }
 
     await this.dbRw.insert(eventAttendees).values({
@@ -1391,10 +1428,22 @@ export class EventsService {
   /** Add new participants as attendees and update user data. Never removes existing attendees. */
   private async syncParticipants(eventId: string, participants: any[]): Promise<number> {
     const validParticipants = participants.filter((p) => p.email);
-    if (validParticipants.length === 0) return 0;
+    return this.syncAttendees(
+      eventId,
+      validParticipants.map((p) => this.cockpitUserData(p)),
+    );
+  }
+
+  /**
+   * Add these users to the event's attendees, creating users that don't exist
+   * yet and filling in their empty fields. Never removes existing attendees.
+   * Returns the number of attendees added.
+   */
+  async syncAttendees(eventId: string, userData: AttendeeUserData[]): Promise<number> {
+    if (userData.length === 0) return 0;
 
     // 1. Bulk upsert all users
-    const userIds = await this.bulkUpsertCockpitUsers(validParticipants);
+    const userIds = await this.bulkUpsertUsers(userData);
 
     // 2. Get existing attendees for this event in one query
     const existingAttendees = await this.dbRw.query.eventAttendees.findMany({
@@ -1458,7 +1507,7 @@ export class EventsService {
     return emails;
   }
 
-  private cockpitUserData(participant: any) {
+  private cockpitUserData(participant: any): AttendeeUserData {
     const s = (v: any, max: number) => ((v as string) || '').slice(0, max);
     const emailLower = (participant.email as string).trim().toLowerCase();
     return {
@@ -1478,12 +1527,11 @@ export class EventsService {
   }
 
   /**
-   * Bulk upsert users from Cockpit participants.
+   * Bulk upsert users from an attendee import.
    * Inserts new users; for existing users, fills in empty fields only.
    * Returns array of user IDs in same order as input.
    */
-  private async bulkUpsertCockpitUsers(participants: any[]): Promise<string[]> {
-    const allData = participants.map((p) => this.cockpitUserData(p));
+  private async bulkUpsertUsers(allData: AttendeeUserData[]): Promise<string[]> {
     const emails = allData.map((d) => d.email);
 
     // 1. Fetch all existing users in one query
@@ -1578,8 +1626,11 @@ export class EventsService {
    * where we need the full user object back.
    */
   private async findOrCreateCockpitUser(participant: any) {
-    const data = this.cockpitUserData(participant);
+    return this.findOrCreateUser(this.cockpitUserData(participant));
+  }
 
+  /** Find a user by email, creating them from this data if they don't exist. */
+  async findOrCreateUser(data: AttendeeUserData) {
     let user = await this.dbRw.query.users.findFirst({
       where: eq(users.email, data.email),
     });
@@ -1814,12 +1865,17 @@ export class EventsService {
   // ── Itch.io validation ─────────────────────────────────────────────
 
   async validateItchGames(user: User) {
-    this.assertSuperadmin(user);
+    if (!user.is_superadmin) {
+      throw new ForbiddenException('Superadmin access required');
+    }
 
-    // Get all campfire events
+    // Get all campfire and Haven events
     const allEvents = await this.dbRo.query.events.findMany();
     const campfireEventIds = allEvents
-      .filter((e) => e.feature_flags_csv.includes('campfire'))
+      .filter((e) => {
+        const flags = getFeatureFlagsList(e);
+        return flags.includes('campfire') || flags.includes('haven');
+      })
       .map((e) => e.id);
 
     if (campfireEventIds.length === 0) {

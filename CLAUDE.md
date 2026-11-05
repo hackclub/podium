@@ -115,6 +115,12 @@ Key frontend files:
 - `frontend/src/lib/theme.ts` — Per-event theming (colors, font, logo)
 - `frontend/src/lib/forms/` — Reusable form components
 
+### Event Integrations
+
+- **Campfire** — events and attendees are imported from Cockpit (`COCKPIT_API_KEY`); projects sync to the `AIRTABLE_*` table.
+- **Haven** — `events-service/src/events/haven.service.ts` imports events, POC/EM and rosters from Haven's Airtable base and upserts projects into its YSWS Project Submission table (`HAVEN_AIRTABLE_*`). Admin UI at `/admin/haven`.
+- **`roster-only` flag** — set on Haven events. Users can't join on their own (`POST /events/:id/attend`), voting doesn't auto-add them, and teammates must already be on the roster. Rosters only grow through imports or admins.
+
 ## Performance Requirements
 
 **This app must handle 10,000 requests/second for project creation and voting.**
