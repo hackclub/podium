@@ -38,6 +38,7 @@ const EVENT = {
   em: 'fldRV0OjedPnLkOby', // EM → Users
   attendees: 'fldHON24yCR1WDkyy', // Attendees → Attendees
   isTest: 'fldmTi25SXVwloyCo', // _Is Test
+  workspaceEmail: 'fldBvvlCxogbDMQW9', // _Google Workspace Email, e.g. "perth@haven.hackclub.com"
 };
 
 const ATTENDEE = {
@@ -62,11 +63,21 @@ const USER = {
   birthday: 'fldVEfvE2TfzVmKGi',
 };
 
+const SUBMISSION = {
+  email: 'fld7e9MNSd0DflwNz', // Email
+  podiumProjectId: 'fldu47IuoGFy9Aq6T', // Podium Project ID
+};
+
 /** Feature flags every imported Haven event gets. */
 const HAVEN_FLAGS = 'haven,roster-only';
 
 /** Field Podium merges submissions on, together with Email. */
 const PODIUM_PROJECT_ID_FIELD = 'Podium Project ID';
+
+/** Checkbox Podium sets on submissions whose person left the project, or whose project was deleted. */
+const REMOVED_FIELD = '!Removed from Podium';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Airtable allows 5 requests/second per base, shared with everything else
 // that talks to the Haven base, and answers a burst over it with 429s for the
@@ -85,6 +96,9 @@ type HavenEvent = {
   format: string;
   city: string;
   slug: string;
+  /** Another Haven event has the same Attend Slug; neither can be synced until it's fixed. */
+  duplicateSlug: boolean;
+  workspaceEmail: string;
   pocUserIds: string[];
   emUserIds: string[];
   attendeeIds: string[];
@@ -216,7 +230,7 @@ export class HavenService {
 
   private async fetchHavenEvents(): Promise<HavenEvent[]> {
     const records = await this.listRecords(TABLES.events, Object.values(EVENT));
-    return records
+    const havenEvents = records
       .filter((r) => !r.fields[EVENT.isTest] && str(r.fields[EVENT.attendSlug]))
       .map((r) => ({
         recordId: r.id,
@@ -225,10 +239,19 @@ export class HavenService {
         format: selectName(r.fields[EVENT.format]),
         city: str(r.fields[EVENT.city]),
         slug: str(r.fields[EVENT.attendSlug]).toLowerCase(),
+        duplicateSlug: false,
+        workspaceEmail: str(r.fields[EVENT.workspaceEmail]).toLowerCase(),
         pocUserIds: ids(r.fields[EVENT.poc]),
         emUserIds: ids(r.fields[EVENT.em]),
         attendeeIds: ids(r.fields[EVENT.attendees]),
       }));
+
+    // Airtable doesn't enforce unique slugs. Two events on one slug would
+    // share a Podium event, so both are refused instead.
+    const slugCounts = new Map<string, number>();
+    for (const e of havenEvents) slugCounts.set(e.slug, (slugCounts.get(e.slug) ?? 0) + 1);
+    for (const e of havenEvents) e.duplicateSlug = slugCounts.get(e.slug)! > 1;
+    return havenEvents;
   }
 
   /**
@@ -323,6 +346,9 @@ export class HavenService {
       const name = `Haven ${he.name}`;
       const existing = existingBySlug.get(he.slug);
       try {
+        if (he.duplicateSlug) {
+          throw new Error(`Attend Slug ${he.slug} is used by more than one Haven event`);
+        }
         if (existing && !getFeatureFlagsList(existing).includes('haven')) {
           throw new Error(`Slug ${he.slug} is already used by a non-Haven event`);
         }
@@ -343,13 +369,33 @@ export class HavenService {
         };
         const pocId = await leaderId(he.pocUserIds);
         const rmId = await leaderId(he.emUserIds);
+        // The event's shared Google Workspace account is its owner, which gives
+        // it the same admin access as the POC and EM.
+        const workspaceId = he.workspaceEmail.includes('@')
+          ? (
+              await this.eventsService.findOrCreateUser({
+                email: he.workspaceEmail,
+                display_name: `${name} Organizers`.slice(0, 255),
+                first_name: 'Haven',
+                last_name: he.name.slice(0, 50),
+                phone: '',
+                street_1: '',
+                street_2: '',
+                city: '',
+                state: '',
+                zip_code: '',
+                country: '',
+                dob: null,
+              })
+            ).id
+          : null;
 
         let eventId: string;
         if (existing) {
           eventId = existing.id;
           await this.dbRw
             .update(events)
-            .set({ poc_id: pocId, rm_id: rmId, enabled: true })
+            .set({ owner_id: workspaceId ?? existing.owner_id, poc_id: pocId, rm_id: rmId, enabled: true })
             .where(eq(events.id, eventId));
         } else {
           const [created] = await this.dbRw
@@ -366,7 +412,7 @@ export class HavenService {
               theme_primary: '',
               theme_selected: '',
               enabled: true,
-              owner_id: owner.id,
+              owner_id: workspaceId ?? owner.id,
               poc_id: pocId,
               rm_id: rmId,
             })
@@ -448,6 +494,8 @@ export class HavenService {
    * Upsert one YSWS Project Submission per project member, merged on Email +
    * Podium Project ID so re-syncing updates the same rows and never touches
    * submissions from other programs (e.g. Jumpstart) for the same person.
+   * Rows for people who have since left a project, or for deleted projects,
+   * are marked removed rather than deleted.
    */
   private async exportProjects(eventIds: string[]) {
     if (!this.submissionsTableId) {
@@ -488,6 +536,7 @@ export class HavenService {
           Country: u.country,
           Birthday: u.dob || null,
           'Self-reported Hours Spent': p.hours_spent || null,
+          [REMOVED_FIELD]: false,
         };
         if (p.image_url) {
           fields['Screenshot'] = [{ url: p.image_url }];
@@ -517,12 +566,75 @@ export class HavenService {
       }
     }
 
+    let removed = 0;
+    try {
+      removed = await this.markRemovedSubmissions(
+        new Set(eventProjects.map((p) => p.id)),
+        new Set(records.map((r) => `${r.fields[PODIUM_PROJECT_ID_FIELD]}:${String(r.fields.Email).toLowerCase()}`)),
+      );
+    } catch (err: any) {
+      this.logger.error(`Marking removed Haven submissions failed: ${err.message}`);
+      errors.push(`Marking removed submissions: ${err.message}`);
+    }
+
     return {
-      message: `Synced ${synced} of ${records.length} submission records to Haven's Airtable`,
+      message:
+        `Synced ${synced} of ${records.length} submission records to Haven's Airtable` +
+        (removed ? `, marked ${removed} removed` : ''),
       synced,
       total: records.length,
+      removed,
       errors: errors.length > 0 ? errors : undefined,
     };
+  }
+
+  /**
+   * Check REMOVED_FIELD on Podium's submission rows that are no longer current:
+   * the person left one of the exported projects, or the project was deleted.
+   * Rows for projects in events that weren't exported are left alone.
+   *
+   * @param exportedProjectIds every project of the exported events
+   * @param currentKeys "projectId:email" of every row just upserted
+   */
+  private async markRemovedSubmissions(exportedProjectIds: Set<string>, currentKeys: Set<string>) {
+    const rows = await this.listRecords(
+      this.submissionsTableId,
+      Object.values(SUBMISSION),
+      `AND({${PODIUM_PROJECT_ID_FIELD}} != '', NOT({${REMOVED_FIELD}}))`,
+    );
+    const projectIdOf = (r: AirtableRecord) => str(r.fields[SUBMISSION.podiumProjectId]);
+
+    // Projects outside the exported events only count as removed once deleted.
+    const otherIds = [
+      ...new Set(rows.map(projectIdOf).filter((id) => !exportedProjectIds.has(id) && UUID_RE.test(id))),
+    ];
+    const stillExist = new Set<string>();
+    for (let i = 0; i < otherIds.length; i += 1000) {
+      const found = await this.dbRo
+        .select({ id: projects.id })
+        .from(projects)
+        .where(inArray(projects.id, otherIds.slice(i, i + 1000)));
+      for (const p of found) stillExist.add(p.id);
+    }
+
+    const stale = rows.filter((r) => {
+      const projectId = projectIdOf(r);
+      if (exportedProjectIds.has(projectId)) {
+        const email = str(r.fields[SUBMISSION.email]).toLowerCase();
+        return !currentKeys.has(`${projectId}:${email}`);
+      }
+      return UUID_RE.test(projectId) && !stillExist.has(projectId);
+    });
+
+    for (let i = 0; i < stale.length; i += 10) {
+      await this.airtableFetch(`/${this.submissionsTableId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          records: stale.slice(i, i + 10).map((r) => ({ id: r.id, fields: { [REMOVED_FIELD]: true } })),
+        }),
+      });
+    }
+    return stale.length;
   }
 
   /** Superadmin: export projects from every Haven event whose voting is closed. */

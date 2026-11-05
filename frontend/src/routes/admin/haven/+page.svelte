@@ -152,7 +152,7 @@
 					</tr>
 				</thead>
 				<tbody>
-					{#each filtered as r (r.slug)}
+					{#each filtered as r}
 						<tr class="border-b border-white/5 hover:bg-white/5">
 							<td class="py-3 pr-4">
 								{#if r.event_id}
