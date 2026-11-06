@@ -4,6 +4,7 @@ import {
   HttpException,
   HttpStatus,
   ForbiddenException,
+  ConflictException,
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -103,6 +104,36 @@ return slot - now
 
 // Formula length stays well under Airtable's limit at this many record IDs.
 const RECORD_ID_BATCH = 100;
+
+// Syncing every event takes longer than the ingress proxy waits (50s), so
+// sync-all runs in the background. The lock keeps two runs from overlapping
+// across pods, and outlives any real run; the status holds the last run's
+// results for the admin page.
+const SYNC_ALL_LOCK_KEY = 'haven:sync-all:lock';
+const SYNC_ALL_STATUS_KEY = 'haven:sync-all:status';
+const SYNC_ALL_LOCK_MS = 15 * 60 * 1000;
+const SYNC_ALL_STATUS_TTL_S = 30 * 24 * 60 * 60;
+
+type HavenSyncResult = {
+  slug: string;
+  name: string;
+  event_id?: string;
+  created?: boolean;
+  disabled?: boolean;
+  attendees_added: number;
+  error?: string;
+};
+
+type HavenSyncAllStatus = {
+  /** `interrupted`: the run stopped without finishing, e.g. its pod restarted. */
+  state: 'running' | 'done' | 'failed' | 'interrupted';
+  started_at: string;
+  started_by: string;
+  finished_at?: string;
+  message?: string;
+  results?: HavenSyncResult[];
+  error?: string;
+};
 
 type AirtableRecord = { id: string; fields: Record<string, unknown> };
 
@@ -370,15 +401,7 @@ export class HavenService {
     const users = await this.fetchUsers([...participantsByEvent.values()].flat().concat(leaderIds));
     const existingBySlug = new Map(existingEvents.map((e) => [e.slug, e]));
 
-    const results: {
-      slug: string;
-      name: string;
-      event_id?: string;
-      created?: boolean;
-      disabled?: boolean;
-      attendees_added: number;
-      error?: string;
-    }[] = [];
+    const results: HavenSyncResult[] = [];
 
     for (const he of havenEvents) {
       const name = `Haven ${he.name}`;
@@ -470,6 +493,75 @@ export class HavenService {
     }
 
     return results;
+  }
+
+  /**
+   * Superadmin: start syncing every Haven event in the background and return
+   * at once. Read the outcome with `getSyncAllStatus`.
+   */
+  async startSyncAll(user: User): Promise<HavenSyncAllStatus> {
+    this.assertSuperadmin(user);
+    this.assertConfigured();
+
+    const locked = await this.redis.set(SYNC_ALL_LOCK_KEY, user.id, 'PX', SYNC_ALL_LOCK_MS, 'NX');
+    if (!locked) {
+      throw new ConflictException('A Haven sync is already running');
+    }
+
+    const status: HavenSyncAllStatus = {
+      state: 'running',
+      started_at: new Date().toISOString(),
+      started_by: user.email,
+    };
+    try {
+      await this.saveSyncAllStatus(status);
+    } catch (err) {
+      await this.redis.del(SYNC_ALL_LOCK_KEY);
+      throw err;
+    }
+
+    void this.runSyncAll(user, status);
+    return status;
+  }
+
+  /** Superadmin: the last sync-all run, or null if there hasn't been one. */
+  async getSyncAllStatus(user: User): Promise<HavenSyncAllStatus | null> {
+    this.assertSuperadmin(user);
+    const [raw, locked] = await Promise.all([
+      this.redis.get(SYNC_ALL_STATUS_KEY),
+      this.redis.exists(SYNC_ALL_LOCK_KEY),
+    ]);
+    if (!raw) return null;
+    const status: HavenSyncAllStatus = JSON.parse(raw);
+    if (status.state === 'running' && !locked) {
+      status.state = 'interrupted';
+    }
+    return status;
+  }
+
+  private async runSyncAll(user: User, status: HavenSyncAllStatus) {
+    let finished: HavenSyncAllStatus;
+    try {
+      const { message, results } = await this.syncAll(user);
+      finished = { ...status, state: 'done', finished_at: new Date().toISOString(), message, results };
+    } catch (err: any) {
+      this.logger.error(`Haven sync-all failed: ${err.message}`, err.stack);
+      finished = { ...status, state: 'failed', finished_at: new Date().toISOString(), error: err.message || 'Unknown error' };
+    }
+
+    try {
+      await this.saveSyncAllStatus(finished);
+    } catch (err: any) {
+      this.logger.error(`Could not save Haven sync-all status: ${err.message}`, err.stack);
+    } finally {
+      await this.redis.del(SYNC_ALL_LOCK_KEY).catch((err) =>
+        this.logger.error(`Could not release Haven sync-all lock: ${err.message}`),
+      );
+    }
+  }
+
+  private async saveSyncAllStatus(status: HavenSyncAllStatus) {
+    await this.redis.set(SYNC_ALL_STATUS_KEY, JSON.stringify(status), 'EX', SYNC_ALL_STATUS_TTL_S);
   }
 
   /** Superadmin: create/update every Haven event and sync all rosters. */

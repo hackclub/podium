@@ -5,17 +5,21 @@
 	import {
 		getCurrentUser,
 		adminSyncAllHavenEvents,
+		adminGetHavenSyncAllStatus,
 		adminSyncHavenProjectsToAirtable,
-		type HavenSyncResult
+		type HavenSyncAllStatus
 	} from '$lib/api';
 
 	let loading = $state(true);
 	let syncing = $state(false);
+	let refreshing = $state(false);
 	let airtableSyncing = $state(false);
-	let results = $state<HavenSyncResult[] | null>(null);
+	let syncStatus = $state<HavenSyncAllStatus | null>(null);
 	let filter = $state<'all' | 'problems'>('all');
 
-	const isBusy = $derived(syncing || airtableSyncing);
+	const syncRunning = $derived(syncStatus?.state === 'running');
+	const results = $derived(syncStatus?.results ?? null);
+	const isBusy = $derived(syncing || syncRunning || airtableSyncing);
 	const filtered = $derived(
 		(results ?? []).filter((r) => filter === 'all' || r.error || r.disabled)
 	);
@@ -27,6 +31,7 @@
 				goto('/admin');
 				return;
 			}
+			syncStatus = await adminGetHavenSyncAllStatus();
 		} catch {
 			goto('/admin');
 			return;
@@ -39,18 +44,31 @@
 		if (isBusy) return;
 		syncing = true;
 		try {
-			const result = await adminSyncAllHavenEvents();
-			results = result.results;
-			if (result.results.some((r) => r.error)) {
-				toast.warning(result.message);
-			} else {
-				toast.success(result.message);
-			}
+			syncStatus = await adminSyncAllHavenEvents();
+			toast.success('Sync started. It takes a minute or two; refresh to see the results.');
 		} catch (e: any) {
-			toast.error(e.message || 'Haven sync failed');
+			toast.error(e.message || 'Could not start the Haven sync');
 		} finally {
 			syncing = false;
 		}
+	}
+
+	async function refreshStatus() {
+		refreshing = true;
+		try {
+			syncStatus = await adminGetHavenSyncAllStatus();
+			if (syncStatus?.state === 'done' && syncStatus.results?.some((r) => r.error)) {
+				toast.warning(syncStatus.message ?? 'Sync finished with errors');
+			}
+		} catch (e: any) {
+			toast.error(e.message || 'Could not load the sync status');
+		} finally {
+			refreshing = false;
+		}
+	}
+
+	function formatTime(iso: string) {
+		return new Date(iso).toLocaleString();
 	}
 
 	async function syncToAirtable() {
@@ -94,7 +112,7 @@
 				disabled={isBusy || loading}
 				onclick={syncAll}
 			>
-				{syncing ? 'Syncing (takes about a minute)...' : 'Import & Sync All Events'}
+				{syncing ? 'Starting...' : syncRunning ? 'Sync running...' : 'Import & Sync All Events'}
 			</button>
 		</div>
 	</div>
@@ -116,6 +134,40 @@
 			project member for every Haven event whose voting is closed.
 		</p>
 	</div>
+
+	{#if syncStatus}
+		<div
+			class="mb-6 flex items-center justify-between gap-4 rounded-lg border p-4 text-sm {syncStatus.state === 'running'
+				? 'border-blue-500/30 bg-blue-500/10 text-blue-300'
+				: syncStatus.state === 'done' && !syncStatus.results?.some((r) => r.error)
+					? 'border-green-500/30 bg-green-500/10 text-green-300'
+					: 'border-red-500/30 bg-red-500/10 text-red-300'}"
+		>
+			<div class="flex flex-col gap-0.5">
+				{#if syncStatus.state === 'running'}
+					<p class="font-medium">Sync running since {formatTime(syncStatus.started_at)}</p>
+					<p class="text-white/50">Started by {syncStatus.started_by}. It takes a minute or two.</p>
+				{:else if syncStatus.state === 'done'}
+					<p class="font-medium">{syncStatus.message}</p>
+					<p class="text-white/50">Finished {formatTime(syncStatus.finished_at ?? syncStatus.started_at)}, started by {syncStatus.started_by}</p>
+				{:else if syncStatus.state === 'failed'}
+					<p class="font-medium">Last sync failed: {syncStatus.error}</p>
+					<p class="text-white/50">Started {formatTime(syncStatus.started_at)} by {syncStatus.started_by}</p>
+				{:else}
+					<p class="font-medium">Last sync stopped before finishing</p>
+					<p class="text-white/50">Started {formatTime(syncStatus.started_at)} by {syncStatus.started_by}. The server probably restarted; it's safe to run it again.</p>
+				{/if}
+			</div>
+			<button
+				type="button"
+				class="shrink-0 rounded-md bg-white/10 px-3 py-1.5 text-white transition-colors hover:bg-white/20 disabled:opacity-50"
+				disabled={refreshing}
+				onclick={refreshStatus}
+			>
+				{refreshing ? 'Refreshing...' : 'Refresh'}
+			</button>
+		</div>
+	{/if}
 
 	{#if results}
 		<div class="flex items-center justify-between mb-3">

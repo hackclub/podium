@@ -246,8 +246,15 @@ export class EventsController {
 
   @Post('admin/haven/sync-all')
   @UseGuards(JwtAuthGuard, AdminGuard)
+  @HttpCode(202)
   async syncAllHavenEvents(@CurrentUser() user: User) {
-    return this.havenService.syncAll(user);
+    return this.havenService.startSyncAll(user);
+  }
+
+  @Get('admin/haven/sync-all')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async getHavenSyncAllStatus(@CurrentUser() user: User) {
+    return this.havenService.getSyncAllStatus(user);
   }
 
   @Post('admin/haven/sync-airtable')

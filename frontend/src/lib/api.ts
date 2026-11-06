@@ -657,10 +657,26 @@ export type HavenSyncResult = {
 	error?: string;
 };
 
+export type HavenSyncAllStatus = {
+	/** `interrupted`: the run stopped without finishing, e.g. its server restarted. */
+	state: 'running' | 'done' | 'failed' | 'interrupted';
+	started_at: string;
+	started_by: string;
+	finished_at?: string;
+	message?: string;
+	results?: HavenSyncResult[];
+	error?: string;
+};
+
+/** Starts the sync in the background; read the outcome with adminGetHavenSyncAllStatus. */
 export function adminSyncAllHavenEvents() {
-	return apiFetch<{ message: string; results: HavenSyncResult[] }>('/events/admin/haven/sync-all', {
+	return apiFetch<HavenSyncAllStatus>('/events/admin/haven/sync-all', {
 		method: 'POST'
 	});
+}
+
+export function adminGetHavenSyncAllStatus() {
+	return apiFetch<HavenSyncAllStatus | null>('/events/admin/haven/sync-all');
 }
 
 export function adminSyncHavenProjectsToAirtable() {
