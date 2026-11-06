@@ -43,7 +43,7 @@
 
 <button
 	type="button"
-	class="flex w-full cursor-pointer items-center justify-center rounded-xl border-4 border-dashed border-white p-3 text-base text-white drop-shadow-md transition-colors {dragging ? 'bg-white/10' : ''} {previewUrl ? 'h-auto gap-3' : 'h-16'}"
+	class="flex w-full cursor-pointer items-center justify-center rounded-xl border-4 border-dashed border-(--line) bg-(--field) p-3 text-base text-(--ink) drop-shadow-(--shade) transition-colors {dragging ? 'bg-(--ink)/10' : ''} {previewUrl ? 'h-auto gap-3' : 'h-16'}"
 	ondragover={handleDragOver}
 	ondragleave={() => (dragging = false)}
 	ondrop={handleDrop}

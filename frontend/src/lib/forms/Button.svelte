@@ -4,22 +4,14 @@
 
 	let {
 		children,
-		color = '#49B6F3',
-		selectedColor,
 		class: className = "",
 		...rest
-	}: HTMLButtonAttributes & { children: Snippet; color?: string; selectedColor?: string } =
-		$props();
-
-	let hovered = $state(false);
+	}: HTMLButtonAttributes & { children: Snippet } = $props();
 </script>
 
+<!-- Colors come from the event skin variables set by the event layout. -->
 <button
-	class="shrink-0 rounded-xl px-4 py-3 text-base drop-shadow-md disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 ease-in-out transition-all duration-125 {className}"
-	class:cursor-pointer={!rest.disabled}
-	style="background-color: {hovered && !rest.disabled && selectedColor ? selectedColor : 'white'}; color: {hovered && !rest.disabled && selectedColor ? 'white' : color};"
-	onmouseenter={() => (hovered = true)}
-	onmouseleave={() => (hovered = false)}
+	class="shrink-0 rounded-xl bg-(--button) px-4 py-3 text-base text-(--button-ink) drop-shadow-md enabled:cursor-pointer enabled:hover:bg-(--accent) enabled:hover:text-(--button-hover-ink) disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 ease-in-out transition-all duration-125 {className}"
 	{...rest}
 >
 	{@render children()}

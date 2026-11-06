@@ -84,80 +84,79 @@
 {#if !checked}
 	<!-- Still loading user profile -->
 {:else if needsProfile}
-	<main class="fixed inset-0 overflow-y-auto px-4">
-	<div class="flex min-h-full items-center justify-center py-12 pt-20">
+	<main class="flex flex-1 flex-col px-4">
+	<div class="flex flex-1 items-center justify-center py-12">
 		<div
-			class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-white px-6 py-6 drop-shadow-md"
+			class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-(--edge) px-6 py-6 drop-shadow-md"
 			style="font-family: {eventTheme.font};"
 		>
 			<div
-				class="absolute inset-0 rounded-lg"
-				style="background-color: {eventTheme.primary};"
+				class="absolute inset-0 rounded-lg bg-(--surface)"
 			></div>
 
 			<div class="relative flex flex-col gap-4">
-				<p class="text-2xl text-white drop-shadow-md">Complete your profile</p>
-				<p class="text-sm text-white/70 drop-shadow-md">We need your info before you can continue. This will not be shared with event organizers.</p>
+				<p class="font-(family-name:--heading-font) text-2xl text-(--ink) drop-shadow-(--shade)">Complete your profile</p>
+				<p class="text-sm text-(--ink)/70 drop-shadow-(--shade)">We need your info before you can continue. This will not be shared with event organizers.</p>
 
 				<div class="grid grid-cols-2 gap-4">
 					<div class="group flex flex-col gap-1">
-						<Label selectedColor={eventTheme.selected}>First Name</Label>
+						<Label>First Name</Label>
 						<Input bind:value={firstName} placeholder="Jane" selectedColor={eventTheme.selected} />
 					</div>
 					<div class="group flex flex-col gap-1">
-						<Label selectedColor={eventTheme.selected}>Last Name (optional)</Label>
+						<Label>Last Name (optional)</Label>
 						<Input bind:value={lastName} placeholder="Doe" selectedColor={eventTheme.selected} />
 					</div>
 				</div>
 
 				<div class="group flex flex-col gap-1">
-					<Label selectedColor={eventTheme.selected}>Phone Number</Label>
+					<Label>Phone Number</Label>
 					<Input type="tel" bind:value={phone} placeholder="+1 555 123 4567" selectedColor={eventTheme.selected} />
 				</div>
 
 				<div class="group flex flex-col gap-1">
-					<Label selectedColor={eventTheme.selected}>Street Address</Label>
+					<Label>Street Address</Label>
 					<Input bind:value={street1} placeholder="123 Main St" selectedColor={eventTheme.selected} />
 				</div>
 
 				<div class="group flex flex-col gap-1">
-					<Label selectedColor={eventTheme.selected}>Street Address Line 2 (optional)</Label>
+					<Label>Street Address Line 2 (optional)</Label>
 					<Input bind:value={street2} placeholder="Apt 4B" selectedColor={eventTheme.selected} />
 				</div>
 
 				<div class="grid grid-cols-2 gap-4">
 					<div class="group flex flex-col gap-1">
-						<Label selectedColor={eventTheme.selected}>City</Label>
+						<Label>City</Label>
 						<Input bind:value={city} placeholder="San Francisco" selectedColor={eventTheme.selected} />
 					</div>
 					<div class="group flex flex-col gap-1">
-						<Label selectedColor={eventTheme.selected}>State / Province</Label>
+						<Label>State / Province</Label>
 						<Input bind:value={addrState} placeholder="CA" selectedColor={eventTheme.selected} />
 					</div>
 				</div>
 
 				<div class="grid grid-cols-2 gap-4">
 					<div class="group flex flex-col gap-1">
-						<Label selectedColor={eventTheme.selected}>ZIP / Postal Code</Label>
+						<Label>ZIP / Postal Code</Label>
 						<Input bind:value={zipCode} placeholder="94102" selectedColor={eventTheme.selected} />
 					</div>
 					<div class="group flex flex-col gap-1">
-						<Label selectedColor={eventTheme.selected}>Country</Label>
+						<Label>Country</Label>
 						<Input bind:value={country} placeholder="United States" selectedColor={eventTheme.selected} />
 					</div>
 				</div>
 
 				<div class="group flex flex-col gap-1">
-					<Label selectedColor={eventTheme.selected}>Date of Birth</Label>
+					<Label>Date of Birth</Label>
 					<Input type="date" bind:value={dob} selectedColor={eventTheme.selected} />
 				</div>
 
 				{#if error}
-					<p class="text-sm text-red-300 drop-shadow-md">{error}</p>
+					<p class="text-sm text-(--danger) drop-shadow-(--shade)">{error}</p>
 				{/if}
 
 				<div class="mt-2 flex flex-row gap-4 items-center">
-					<Button onclick={saveProfile} color={eventTheme.primary} selectedColor={eventTheme.selected} disabled={!formComplete || saving}>
+					<Button onclick={saveProfile} disabled={!formComplete || saving}>
 						{#if saving}
 							<p>Saving...</p>
 						{:else if !formComplete}

@@ -132,34 +132,33 @@
 	}
 </script>
 
-<main class="fixed inset-0 overflow-y-auto px-4">
-<div class="flex min-h-full items-center justify-center py-12">
+<main class="flex flex-1 flex-col px-4">
+<div class="flex flex-1 items-center justify-center py-12">
 	{#if eventTheme}
 		<div
-			class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-white p-6 drop-shadow-md"
+			class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-(--edge) p-6 drop-shadow-md"
 			style="font-family: {eventTheme.font};"
 		>
 			<div
-				class="absolute inset-0 rounded-lg"
-				style="background-color: {eventTheme.primary};"
+				class="absolute inset-0 rounded-lg bg-(--surface)"
 			></div>
 
 			<div class="relative flex flex-col gap-2">
 				{#if status === 'sent'}
 					<div>
-						<p class="text-2xl text-white drop-shadow-md">Check your email!</p>
-						<p class="text-lg text-white/70 drop-shadow-md">
+						<p class="font-(family-name:--heading-font) text-2xl text-(--ink) drop-shadow-(--shade)">Check your email!</p>
+						<p class="text-lg text-(--ink)/70 drop-shadow-(--shade)">
 							We sent a magic link to {email}
 						</p>
 					</div>
 				{:else if status === 'verifying'}
-					<p class="text-2xl text-white drop-shadow-md">Verifying...</p>
+					<p class="font-(family-name:--heading-font) text-2xl text-(--ink) drop-shadow-(--shade)">Verifying...</p>
 				{:else}
 					<div>
-						<p class="text-2xl text-white drop-shadow-md">
+						<p class="font-(family-name:--heading-font) text-2xl text-(--ink) drop-shadow-(--shade)">
 							Sign in to create your project and vote
 						</p>
-						<p class="text-lg text-white/70 drop-shadow-md">We'll send you an email</p>
+						<p class="text-lg text-(--ink)/70 drop-shadow-(--shade)">We'll send you an email</p>
 					</div>
 
 					{#if showNameFields}
@@ -172,8 +171,6 @@
 						<Input type="email" bind:value={email} placeholder="example@email.com" selectedColor={eventTheme.selected} />
 						<Button
 							onclick={handleSubmit}
-							color={eventTheme.primary}
-							selectedColor={eventTheme.selected}
 							disabled={!canSubmit || status === 'loading'}
 						>
 							{status === 'loading' ? 'Sending...' : showNameFields ? 'Create & Login' : 'Login / Sign Up'}
@@ -181,15 +178,14 @@
 					</div>
 
 					{#if status === 'error'}
-						<p class="text-sm text-red-300 drop-shadow-md">{errorMsg}</p>
+						<p class="text-sm text-(--danger) drop-shadow-(--shade)">{errorMsg}</p>
 					{/if}
 				{/if}
 
 				<button
 					type="button"
 					onclick={() => goto('/')}
-					class="mt-1 w-fit text-md text-white/70 underline drop-shadow-md cursor-pointer transition-colors ease-in-out duration-125 hover:text-[var(--hover-color)]"
-					style="--hover-color: {eventTheme.selected};"
+					class="mt-1 w-fit text-md text-(--ink)/70 underline drop-shadow-(--shade) cursor-pointer transition-colors ease-in-out duration-125 hover:text-(--accent-ink)"
 				>
 					back
 				</button>

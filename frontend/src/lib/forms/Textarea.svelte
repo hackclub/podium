@@ -14,7 +14,7 @@
 	bind:value
 	onfocus={() => (focused = true)}
 	onblur={() => (focused = false)}
-	class="w-full rounded-xl border-4 bg-transparent p-2 text-base text-white placeholder:text-white/40 drop-shadow-md outline-none resize-none transition-colors"
-	style="border-color: {focused && selectedColor ? selectedColor : 'white'};"
+	class="w-full rounded-xl border-4 bg-(--field) p-2 text-base text-(--ink) placeholder:text-(--ink)/40 drop-shadow-(--shade) outline-none resize-none transition-colors"
+	style="border-color: {focused && selectedColor ? selectedColor : 'var(--line)'};"
 	{...rest}
 ></textarea>

@@ -185,35 +185,34 @@
 
 {#if eventTheme}
 <ProfileGate {eventTheme}>
-<main class="fixed inset-0 overflow-y-auto px-4">
-<div class="flex min-h-full items-center justify-center py-12 pt-20">
+<main class="flex flex-1 flex-col px-4">
+<div class="flex flex-1 items-center justify-center py-12">
 	{#if loading}
 		<p class="text-white/60 drop-shadow-md">Loading...</p>
 	{:else if !isTeamEditAllowed}
 		<div
-			class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-white px-6 py-10 drop-shadow-md text-center"
+			class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-(--edge) px-6 py-10 drop-shadow-md text-center"
 			style="font-family: {eventTheme.font};"
 		>
-			<div class="absolute inset-0" style="background-color: {eventTheme.primary};"></div>
+			<div class="absolute inset-0 bg-(--surface)"></div>
 			<div class="relative flex flex-col items-center gap-3">
-				<p class="text-3xl text-white drop-shadow-md">Team editing is not available yet</p>
-				<p class="text-lg text-white/70 drop-shadow-md">You can edit your team once submissions close.</p>
+				<p class="font-(family-name:--heading-font) text-3xl text-(--ink) drop-shadow-(--shade)">Team editing is not available yet</p>
+				<p class="text-lg text-(--ink)/70 drop-shadow-(--shade)">You can edit your team once submissions close.</p>
 			</div>
 		</div>
 	{:else if !projectId}
 		<div
-			class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-white px-6 py-10 drop-shadow-md text-center"
+			class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-(--edge) px-6 py-10 drop-shadow-md text-center"
 			style="font-family: {eventTheme.font};"
 		>
-			<div class="absolute inset-0" style="background-color: {eventTheme.primary};"></div>
+			<div class="absolute inset-0 bg-(--surface)"></div>
 			<div class="relative flex flex-col items-center gap-3">
-				<p class="text-3xl text-white drop-shadow-md">No project found</p>
-				<p class="text-lg text-white/70 drop-shadow-md">You don't own a project in this event.</p>
+				<p class="font-(family-name:--heading-font) text-3xl text-(--ink) drop-shadow-(--shade)">No project found</p>
+				<p class="text-lg text-(--ink)/70 drop-shadow-(--shade)">You don't own a project in this event.</p>
 				<button
 					type="button"
 					onclick={() => goto(`/${slug}/vote`)}
-					class="mt-2 text-md text-white/70 underline drop-shadow-md cursor-pointer transition-colors ease-in-out duration-125 hover:text-[var(--hover-color)]"
-					style="--hover-color: {eventTheme.selected};"
+					class="mt-2 text-md text-(--ink)/70 underline drop-shadow-(--shade) cursor-pointer transition-colors ease-in-out duration-125 hover:text-(--accent-ink)"
 				>
 					Back to voting
 				</button>
@@ -221,25 +220,25 @@
 		</div>
 	{:else}
 		<div
-			class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-white px-6 py-6 drop-shadow-md"
+			class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-(--edge) px-6 py-6 drop-shadow-md"
 			style="font-family: {eventTheme.font};"
 		>
-			<div class="absolute inset-0 rounded-lg" style="background-color: {eventTheme.primary};"></div>
+			<div class="absolute inset-0 rounded-lg bg-(--surface)"></div>
 
 			<div class="relative flex flex-col gap-4">
-				<p class="text-2xl text-white drop-shadow-md">Manage Teammates</p>
+				<p class="font-(family-name:--heading-font) text-2xl text-(--ink) drop-shadow-(--shade)">Manage Teammates</p>
 
 				{#if collaborators.length === 0}
-					<p class="text-sm text-white/50 drop-shadow-md">No teammates added yet.</p>
+					<p class="text-sm text-(--ink)/50 drop-shadow-(--shade)">No teammates added yet.</p>
 				{:else}
 					<div class="flex flex-col gap-2">
 						{#each collaborators as collab}
-							<div class="flex items-center justify-between rounded-xl border-2 border-white/30 p-3">
-								<p class="text-sm text-white/70 drop-shadow-md">{collab.display_name}</p>
+							<div class="flex items-center justify-between rounded-xl border-2 border-(--line)/30 p-3">
+								<p class="text-sm text-(--ink)/70 drop-shadow-(--shade)">{collab.display_name}</p>
 								<button
 									type="button"
 									onclick={() => removeCollaborator(collab.user_id)}
-									class="text-white/50 hover:text-white text-sm cursor-pointer transition-colors"
+									class="text-(--ink)/50 hover:text-(--ink) text-sm cursor-pointer transition-colors"
 								>
 									Remove
 								</button>
@@ -249,22 +248,22 @@
 				{/if}
 
 				{#if pendingTeammate}
-					<div class="rounded-xl border-2 border-white/30 p-3 flex flex-col gap-2">
+					<div class="rounded-xl border-2 border-(--line)/30 p-3 flex flex-col gap-2">
 						<div class="flex items-center justify-between">
-							<p class="text-sm text-white/70 drop-shadow-md">{pendingTeammate.email}</p>
+							<p class="text-sm text-(--ink)/70 drop-shadow-(--shade)">{pendingTeammate.email}</p>
 							<button
 								type="button"
 								onclick={() => { pendingTeammate = null; addError = ''; }}
-								class="text-white/50 hover:text-white text-sm cursor-pointer transition-colors"
+								class="text-(--ink)/50 hover:text-(--ink) text-sm cursor-pointer transition-colors"
 							>
 								Cancel
 							</button>
 						</div>
-						<p class="text-xs text-white/50 drop-shadow-md">Please fill in the missing info for this teammate:</p>
+						<p class="text-xs text-(--ink)/50 drop-shadow-(--shade)">Please fill in the missing info for this teammate:</p>
 						<div class="flex flex-col gap-2">
 							{#each pendingTeammate.missing_fields as field}
 								<div class="group flex flex-col gap-1">
-									<Label selectedColor={eventTheme.selected}>{fieldLabels[field] || field}</Label>
+									<Label>{fieldLabels[field] || field}</Label>
 									<Input
 										type={fieldTypes[field] || 'text'}
 										value={(pendingTeammate as any)[field] || ''}
@@ -277,8 +276,6 @@
 						</div>
 						<Button
 							onclick={savePendingTeammate}
-							color={eventTheme.primary}
-							selectedColor={eventTheme.selected}
 							disabled={saving}
 						>
 							{#if saving}
@@ -291,7 +288,7 @@
 				{/if}
 
 				<div class="flex flex-col gap-3">
-					<p class="text-lg text-white/80 drop-shadow-md">Add a teammate</p>
+					<p class="text-lg text-(--ink)/80 drop-shadow-(--shade)">Add a teammate</p>
 					<div class="flex gap-2">
 						<div class="flex-1">
 							<Input
@@ -305,7 +302,7 @@
 							type="button"
 							onclick={handleLookup}
 							disabled={lookingUp || !emailInput.trim()}
-							class="rounded-xl border-4 border-white px-4 py-2 text-white text-sm font-medium cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+							class="rounded-xl border-4 border-(--edge) px-4 py-2 text-(--on-accent) text-sm font-medium cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
 							style="background-color: {eventTheme.selected};"
 						>
 							{lookingUp ? 'Looking up...' : 'Add'}
@@ -314,17 +311,16 @@
 				</div>
 
 				{#if addError}
-					<p class="text-sm text-red-300 drop-shadow-md">{addError}</p>
+					<p class="text-sm text-(--danger) drop-shadow-(--shade)">{addError}</p>
 				{/if}
 				{#if error}
-					<p class="text-sm text-red-300 drop-shadow-md">{error}</p>
+					<p class="text-sm text-(--danger) drop-shadow-(--shade)">{error}</p>
 				{/if}
 
 				<button
 					type="button"
 					onclick={() => goto(`/${slug}/vote`)}
-					class="mt-2 text-md text-white/70 underline drop-shadow-md cursor-pointer transition-colors ease-in-out duration-125 hover:text-[var(--hover-color)]"
-					style="--hover-color: {eventTheme.selected};"
+					class="mt-2 text-md text-(--ink)/70 underline drop-shadow-(--shade) cursor-pointer transition-colors ease-in-out duration-125 hover:text-(--accent-ink)"
 				>
 					Back to voting
 				</button>

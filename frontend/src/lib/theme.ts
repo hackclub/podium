@@ -11,10 +11,103 @@ export type EventTheme = {
 	font: string;
 	primary: string;
 	selected: string;
+	skin: EventSkin;
 };
 
+/**
+ * Colors and fonts for the cards, text and controls drawn over an event's
+ * background. The event layout exposes each one as a CSS variable (`skin.ink`
+ * is `--ink`, `skin.headingFont` is `--heading-font`, ...) so pages can use
+ * them in class names, opacity modifiers included: `text-(--ink)/70`.
+ */
+export type EventSkin = {
+	/** Card fill */
+	surface: string;
+	/** Fill of cards inside a card: project tiles, leaderboard rows */
+	tile: string;
+	/** Text on cards */
+	ink: string;
+	/** Card border */
+	edge: string;
+	/** Borders of fields, tiles and dividers */
+	line: string;
+	/** Text in the accent color: focused labels, selected tiles, links */
+	accentInk: string;
+	/** Text on an accent fill: badges, the teammate Add button */
+	onAccent: string;
+	button: string;
+	buttonInk: string;
+	buttonHoverInk: string;
+	/** Input fill */
+	field: string;
+	headingFont: string;
+	/** Drop shadow behind text on cards */
+	shade: string;
+	danger: string;
+	success: string;
+	/** Leaderboard rank colors for 1st, 2nd and 3rd */
+	gold: string;
+	silver: string;
+	bronze: string;
+};
+
+/** The classic look: a card in the primary color with white text and borders. */
+function defaultSkin(font: string, primary: string, selected: string): EventSkin {
+	return {
+		surface: primary,
+		tile: primary,
+		ink: '#fff',
+		edge: '#fff',
+		line: '#fff',
+		accentInk: selected,
+		onAccent: '#fff',
+		button: '#fff',
+		buttonInk: primary,
+		buttonHoverInk: '#fff',
+		field: 'transparent',
+		headingFont: font,
+		shade: '0 3px 3px rgb(0 0 0 / 0.12)',
+		danger: '#fca5a5',
+		success: '#86efac',
+		gold: '#facc15',
+		silver: '#d1d5db',
+		bronze: '#d97706'
+	};
+}
+
+const skins: Record<string, (font: string, primary: string, selected: string) => Partial<EventSkin>> = {
+	// Matches haven.hackclub.com: white panels with orange text, cream fields
+	// and orange pill buttons.
+	haven: (font, primary) => ({
+		surface: '#fff',
+		tile: '#fff6e3',
+		ink: primary,
+		line: '#f7c9a1',
+		accentInk: primary,
+		onAccent: primary,
+		button: primary,
+		buttonInk: '#fff',
+		buttonHoverInk: primary,
+		field: 'rgb(255 246 227 / 0.9)',
+		headingFont: `"Darumadrop One", ${font}`,
+		shade: '0 0 #0000',
+		danger: '#c62828',
+		success: '#4d7c0f',
+		gold: '#fba71f',
+		silver: '#a8a29e',
+		bronze: '#b8774a'
+	})
+};
+
+/** The skin as CSS custom properties, for a `style` attribute. */
+export function skinStyle(skin: EventSkin): string {
+	return Object.entries(skin)
+		.map(([key, value]) => `--${key.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase())}: ${value};`)
+		.join(' ');
+}
+
 // Default themes used as fallbacks
-export const defaultThemes: Record<string, Omit<EventTheme, 'logo'>> = {
+export const defaultThemes: Record<string, Omit<EventTheme, 'logo' | 'skin'>> = {
 	campfire: {
 		background: 'https://cdn.hackclub.com/019c4e31-db5f-7af0-848d-fc4cc15a9c33/image.png',
 		font: '"Ember& Fire", sans-serif',
@@ -57,11 +150,18 @@ export function getLogo(themeName: string): import('svelte').Component<any> {
 
 export function eventToTheme(event: ApiEvent): EventTheme {
 	const defaults = defaultThemes[event.theme_name] || defaultThemes.campfire;
+	const font = event.theme_font || defaults.font;
+	const primary = event.theme_primary || defaults.primary;
+	const selected = event.theme_selected || defaults.selected;
 	return {
 		logo: getLogo(event.theme_name),
 		background: event.theme_background || defaults.background,
-		font: event.theme_font || defaults.font,
-		primary: event.theme_primary || defaults.primary,
-		selected: event.theme_selected || defaults.selected
+		font,
+		primary,
+		selected,
+		skin: {
+			...defaultSkin(font, primary, selected),
+			...skins[event.theme_name]?.(font, primary, selected)
+		}
 	};
 }

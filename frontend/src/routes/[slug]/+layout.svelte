@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { eventToTheme, type EventTheme } from '$lib/theme';
+	import { eventToTheme, skinStyle, type EventTheme } from '$lib/theme';
 	import { getEventBySlug, getEvent, type ApiEvent } from '$lib/api';
 	import { PUBLIC_API_URL } from '$env/static/public';
 	import { fade } from 'svelte/transition';
@@ -129,7 +129,7 @@
 	{:else if eventTheme && eventData}
 		<div
 			class="flex min-h-screen flex-col bg-cover bg-center"
-			style="background-image: url({eventTheme.background});"
+			style="background-image: url({eventTheme.background}); --accent: {eventTheme.selected}; {skinStyle(eventTheme.skin)}"
 			in:fade={{ duration: 200 }}
 		>
 			<header class="flex flex-col items-center gap-6 px-20 pt-6">
@@ -141,16 +141,13 @@
 			{#if !eventData.enabled}
 				<main class="flex flex-1 items-center justify-center px-4">
 					<div
-						class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-white px-6 py-10 drop-shadow-md text-center"
+						class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-(--edge) px-6 py-10 drop-shadow-md text-center"
 						style="font-family: {eventTheme.font};"
 					>
-						<div
-							class="absolute inset-0"
-							style="background-color: {eventTheme.primary};"
-						></div>
+						<div class="absolute inset-0 bg-(--surface)"></div>
 						<div class="relative flex flex-col items-center gap-3">
-							<p class="text-3xl text-white drop-shadow-md">This event is not available yet</p>
-							<p class="text-lg text-white/70 drop-shadow-md">Check back later!</p>
+							<p class="font-(family-name:--heading-font) text-3xl text-(--ink) drop-shadow-(--shade)">This event is not available yet</p>
+							<p class="text-lg text-(--ink)/70 drop-shadow-(--shade)">Check back later!</p>
 						</div>
 					</div>
 				</main>

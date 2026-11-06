@@ -66,19 +66,17 @@
 		<p class="text-white/60">Loading...</p>
 	{:else if eventTheme && project}
 		<div
-			class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-white px-6 py-6 drop-shadow-md"
+			class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-(--edge) px-6 py-6 drop-shadow-md"
 			style="font-family: {eventTheme.font};"
 		>
 			<div
-				class="absolute inset-0"
-				style="background-color: {eventTheme.primary};"
+				class="absolute inset-0 bg-(--surface)"
 			></div>
 
 			<div class="relative flex flex-col gap-2">
 				<button
 					type="button"
-					class="mt-1 mb-2 w-fit text-md text-white/70 underline drop-shadow-md cursor-pointer transition-colors ease-in-out duration-125 hover:text-[var(--hover-color)]"
-					style="--hover-color: {eventTheme.selected};"
+					class="mt-1 mb-2 w-fit text-md text-(--ink)/70 underline drop-shadow-(--shade) cursor-pointer transition-colors ease-in-out duration-125 hover:text-(--accent-ink)"
 					onclick={() => goto(`/${slug}/vote`)}
 				>
 					back
@@ -94,66 +92,64 @@
 					{/if}
 				</div>
 
-				<div class="flex flex-col text-white drop-shadow-md">
-					<p class="text-4xl">{project.name}</p>
-					<p class="text-xl text-white/80">{project.description}</p>
+				<div class="flex flex-col text-(--ink) drop-shadow-(--shade)">
+					<p class="font-(family-name:--heading-font) text-4xl wrap-anywhere">{project.name}</p>
+					<p class="text-xl text-(--ink)/80 wrap-anywhere">{project.description}</p>
 				</div>
 
-				<div class="flex flex-col gap-1 drop-shadow-md">
+				<div class="flex flex-col gap-1 drop-shadow-(--shade)">
 					{#if project.owner_name}
-						<p class="text-sm text-white/50">
-							<span class="text-white/30">Submitted by</span>
-							<span class="text-white/70">{project.owner_name}</span>
+						<p class="text-sm text-(--ink)/50">
+							<span class="text-(--ink)/30">Submitted by</span>
+							<span class="text-(--ink)/70">{project.owner_name}</span>
 						</p>
 					{/if}
 
 					{#if project.collaborators?.length > 0}
-						<p class="text-sm text-white/50">
-							<span class="text-white/30">Teammates:</span>
+						<p class="text-sm text-(--ink)/50">
+							<span class="text-(--ink)/30">Teammates:</span>
 							{#each project.collaborators as collab, ci}
-								<span class="text-white/70">{collab.display_name}</span>{#if ci < project.collaborators.length - 1}<span class="text-white/30">,</span>{/if}
+								<span class="text-(--ink)/70">{collab.display_name}</span>{#if ci < project.collaborators.length - 1}<span class="text-(--ink)/30">, </span>{/if}
 							{/each}
 						</p>
 					{/if}
 				</div>
 
 				{#if voteStatus === 'voted'}
-					<p class="text-lg text-green-300 drop-shadow-md">Vote submitted!</p>
+					<p class="text-lg text-(--success) drop-shadow-(--shade)">Vote submitted!</p>
 				{/if}
 				{#if voteStatus === 'error'}
-					<p class="text-sm text-red-300 drop-shadow-md">{voteError}</p>
+					<p class="text-sm text-(--danger) drop-shadow-(--shade)">{voteError}</p>
 				{/if}
 
 				<div class="flex gap-2.5 flex-col md:flex-row">
 					{#if project.demo}
 						<a href={project.demo} target="_blank" rel="noopener noreferrer" class="flex-1">
-							<Button color={eventTheme.primary} selectedColor={eventTheme.selected} class="w-full">Demo</Button>
+							<Button class="w-full">Demo</Button>
 						</a>
 					{/if}
 					{#if project.repo}
 						<a href={project.repo} target="_blank" rel="noopener noreferrer" class="flex-1">
-							<Button color={eventTheme.primary} selectedColor={eventTheme.selected} class="w-full">Repository</Button>
+							<Button class="w-full">Repository</Button>
 						</a>
 					{/if}
 					{#if isFlagship}
 						<!-- No voting for flagship events -->
 					{:else if eventData !== null && eventData.voting_closed}
 						<div class="flex-1">
-							<Button color={eventTheme.primary} selectedColor={eventTheme.selected} class="w-full" disabled>
+							<Button class="w-full" disabled>
 								Voting is closed
 							</Button>
 						</div>
 					{:else if eventData !== null && !eventData.votable}
 						<div class="flex-1">
-							<Button color={eventTheme.primary} selectedColor={eventTheme.selected} class="w-full" disabled>
+							<Button class="w-full" disabled>
 								Voting not open
 							</Button>
 						</div>
 					{:else}
 						<div class="flex-1">
 							<Button
-								color={eventTheme.primary}
-								selectedColor={eventTheme.selected}
 								class="w-full"
 								onclick={handleVote}
 								disabled={voteStatus === 'voting' || voteStatus === 'voted' || !isLoggedIn() || eventData === null}

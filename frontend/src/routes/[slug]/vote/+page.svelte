@@ -114,68 +114,67 @@
 	{/if}
 	{#if showLeaderboard && (!isFlagship || isSuperadmin)}
 			<div
-				class="relative w-full max-w-2xl overflow-hidden rounded-2xl border-4 border-white px-6 py-6 drop-shadow-md"
+				class="relative w-full max-w-2xl overflow-hidden rounded-2xl border-4 border-(--edge) px-6 py-6 drop-shadow-md"
 				style="font-family: {eventTheme.font};"
 			>
 				<div
-					class="absolute inset-0"
-					style="background-color: {eventTheme.primary};"
+					class="absolute inset-0 bg-(--surface)"
 				></div>
 				<div class="relative flex flex-col gap-4">
-					<p class="text-2xl text-white drop-shadow-md text-center">Leaderboard</p>
+					<p class="font-(family-name:--heading-font) text-2xl text-(--ink) drop-shadow-(--shade) text-center">Leaderboard</p>
 
 					{#if loading}
-						<p class="text-white/60 text-center py-8">Loading results...</p>
+						<p class="text-(--ink)/60 text-center py-8">Loading results...</p>
 					{:else if projects.length === 0}
-						<p class="text-white/60 text-center py-8">No projects yet</p>
+						<p class="text-(--ink)/60 text-center py-8">No projects yet</p>
 					{:else}
 						<div class="flex flex-col gap-2">
 							{#each projects as project, i}
 								{@const isExpanded = expandedId === project.id}
-								<div class="rounded-xl border-2 overflow-hidden transition-all" style="background-color: {eventTheme.primary}; border-color: {hoveredId === project.id || isExpanded ? eventTheme.selected : 'rgba(255,255,255,0.2)'};">
+								<div class="rounded-xl border-2 overflow-hidden transition-all" style="background-color: var(--tile); border-color: {hoveredId === project.id || isExpanded ? 'var(--accent)' : 'color-mix(in srgb, var(--line) 20%, transparent)'};">
 									<button
 										type="button"
-										class="flex items-center justify-between w-full p-3 text-left transition-all hover:scale-[1.005] cursor-pointer"
+										class="flex items-center justify-between gap-3 w-full p-3 text-left transition-all hover:scale-[1.005] cursor-pointer"
 										onmouseenter={() => (hoveredId = project.id)}
 										onmouseleave={() => (hoveredId = null)}
 										onclick={() => expandedId = isExpanded ? null : project.id}
 									>
-										<div class="flex items-center gap-3">
-											<span class="text-2xl font-bold w-10 text-right drop-shadow-md {i === 0 ? 'text-yellow-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-amber-600' : 'text-white/30'}">
+										<div class="flex min-w-0 items-center gap-2 sm:gap-3">
+											<span class="shrink-0 text-xl sm:text-2xl font-bold w-8 sm:w-10 text-right drop-shadow-(--shade) {i === 0 ? 'text-(--gold)' : i === 1 ? 'text-(--silver)' : i === 2 ? 'text-(--bronze)' : 'text-(--ink)/30'}">
 												#{i + 1}
 											</span>
 											{#if project.image_url}
-												<img src={project.image_url} alt="" class="w-12 h-12 rounded object-cover" />
+												<img src={project.image_url} alt="" class="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded object-cover" />
 											{:else}
-												<div class="w-12 h-12 rounded bg-white/10"></div>
+												<div class="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded bg-(--ink)/10"></div>
 											{/if}
-											<div class="text-left">
-												<p class="text-white font-medium drop-shadow-md">{project.name}</p>
-												<p class="text-white/50 text-xs truncate max-w-xs drop-shadow-md">{project.description}</p>
+											<div class="min-w-0 text-left">
+												<p class="text-(--ink) font-medium wrap-anywhere drop-shadow-(--shade)">{project.name}</p>
+												<p class="text-(--ink)/50 text-xs truncate drop-shadow-(--shade)">{project.description}</p>
 											</div>
 										</div>
-										<div class="flex items-center gap-3">
+										<div class="flex shrink-0 items-center gap-2 sm:gap-3">
 											<div class="flex items-center gap-1.5">
-												<span class="text-2xl font-bold text-white drop-shadow-md">{project.points}</span>
-												<span class="text-white/40 text-sm drop-shadow-md">{isFlagship ? 'pts' : 'votes'}</span>
+												<span class="text-2xl font-bold text-(--ink) drop-shadow-(--shade)">{project.points}</span>
+												<span class="hidden sm:inline text-(--ink)/40 text-sm drop-shadow-(--shade)">{isFlagship ? 'pts' : 'votes'}</span>
 											</div>
-											<span class="text-white/30 text-sm transition-transform drop-shadow-md {isExpanded ? 'rotate-180' : ''}">▼</span>
+											<span class="text-(--ink)/30 text-sm transition-transform drop-shadow-(--shade) {isExpanded ? 'rotate-180' : ''}">▼</span>
 										</div>
 									</button>
 
 									{#if isExpanded}
-										<div class="px-4 pb-4 pt-0 ml-13 border-t border-white/10 mt-0 pt-3 flex flex-col gap-2">
-											<p class="text-white/70 text-sm drop-shadow-md">{project.description}</p>
+										<div class="px-4 pb-4 pt-0 ml-13 border-t border-(--line)/10 mt-0 pt-3 flex flex-col gap-2">
+											<p class="text-(--ink)/70 text-sm drop-shadow-(--shade)">{project.description}</p>
 
 											{#if project.repo || project.demo}
 												<div class="flex gap-3 flex-wrap">
 													{#if project.demo}
-														<a href={project.demo} target="_blank" rel="noopener" class="text-sm font-medium drop-shadow-md hover:opacity-80 transition-opacity" style="color: {eventTheme.selected};">
+														<a href={project.demo} target="_blank" rel="noopener" class="text-sm font-medium drop-shadow-(--shade) text-(--accent-ink) hover:opacity-80 transition-opacity">
 															Demo ↗
 														</a>
 													{/if}
 													{#if project.repo}
-														<a href={project.repo} target="_blank" rel="noopener" class="text-sm font-medium drop-shadow-md hover:opacity-80 transition-opacity" style="color: {eventTheme.selected};">
+														<a href={project.repo} target="_blank" rel="noopener" class="text-sm font-medium drop-shadow-(--shade) text-(--accent-ink) hover:opacity-80 transition-opacity">
 															Repo ↗
 														</a>
 													{/if}
@@ -183,17 +182,17 @@
 											{/if}
 
 											{#if project.owner_name}
-												<div class="text-sm text-white/50 drop-shadow-md">
-													<span class="text-white/30">Submitted by</span>
-													<span class="text-white/70">{project.owner_name}</span>
+												<div class="text-sm text-(--ink)/50 drop-shadow-(--shade)">
+													<span class="text-(--ink)/30">Submitted by</span>
+													<span class="text-(--ink)/70">{project.owner_name}</span>
 												</div>
 											{/if}
 
 											{#if project.collaborators?.length > 0}
-												<div class="text-sm text-white/50 drop-shadow-md">
-													<span class="text-white/30">Teammates:</span>
+												<div class="text-sm text-(--ink)/50 drop-shadow-(--shade)">
+													<span class="text-(--ink)/30">Teammates:</span>
 													{#each project.collaborators as collab, ci}
-														<span class="text-white/70">{collab.display_name}</span>{#if ci < project.collaborators.length - 1}<span class="text-white/30">,</span>{/if}
+														<span class="text-(--ink)/70">{collab.display_name}</span>{#if ci < project.collaborators.length - 1}<span class="text-(--ink)/30">, </span>{/if}
 													{/each}
 												</div>
 											{/if}
@@ -207,68 +206,64 @@
 			</div>
 		{:else if isFlagship}
 			<div
-				class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-white px-6 py-10 drop-shadow-md text-center"
+				class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-(--edge) px-6 py-10 drop-shadow-md text-center"
 				style="font-family: {eventTheme.font};"
 			>
 				<div
-					class="absolute inset-0"
-					style="background-color: {eventTheme.primary};"
+					class="absolute inset-0 bg-(--surface)"
 				></div>
 				<div class="relative flex flex-col items-center gap-3">
-					<p class="text-3xl text-white drop-shadow-md">Thanks for submitting your project!</p>
-					<p class="text-lg text-white/70 drop-shadow-md">Results will be announced soon.</p>
+					<p class="font-(family-name:--heading-font) text-3xl text-(--ink) drop-shadow-(--shade)">Thanks for submitting your project!</p>
+					<p class="text-lg text-(--ink)/70 drop-shadow-(--shade)">Results will be announced soon.</p>
 				</div>
 			</div>
 		{:else if eventData && eventData.voting_closed}
 			<div
-				class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-white px-6 py-10 drop-shadow-md text-center"
+				class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-(--edge) px-6 py-10 drop-shadow-md text-center"
 				style="font-family: {eventTheme.font};"
 			>
 				<div
-					class="absolute inset-0"
-					style="background-color: {eventTheme.primary};"
+					class="absolute inset-0 bg-(--surface)"
 				></div>
 				<div class="relative flex flex-col items-center gap-3">
-					<p class="text-3xl text-white drop-shadow-md">Voting is closed</p>
-					<p class="text-lg text-white/70 drop-shadow-md">Results will be shown soon.</p>
+					<p class="font-(family-name:--heading-font) text-3xl text-(--ink) drop-shadow-(--shade)">Voting is closed</p>
+					<p class="text-lg text-(--ink)/70 drop-shadow-(--shade)">Results will be shown soon.</p>
 				</div>
 			</div>
 		{:else if eventData && !eventData.votable}
 			<div
-				class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-white px-6 py-10 drop-shadow-md text-center"
+				class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-(--edge) px-6 py-10 drop-shadow-md text-center"
 				style="font-family: {eventTheme.font};"
 			>
 				<div
-					class="absolute inset-0"
-					style="background-color: {eventTheme.primary};"
+					class="absolute inset-0 bg-(--surface)"
 				></div>
 				<div class="relative flex flex-col items-center gap-3">
-					<p class="text-3xl text-white drop-shadow-md">Thanks for submitting your project!</p>
-					<p class="text-lg text-white/70 drop-shadow-md">Voting will open soon.</p>
+					<p class="font-(family-name:--heading-font) text-3xl text-(--ink) drop-shadow-(--shade)">Thanks for submitting your project!</p>
+					<p class="text-lg text-(--ink)/70 drop-shadow-(--shade)">Voting will open soon.</p>
 				</div>
 			</div>
 		{:else}
 			<div
-				class="relative overflow-hidden rounded-2xl border-4 border-white px-6 py-6 drop-shadow-md"
+				class="relative overflow-hidden rounded-2xl border-4 border-(--edge) px-6 py-6 drop-shadow-md"
 				style="font-family: {eventTheme.font};"
 			>
 				<div
-					class="absolute inset-0"
-					style="background-color: {eventTheme.primary};"
+					class="absolute inset-0 bg-(--surface)"
 				></div>
 
 				<div class="relative flex flex-col gap-4">
 					<div class="flex flex-col gap-1">
-						<p class="text-2xl text-white drop-shadow-md">Vote for your favorites</p>
+						<p class="font-(family-name:--heading-font) text-2xl text-(--ink) drop-shadow-(--shade)">Vote for your favorites</p>
 						{#if !loading}
 							<div class="flex items-center gap-2">
 								{#each Array(maxVotes) as _, i}
 									<div
 										class="w-3 h-3 rounded-full transition-colors duration-200"
-										style="background-color: {i < votedIds.size + selectedIds.size ? eventTheme.selected : 'rgba(255,255,255,0.3)'};"
+										style="background-color: {i < votedIds.size + selectedIds.size ? 'var(--accent)' : 'color-mix(in srgb, var(--ink) 30%, transparent)'};"
 									></div>
 								{/each}
-								<p class="text-sm text-white/70 drop-shadow-md ml-1">
+								<p class="text-sm text-(--ink)/70 drop-shadow-(--shade) ml-1">
 									{#if remainingVotes <= 0}
 										All votes used!
 									{:else}
@@ -280,9 +275,9 @@
 					</div>
 
 					{#if loading}
-						<p class="text-white/60 text-center py-8">Loading projects...</p>
+						<p class="text-(--ink)/60 text-center py-8">Loading projects...</p>
 					{:else if projects.length === 0}
-						<p class="text-white/60 text-center py-8">No projects yet</p>
+						<p class="text-(--ink)/60 text-center py-8">No projects yet</p>
 					{:else}
 						<div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
 							{#each projects as project}
@@ -294,7 +289,7 @@
 									role="button"
 									tabindex="0"
 									class="relative flex w-[280px] cursor-pointer flex-col gap-2.5 overflow-hidden rounded-xl border-4 p-3 text-left shadow-md transition-all hover:scale-[1.02]"
-									style="background-color: {eventTheme.primary}; border-color: {isActive ? eventTheme.selected : hoveredId === project.id ? eventTheme.selected : 'white'}; color: {isActive || hoveredId === project.id ? eventTheme.selected : 'white'}; opacity: {!isVoted && !isSelected && !canSelectMore ? '0.5' : '1'};"
+									style="background-color: var(--tile); border-color: {isActive || hoveredId === project.id ? 'var(--accent)' : 'var(--line)'}; color: {isActive || hoveredId === project.id ? 'var(--accent-ink)' : 'var(--ink)'}; opacity: {!isVoted && !isSelected && !canSelectMore ? '0.5' : '1'};"
 									onmouseenter={() => (hoveredId = project.id)}
 									onmouseleave={() => (hoveredId = null)}
 									onclick={() => toggleProject(project.id)}
@@ -302,14 +297,14 @@
 								>
 									{#if isVoted}
 										<div
-											class="absolute top-2 right-2 z-10 flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold text-white drop-shadow-md"
+											class="absolute top-2 right-2 z-10 flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold text-(--on-accent) drop-shadow-(--shade)"
 											style="background-color: {eventTheme.selected};"
 										>
 											Voted
 										</div>
 									{:else if isSelected}
 										<div
-											class="absolute top-2 right-2 z-10 flex h-6 w-6 items-center justify-center rounded-full text-white drop-shadow-md"
+											class="absolute top-2 right-2 z-10 flex h-6 w-6 items-center justify-center rounded-full text-(--on-accent) drop-shadow-(--shade)"
 											style="background-color: {eventTheme.selected};"
 										>
 											&#10003;
@@ -326,9 +321,9 @@
 										{/if}
 									</div>
 
-									<div class="flex flex-col gap-0.5 drop-shadow-md">
-										<p class="text-2xl">{project.name}</p>
-										<p class="text-sm opacity-80">{project.description}</p>
+									<div class="flex flex-col gap-0.5 drop-shadow-(--shade)">
+										<p class="font-(family-name:--heading-font) text-2xl wrap-anywhere">{project.name}</p>
+										<p class="text-sm opacity-80 wrap-anywhere">{project.description}</p>
 									</div>
 
 									<div class="flex w-full items-center justify-between">
@@ -343,7 +338,7 @@
 										</span>
 										<a
 											href="/{slug}/vote/{project.id}"
-											class="rounded-lg border-2 border-white/40 px-3 py-1.5 text-sm font-medium text-white hover:border-white hover:bg-white/10 transition-all"
+											class="rounded-lg border-2 border-(--line)/40 px-3 py-1.5 text-sm font-medium text-(--ink) hover:border-(--ink) hover:bg-(--ink)/10 transition-all"
 											onclick={(e) => e.stopPropagation()}
 										>
 											View details
@@ -354,14 +349,12 @@
 						</div>
 
 						{#if submitError}
-							<p class="text-sm text-red-300 drop-shadow-md text-center">{submitError}</p>
+							<p class="text-sm text-(--danger) drop-shadow-(--shade) text-center">{submitError}</p>
 						{/if}
 
 						{#if remainingVotes > 0}
 							<div class="sticky bottom-4 mt-2">
 								<Button
-									color={eventTheme.primary}
-									selectedColor={eventTheme.selected}
 									class="w-full"
 									onclick={handleSubmit}
 									disabled={selectedIds.size === 0 || submitting || !isLoggedIn()}

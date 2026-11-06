@@ -120,31 +120,31 @@
 </script>
 
 <div class="flex flex-col gap-3">
-	<p class="text-lg text-white/80 drop-shadow-md">Teammates (your must add all teammates)</p>
+	<p class="text-lg text-(--ink)/80 drop-shadow-(--shade)">Teammates (you must add all teammates)</p>
 
 	{#each entries as entry, i}
-		<div class="rounded-xl border-2 border-white/30 p-3 flex flex-col gap-2">
+		<div class="rounded-xl border-2 border-(--line)/30 p-3 flex flex-col gap-2">
 			<div class="flex items-center justify-between">
-				<p class="text-sm text-white/70 drop-shadow-md">{entry.email}</p>
+				<p class="text-sm text-(--ink)/70 drop-shadow-(--shade)">{entry.email}</p>
 				<button
 					type="button"
 					onclick={() => removeTeammate(i)}
-					class="text-white/50 hover:text-white text-sm cursor-pointer transition-colors"
+					class="text-(--ink)/50 hover:text-(--ink) text-sm cursor-pointer transition-colors"
 				>
 					Remove
 				</button>
 			</div>
 
 			{#if entry.error}
-				<p class="text-sm text-red-300 drop-shadow-md">{entry.error}</p>
+				<p class="text-sm text-(--danger) drop-shadow-(--shade)">{entry.error}</p>
 			{:else if entry.missing_fields.length === 0}
-				<p class="text-sm text-green-300 drop-shadow-md">Profile complete</p>
+				<p class="text-sm text-(--success) drop-shadow-(--shade)">Profile complete</p>
 			{:else}
-				<p class="text-xs text-white/50 drop-shadow-md">Please fill in the missing info for this teammate:</p>
+				<p class="text-xs text-(--ink)/50 drop-shadow-(--shade)">Please fill in the missing info for this teammate:</p>
 				<div class="flex flex-col gap-2">
 					{#each entry.missing_fields as field}
 						<div class="group flex flex-col gap-1">
-							<Label selectedColor={eventTheme.selected}>{fieldLabels[field] || field}</Label>
+							<Label>{fieldLabels[field] || field}</Label>
 							<Input
 								type={fieldTypes[field] || 'text'}
 								value={(entry as any)[field] || ''}
@@ -172,7 +172,7 @@
 			type="button"
 			onclick={addTeammate}
 			disabled={lookingUp || !emailInput.trim()}
-			class="rounded-xl border-4 border-white px-4 py-2 text-white text-sm font-medium cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+			class="rounded-xl border-4 border-(--edge) px-4 py-2 text-(--on-accent) text-sm font-medium cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
 			style="background-color: {eventTheme.selected};"
 		>
 			{lookingUp ? 'Looking up...' : 'Add'}

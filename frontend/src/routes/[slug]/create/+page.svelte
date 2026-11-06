@@ -105,25 +105,23 @@
 
 {#if eventTheme}
 <ProfileGate {eventTheme}>
-<main class="fixed inset-0 overflow-y-auto px-4">
-<div class="flex min-h-full items-center justify-center py-12 pt-20">
+<main class="flex flex-1 flex-col px-4">
+<div class="flex flex-1 items-center justify-center py-12">
 	{#if eventData?.votable}
 		<div
-			class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-white px-6 py-10 drop-shadow-md text-center"
+			class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-(--edge) px-6 py-10 drop-shadow-md text-center"
 			style="font-family: {eventTheme.font};"
 		>
 			<div
-				class="absolute inset-0"
-				style="background-color: {eventTheme.primary};"
+				class="absolute inset-0 bg-(--surface)"
 			></div>
 			<div class="relative flex flex-col items-center gap-3">
-				<p class="text-3xl text-white drop-shadow-md">Submissions are closed</p>
-				<p class="text-lg text-white/70 drop-shadow-md">Voting has already started.</p>
+				<p class="font-(family-name:--heading-font) text-3xl text-(--ink) drop-shadow-(--shade)">Submissions are closed</p>
+				<p class="text-lg text-(--ink)/70 drop-shadow-(--shade)">Voting has already started.</p>
 				<button
 					type="button"
 					onclick={() => goto(`/${slug}/vote`)}
-					class="mt-2 text-md text-white/70 underline drop-shadow-md cursor-pointer transition-colors ease-in-out duration-125 hover:text-[var(--hover-color)]"
-					style="--hover-color: {eventTheme.selected};"
+					class="mt-2 text-md text-(--ink)/70 underline drop-shadow-(--shade) cursor-pointer transition-colors ease-in-out duration-125 hover:text-(--accent-ink)"
 				>
 					Go to voting
 				</button>
@@ -131,56 +129,55 @@
 		</div>
 	{:else}
 		<div
-			class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-white px-6 py-6 drop-shadow-md"
+			class="relative w-full max-w-lg overflow-hidden rounded-2xl border-4 border-(--edge) px-6 py-6 drop-shadow-md"
 			style="font-family: {eventTheme.font};"
 		>
 			<div
-				class="absolute inset-0 rounded-lg"
-				style="background-color: {eventTheme.primary};"
+				class="absolute inset-0 rounded-lg bg-(--surface)"
 			></div>
 
 			<div class="relative flex flex-col gap-4">
-				<p class="text-2xl text-white drop-shadow-md">Additional Information about your game</p>
+				<p class="font-(family-name:--heading-font) text-2xl text-(--ink) drop-shadow-(--shade)">Additional Information about your game</p>
 
-				<div class="rounded-lg border border-white/20 bg-white/10 px-4 py-3 text-sm text-white/80 drop-shadow-md">
-					<p><strong class="text-white">Only one person per team should submit.</strong> Make sure to add all your teammates below.</p>
+				<div class="rounded-lg border border-(--line)/20 bg-(--ink)/10 px-4 py-3 text-sm text-(--ink)/80 drop-shadow-(--shade)">
+					<p><strong class="text-(--ink)">Only one person per team should submit.</strong> Make sure to add all your teammates below.</p>
 				</div>
 
 				<div class="group flex flex-col gap-1">
-					<Label selectedColor={eventTheme.selected}>What are you calling your game? *</Label>
-					<p class="text-xs text-white/60 drop-shadow-md">Pick a short, memorable name!</p>
+					<Label>What are you calling your game? *</Label>
+					<p class="text-xs text-(--ink)/60 drop-shadow-(--shade)">Pick a short, memorable name!</p>
 					<Input bind:value={projectName} placeholder="Podium Pro Max Ultra" selectedColor={eventTheme.selected} />
 				</div>
 
 				<div class="group flex flex-col gap-1">
-					<Label selectedColor={eventTheme.selected}>Code URL / GitHub URL *</Label>
-					<p class="text-xs text-white/60 drop-shadow-md">This must be a GitHub link!</p>
+					<Label>Code URL / GitHub URL *</Label>
+					<p class="text-xs text-(--ink)/60 drop-shadow-(--shade)">This must be a GitHub link!</p>
 					<Input bind:value={repoLink} placeholder="https://github.com/user/repo" selectedColor={eventTheme.selected} />
 					{#if repoLink.trim() !== '' && !isValidGitHubUrl}
-						<p class="text-xs text-red-300 drop-shadow-md">Please enter a valid GitHub URL (e.g. https://github.com/user/repo)</p>
+						<p class="text-xs text-(--danger) drop-shadow-(--shade)">Please enter a valid GitHub URL (e.g. https://github.com/user/repo)</p>
 					{/if}
 				</div>
 
 				<div class="group flex flex-col gap-1">
-					<Label selectedColor={eventTheme.selected}>Playable Link *</Label>
-					<p class="text-xs text-white/60 drop-shadow-md">This must be a link that anyone can click on to play your game!</p>
+					<Label>Playable Link *</Label>
+					<p class="text-xs text-(--ink)/60 drop-shadow-(--shade)">This must be a link that anyone can click on to play your game!</p>
 					<Input bind:value={playableLink} placeholder="https://example.com/play" selectedColor={eventTheme.selected} />
 				</div>
 
 				<div class="group flex flex-col gap-1">
-					<Label selectedColor={eventTheme.selected}>Please give us a short, easy to understand description of your game *</Label>
+					<Label>Please give us a short, easy to understand description of your game *</Label>
 					<Textarea bind:value={description} rows={4} placeholder="Describe your game..." selectedColor={eventTheme.selected} />
 				</div>
 
 				<div class="group flex flex-col gap-1">
-					<Label selectedColor={eventTheme.selected}>Upload a thumbnail for your project: *</Label>
-					<p class="text-xs text-white/60 drop-shadow-md">Upload an image or a GIF that will show up on the project gallery!</p>
+					<Label>Upload a thumbnail for your project: *</Label>
+					<p class="text-xs text-(--ink)/60 drop-shadow-(--shade)">Upload an image or a GIF that will show up on the project gallery!</p>
 					<FileDropZone onfile={(f: File) => (screenshot = f)} />
 				</div>
 
 				<div class="group flex flex-col gap-1">
-					<Label selectedColor={eventTheme.selected}>How many hours did you (the submitter) spend on this project? *</Label>
-					<p class="text-xs text-white/60 drop-shadow-md">This question won't be used to determine the prizes you win! Please provide an honest, lower bound estimate.</p>
+					<Label>How many hours did you (the submitter) spend on this project? *</Label>
+					<p class="text-xs text-(--ink)/60 drop-shadow-(--shade)">This question won't be used to determine the prizes you win! Please provide an honest, lower bound estimate.</p>
 					<Input type="number" bind:value={hoursSpent} placeholder="10" selectedColor={eventTheme.selected} />
 				</div>
 
@@ -191,11 +188,11 @@
 				/>
 
 				{#if error}
-					<p class="text-sm text-red-300 drop-shadow-md">{error}</p>
+					<p class="text-sm text-(--danger) drop-shadow-(--shade)">{error}</p>
 				{/if}
 
 				<div class="mt-2 flex flex-row gap-4 items-center">
-					<Button onclick={handleSubmit} color={eventTheme.primary} selectedColor={eventTheme.selected} disabled={!canSubmit || submitting}>
+					<Button onclick={handleSubmit} disabled={!canSubmit || submitting}>
 						{#if submitting}
 							<p>Submitting...</p>
 						{:else if !canSubmit}

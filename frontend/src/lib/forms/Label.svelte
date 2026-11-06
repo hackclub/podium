@@ -1,12 +1,11 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 
-	let { children, selectedColor }: { children: Snippet; selectedColor?: string } = $props();
+	let { children }: { children: Snippet } = $props();
 </script>
 
 <label
-	class="text-sm text-white drop-shadow-md transition-colors group-focus-within:text-[var(--selected)]"
-	style="--selected: {selectedColor ?? 'white'};"
+	class="text-sm text-(--ink) drop-shadow-(--shade) transition-colors group-focus-within:text-(--accent-ink)"
 >
 	{@render children()}
 </label>

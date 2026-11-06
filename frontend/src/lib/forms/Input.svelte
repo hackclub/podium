@@ -14,7 +14,7 @@
 	bind:value
 	onfocus={() => (focused = true)}
 	onblur={() => (focused = false)}
-	class="flex-1 rounded-xl border-4 bg-transparent p-2 text-base text-white placeholder:text-white/40 drop-shadow-md outline-none transition-colors"
-	style="border-color: {focused && selectedColor ? selectedColor : 'white'};"
+	class="w-full min-w-0 flex-1 rounded-xl border-4 bg-(--field) p-2 text-base text-(--ink) placeholder:text-(--ink)/40 drop-shadow-(--shade) outline-none transition-colors"
+	style="border-color: {focused && selectedColor ? selectedColor : 'var(--line)'};"
 	{...rest}
 />
