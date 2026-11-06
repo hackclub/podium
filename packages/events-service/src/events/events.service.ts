@@ -504,6 +504,7 @@ export class EventsService {
   async adminUpdateEvent(
     eventId: string,
     data: Record<string, any>,
+    user: User,
   ) {
     const event = await this.dbRw.query.events.findFirst({
       where: eq(events.id, eventId),
@@ -523,6 +524,21 @@ export class EventsService {
     for (const [key, value] of Object.entries(data)) {
       if (allowedFields.includes(key) && value !== undefined) {
         updateData[key] = value;
+      }
+    }
+
+    // Haven sync imports the roster of the Haven event with the same slug, so
+    // only superadmins may change the haven flag or move a Haven event's slug.
+    if (!user.is_superadmin) {
+      const isHaven = getFeatureFlagsList(event).includes('haven');
+      if (
+        'feature_flags_csv' in updateData &&
+        getFeatureFlagsList({ feature_flags_csv: String(updateData.feature_flags_csv ?? '') }).includes('haven') !== isHaven
+      ) {
+        throw new ForbiddenException('Only superadmins can change the haven flag');
+      }
+      if (isHaven && 'slug' in updateData && updateData.slug !== event.slug) {
+        throw new ForbiddenException("Only superadmins can change a Haven event's slug");
       }
     }
 

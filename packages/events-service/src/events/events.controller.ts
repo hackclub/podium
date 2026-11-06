@@ -267,8 +267,9 @@ export class EventsController {
   async adminUpdateEvent(
     @Param('event_id') eventId: string,
     @Body() body: Record<string, any>,
+    @CurrentUser() user: User,
   ) {
-    return this.eventsService.adminUpdateEvent(eventId, body);
+    return this.eventsService.adminUpdateEvent(eventId, body, user);
   }
 
   @Delete('admin/:event_id')
