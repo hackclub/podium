@@ -8,9 +8,11 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { eq, inArray } from 'drizzle-orm';
+import type Redis from 'ioredis';
 import {
   DRIZZLE_RW,
   DRIZZLE_RO,
+  REDIS,
   type Database,
   type User,
   events,
@@ -81,8 +83,23 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 // Airtable allows 5 requests/second per base, shared with everything else
 // that talks to the Haven base, and answers a burst over it with 429s for the
-// next 30 seconds. Stay at 4/second.
+// next 30 seconds. Stay at 4/second across every events-service pod.
 const AIRTABLE_MIN_INTERVAL_MS = 250;
+
+/**
+ * Atomically book the next free request slot on a base and return how many ms
+ * the caller must wait for it. Uses Redis's clock so pods with skewed clocks
+ * still space their requests correctly.
+ */
+const RESERVE_SLOT_LUA = `
+local key = KEYS[1]
+local interval = tonumber(ARGV[1])
+local t = redis.call('TIME')
+local now = tonumber(t[1]) * 1000 + math.floor(tonumber(t[2]) / 1000)
+local slot = math.max(now, tonumber(redis.call('GET', key) or 0))
+redis.call('SET', key, slot + interval, 'PX', slot + interval - now + 1000)
+return slot - now
+`;
 
 // Formula length stays well under Airtable's limit at this many record IDs.
 const RECORD_ID_BATCH = 100;
@@ -116,12 +133,13 @@ export class HavenService {
   private readonly airtableBaseId: string;
   private readonly submissionsTableId: string;
 
-  /** Earliest time the next Airtable request may start (shared by all callers). */
+  /** Earliest time the next Airtable request may start, used only while Redis is unreachable. */
   private nextAirtableSlot = 0;
 
   constructor(
     @Inject(DRIZZLE_RW) private readonly dbRw: Database,
     @Inject(DRIZZLE_RO) private readonly dbRo: Database,
+    @Inject(REDIS) private readonly redis: Redis,
     private readonly config: ConfigService,
     private readonly eventsService: EventsService,
   ) {
@@ -157,13 +175,33 @@ export class HavenService {
 
   // ── Airtable client ────────────────────────────────────────────────
 
+  /**
+   * Book the next request slot on the Haven base and return the wait in ms.
+   * The slot lives in Redis so all pods share one budget; if Redis is down,
+   * fall back to a per-process slot rather than failing the sync.
+   */
+  private async reserveAirtableSlot(): Promise<number> {
+    try {
+      return (await this.redis.eval(
+        RESERVE_SLOT_LUA,
+        1,
+        `airtable:next-slot:${this.airtableBaseId}`,
+        AIRTABLE_MIN_INTERVAL_MS.toString(),
+      )) as number;
+    } catch (err) {
+      this.logger.warn(`Airtable slot reservation failed, using local slot: ${err}`);
+      // Reserve synchronously so concurrent callers queue up behind each other.
+      const now = Date.now();
+      const slot = Math.max(now, this.nextAirtableSlot);
+      this.nextAirtableSlot = slot + AIRTABLE_MIN_INTERVAL_MS;
+      return slot - now;
+    }
+  }
+
   private async airtableFetch(path: string, init: RequestInit = {}) {
-    // Reserve a slot synchronously so concurrent callers queue up behind each other.
-    const now = Date.now();
-    const slot = Math.max(now, this.nextAirtableSlot);
-    this.nextAirtableSlot = slot + AIRTABLE_MIN_INTERVAL_MS;
-    if (slot > now) {
-      await new Promise((resolve) => setTimeout(resolve, slot - now));
+    const wait = await this.reserveAirtableSlot();
+    if (wait > 0) {
+      await new Promise((resolve) => setTimeout(resolve, wait));
     }
 
     const res = await fetch(`https://api.airtable.com/v0/${this.airtableBaseId}${path}`, {
