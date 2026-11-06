@@ -5,8 +5,8 @@
 	import { get, type Writable } from 'svelte/store';
 	import type { EventTheme } from '$lib/theme';
 	import {
-		createProject, attendEvent, uploadScreenshot, getMyProjects,
-		type ApiEvent, type TeammateData
+		createProject, attendEvent, uploadScreenshot, getMyProjects, checkItchLink,
+		type ApiEvent, type TeammateData, type ItchCheck
 	} from '$lib/api';
 	import { isLoggedIn } from '$lib/auth';
 	import Input from '$lib/forms/Input.svelte';
@@ -49,8 +49,35 @@
 		/^https?:\/\/github\.com\/[a-zA-Z0-9\-_.]+\/[a-zA-Z0-9\-_.]+\/?$/.test(repoLink.trim())
 	);
 
+	const itchRequired = $derived(
+		(eventData as ApiEvent | null)?.feature_flags_csv?.split(',').map((f) => f.trim()).includes('itch-required') ?? false
+	);
+	const isValidItchUrl = $derived(
+		/^(https?:\/\/)?[a-zA-Z0-9\-_]+\.itch\.io\/[a-zA-Z0-9\-_]+/i.test(playableLink.trim())
+	);
+
+	// The server's answer for the link as it was when checked; stale once the link changes.
+	let itchCheck = $state<(ItchCheck & { url: string }) | null>(null);
+	let checkingItch = $state(false);
+	const currentItchCheck = $derived(itchCheck?.url === playableLink.trim() ? itchCheck : null);
+
+	async function checkItch() {
+		const url = playableLink.trim();
+		if (!itchRequired || !isValidItchUrl || !eventId || checkingItch) return;
+		checkingItch = true;
+		try {
+			itchCheck = { ...(await checkItchLink(eventId, url)), url };
+		} catch {
+			// The server checks again on submit, so a failed lookup here doesn't block anyone.
+			itchCheck = null;
+		} finally {
+			checkingItch = false;
+		}
+	}
+
 	const canSubmit = $derived(
 		projectName.trim() !== '' && playableLink.trim() !== '' && isValidGitHubUrl &&
+		(!itchRequired || (isValidItchUrl && currentItchCheck?.valid !== false)) &&
 		description.trim() !== '' && String(hoursSpent).trim() !== '' && parseInt(String(hoursSpent)) > 0 &&
 		screenshot !== null
 	);
@@ -158,11 +185,41 @@
 					{/if}
 				</div>
 
-				<div class="group flex flex-col gap-1">
-					<Label>Playable Link *</Label>
-					<p class="text-xs text-(--ink)/60 drop-shadow-(--shade)">This must be a link that anyone can click on to play your game!</p>
-					<Input bind:value={playableLink} placeholder="https://example.com/play" selectedColor={eventTheme.selected} />
-				</div>
+				{#if itchRequired}
+					<div class="group flex flex-col gap-1" onfocusout={checkItch}>
+						<Label>Itch.io Link *</Label>
+						<p class="text-xs text-(--ink)/60 drop-shadow-(--shade)">
+							The itch.io page for your game{(eventData as ApiEvent | null)?.itch_verification_disabled ? '' : ', playable in the browser'}!
+						</p>
+						<Input bind:value={playableLink} placeholder="https://username.itch.io/game" selectedColor={eventTheme.selected} />
+						{#if playableLink.trim() !== '' && !isValidItchUrl}
+							<p class="text-xs text-(--danger) drop-shadow-(--shade)">Please enter an itch.io game link (e.g. https://username.itch.io/game)</p>
+						{:else if checkingItch}
+							<p class="text-xs text-(--ink)/60 drop-shadow-(--shade)">Checking itch.io...</p>
+						{:else if currentItchCheck && !currentItchCheck.valid}
+							<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+								<p class="text-xs text-(--danger) drop-shadow-(--shade)">{currentItchCheck.message}</p>
+								<button
+									type="button"
+									onclick={checkItch}
+									class="text-xs text-(--ink) underline cursor-pointer hover:text-(--accent-ink)"
+								>
+									Check again
+								</button>
+							</div>
+						{:else if currentItchCheck?.message}
+							<p class="text-xs drop-shadow-(--shade) {currentItchCheck.playable ? 'text-(--success)' : 'text-(--ink)/60'}">
+								{currentItchCheck.playable ? '✓ ' : ''}{currentItchCheck.message}
+							</p>
+						{/if}
+					</div>
+				{:else}
+					<div class="group flex flex-col gap-1">
+						<Label>Playable Link *</Label>
+						<p class="text-xs text-(--ink)/60 drop-shadow-(--shade)">This must be a link that anyone can click on to play your game!</p>
+						<Input bind:value={playableLink} placeholder="https://example.com/play" selectedColor={eventTheme.selected} />
+					</div>
+				{/if}
 
 				<div class="group flex flex-col gap-1">
 					<Label>Please give us a short, easy to understand description of your game *</Label>

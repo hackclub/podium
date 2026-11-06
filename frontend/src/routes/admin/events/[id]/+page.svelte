@@ -360,8 +360,8 @@
 
 			<label class="flex items-center justify-between cursor-pointer">
 				<div>
-					<span class="text-sm text-white/80">Disable Itch.io Verifications</span>
-					<p class="text-xs text-white/40">Skip itch.io URL and playability checks for this event</p>
+					<span class="text-sm text-white/80">Skip Browser-Playability Check</span>
+					<p class="text-xs text-white/40">Don't require itch.io games to run in the browser. Events with the itch-required flag still need an itch.io link.</p>
 				</div>
 				<input
 					type="checkbox"

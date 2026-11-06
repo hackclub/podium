@@ -635,6 +635,21 @@ export type ItchValidationResult = {
 	reason: string;
 };
 
+export type ItchCheck = {
+	valid: boolean;
+	/** null when the playability check is off or itch.io couldn't answer */
+	playable: boolean | null;
+	message: string;
+};
+
+/** Checks a demo link against the event's itch.io rules (events with the itch-required flag). */
+export function checkItchLink(eventId: string, url: string) {
+	return apiFetch<ItchCheck>('/projects/check-itch', {
+		method: 'POST',
+		body: JSON.stringify({ event_id: eventId, url })
+	});
+}
+
 export function adminValidateItchGames() {
 	return apiFetch<{
 		message: string;

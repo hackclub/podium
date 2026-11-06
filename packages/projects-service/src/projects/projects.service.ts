@@ -27,6 +27,16 @@ import {
 import { isItchUrl, ItchValidatorService } from './validators/itch-validator';
 import { GitHubValidatorService } from './validators/github-validator';
 
+/** Events with this flag only take itch.io game pages as demo links. */
+const ITCH_REQUIRED_FLAG = 'itch-required';
+
+export type ItchCheck = {
+  valid: boolean;
+  /** null when the playability check is off or itch.io couldn't answer */
+  playable: boolean | null;
+  message: string;
+};
+
 @Injectable()
 export class ProjectsService {
   private readonly logger = new Logger(ProjectsService.name);
@@ -238,6 +248,8 @@ export class ProjectsService {
         HttpStatus.UNPROCESSABLE_ENTITY,
       );
     }
+
+    await this.assertItchDemo(event, data.demo);
 
     if (event.ysws_checks_enabled) {
       const fullUser = await this.dbRw.query.users.findFirst({
@@ -492,6 +504,9 @@ export class ProjectsService {
         'Demo URL is required for this event',
         HttpStatus.UNPROCESSABLE_ENTITY,
       );
+    }
+    if (data.demo !== undefined) {
+      await this.assertItchDemo(event, data.demo);
     }
 
     const updateData: Record<string, any> = {};
@@ -906,6 +921,63 @@ export class ProjectsService {
       );
 
     return { message: 'Collaborator removed' };
+  }
+
+  /** The submit form's live check of a demo link against the event's itch.io rules. */
+  async checkItchLink(eventId: string, url: string): Promise<ItchCheck> {
+    const event = await this.dbRo.query.events.findFirst({ where: eq(events.id, eventId) });
+    if (!event) {
+      throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
+    }
+    if (!getFeatureFlagsList(event).includes(ITCH_REQUIRED_FLAG)) {
+      return { valid: true, playable: null, message: '' };
+    }
+    return this.checkItchDemo(event, url);
+  }
+
+  /** Rejects a demo link that breaks the event's itch.io rules. */
+  private async assertItchDemo(event: typeof events.$inferSelect, demo: string | undefined) {
+    if (!getFeatureFlagsList(event).includes(ITCH_REQUIRED_FLAG)) return;
+    const result = await this.checkItchDemo(event, demo ?? '');
+    if (!result.valid) {
+      throw new HttpException(result.message, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+  }
+
+  /**
+   * Itch.io rules for events with the itch-required flag: the demo must be an
+   * itch.io game page and, unless the event or the platform turned the check
+   * off, it must run in the browser. Itch.io being unreachable never blocks a
+   * submission.
+   */
+  private async checkItchDemo(event: typeof events.$inferSelect, url: string): Promise<ItchCheck> {
+    if (!isItchUrl(url)) {
+      return {
+        valid: false,
+        playable: null,
+        message: 'Your game must be on itch.io: use its page link, like https://username.itch.io/game',
+      };
+    }
+
+    const checkPlayable =
+      !event.itch_verification_disabled && (await this.platformSettings.isItchValidationEnabled());
+    if (!checkPlayable) {
+      return { valid: true, playable: null, message: '' };
+    }
+
+    const playable = await this.itchValidator.isPlayable(url);
+    if (playable === null) {
+      return { valid: true, playable: null, message: "Couldn't reach itch.io to check, but you can still submit" };
+    }
+    if (!playable) {
+      return {
+        valid: false,
+        playable: false,
+        message:
+          "This game doesn't run in the browser yet. On itch.io, edit the game, upload an HTML build and tick \"This file will be played in the browser\", then check again.",
+      };
+    }
+    return { valid: true, playable: true, message: 'Runs in the browser' };
   }
 
   async validateProject(projectId: string) {

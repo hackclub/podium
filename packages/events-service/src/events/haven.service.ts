@@ -72,7 +72,7 @@ const SUBMISSION = {
 };
 
 /** Feature flags every imported Haven event gets. */
-const HAVEN_FLAGS = 'haven,roster-only';
+const HAVEN_FLAGS = 'haven,roster-only,itch-required';
 
 /** Field Podium merges submissions on, together with Email. */
 const PODIUM_PROJECT_ID_FIELD = 'Podium Project ID';

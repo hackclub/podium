@@ -12,6 +12,7 @@ import {
   UploadedFile,
   BadRequestException,
   ParseUUIDPipe,
+  HttpCode,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
@@ -206,6 +207,15 @@ class OwnerAddCollaboratorDto {
   dob?: string;
 }
 
+class CheckItchDto {
+  @IsUUID()
+  event_id!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  url!: string;
+}
+
 class UpdateProjectDto {
   @IsOptional()
   @IsString()
@@ -279,6 +289,14 @@ export class ProjectsController {
     @CurrentUser() user: User,
   ) {
     return this.projectsService.joinProject(joinCode, user);
+  }
+
+  @Post('check-itch')
+  @UseGuards(JwtAuthGuard)
+  @RateLimit(30, 60)
+  @HttpCode(200)
+  async checkItch(@Body() body: CheckItchDto) {
+    return this.projectsService.checkItchLink(body.event_id, body.url);
   }
 
   @Post('validate')

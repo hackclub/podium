@@ -10,8 +10,20 @@ const ITCH_URL_PATTERN =
 const RATE_LIMIT_KEY = 'itch:last_request';
 const MIN_INTERVAL_MS = 1000;
 
+// Only "playable" is cached: someone who just turned on "Run game in browser"
+// has to see it on their next check, so a failure is always re-fetched.
+const PLAYABLE_CACHE_PREFIX = 'itch:playable:';
+const PLAYABLE_CACHE_TTL_S = 10 * 60;
+
 export function isItchUrl(url: string): boolean {
-  return ITCH_URL_PATTERN.test(url);
+  return ITCH_URL_PATTERN.test(url.trim());
+}
+
+/** `user.itch.io/game/` → `https://user.itch.io/game`, so one game has one cache entry. */
+function normalizeItchUrl(url: string): string {
+  const trimmed = url.trim();
+  const parsed = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
+  return `https://${parsed.host.toLowerCase()}${parsed.pathname.replace(/\/+$/, '')}`;
 }
 
 /**
@@ -48,12 +60,21 @@ export class ItchValidatorService {
   constructor(@Inject(REDIS) private readonly redis: Redis) {}
 
   /**
-   * Check if an itch.io game is browser-playable.
+   * Check if an itch.io game is browser-playable: true, false, or null when
+   * itch.io couldn't answer (rate limit, timeout, outage).
    * Uses Redis to coordinate across replicas so we never exceed 1 req/sec to itch.io.
    */
   async isPlayable(url: string, timeout = 10000): Promise<boolean | null> {
+    const normalized = normalizeItchUrl(url);
+    const cacheKey = PLAYABLE_CACHE_PREFIX + normalized;
+    if (await this.redis.get(cacheKey)) return true;
+
     await this.acquireSlot();
-    return this.fetchPlayable(url, timeout);
+    const playable = await this.fetchPlayable(normalized, timeout);
+    if (playable) {
+      await this.redis.set(cacheKey, '1', 'EX', PLAYABLE_CACHE_TTL_S);
+    }
+    return playable;
   }
 
   /**
@@ -86,13 +107,19 @@ export class ItchValidatorService {
         maxRedirects: 5,
       });
       const $ = cheerio.load(response.data);
-      return $('.game_frame').length > 0;
+      // .game_frame wraps itch.io's in-browser player; #game_drop is its other embed.
+      return $('.game_frame').length > 0 || $('#game_drop').length > 0;
     } catch (err) {
+      // A missing page is a real answer; anything else means itch.io didn't answer.
+      if (axios.isAxiosError(err) && err.response?.status === 404) {
+        return false;
+      }
       if (axios.isAxiosError(err) && err.response?.status === 429) {
         this.logger.warn('Itch.io returned 429 Too Many Requests, skipping check');
-        return null;
+      } else {
+        this.logger.warn(`Itch.io check failed for ${url}: ${err instanceof Error ? err.message : err}`);
       }
-      return false;
+      return null;
     }
   }
 }
