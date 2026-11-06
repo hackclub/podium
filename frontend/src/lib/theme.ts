@@ -134,7 +134,7 @@ export const defaultThemes: Record<string, Omit<EventTheme, 'logo' | 'skin'>> = 
 	},
 	haven: {
 		background: '/haven-background.webp',
-		font: '"Jua", sans-serif',
+		font: '"Jua Extras", "Jua", sans-serif',
 		primary: '#ed5615',
 		selected: '#ffd059'
 	}

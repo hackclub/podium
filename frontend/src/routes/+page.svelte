@@ -40,10 +40,13 @@
 </script>
 
 <div
-	class="min-h-screen bg-cover bg-fixed bg-center"
-	style="background-image: url({theme.background}); font-family: {theme.font}; --accent: {theme.selected}; {skinStyle(theme.skin)}"
+	class="min-h-screen"
+	style="font-family: {theme.font}; --accent: {theme.selected}; {skinStyle(theme.skin)}"
 	out:fade={{ duration: 150 }}
 >
+	<!-- A fixed layer instead of background-attachment: fixed, which makes Safari repaint on every scroll. -->
+	<div class="fixed inset-0 -z-10 bg-cover bg-center" style="background-image: url({theme.background});"></div>
+
 	<header class="flex flex-col items-center gap-3 px-4 pt-10 text-center">
 		<img src="/haven-logo.webp" alt="Hack Club Haven" class="h-28 w-auto object-contain sm:h-36" />
 		<h1
@@ -57,7 +60,7 @@
 
 	<main class="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-10">
 		<label
-			class="mx-auto flex w-full max-w-xl items-center gap-2 rounded-full border-4 border-(--line) bg-(--field) px-5 py-3 drop-shadow-md transition-colors focus-within:border-(--accent)"
+			class="mx-auto flex w-full max-w-xl items-center gap-2 rounded-full border-4 border-(--line) bg-(--field) px-5 py-3 shadow-md transition-colors focus-within:border-(--accent)"
 		>
 			<span class="sr-only">Search for your city</span>
 			<input
@@ -84,7 +87,7 @@
 					<a
 						href="/{event.slug}"
 						in:fade|global={{ duration: 100, delay: Math.min(i, 20) * 15 }}
-						class="group flex items-center justify-between gap-3 rounded-2xl border-4 border-(--edge) bg-(--surface) p-4 drop-shadow-md transition-transform duration-200 hover:-translate-y-1 focus-visible:-translate-y-1"
+						class="group flex items-center justify-between gap-3 rounded-2xl border-4 border-(--edge) bg-(--surface) p-4 shadow-md transition-transform duration-200 hover:-translate-y-1 focus-visible:-translate-y-1"
 					>
 						<div class="flex min-w-0 flex-col">
 							<span class="font-(family-name:--heading-font) text-2xl leading-tight text-(--ink) wrap-anywhere">
