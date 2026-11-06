@@ -121,7 +121,8 @@
 		<p>
 			<span class="text-white/80">Import & Sync</span> creates a Podium event for every Active Haven
 			event, sets its POC and EM as the event's POC and RM, and adds its live participants (not
-			withdrawn or deleted) to the roster. Events that are no longer Active are disabled. Safe to run
+			withdrawn or deleted) to the roster. New events start as drafts and sync never puts an event
+			live: do that from each event's page. Events that are no longer Active are hidden. Safe to run
 			again: it never removes anyone.
 		</p>
 		<p>

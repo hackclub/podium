@@ -386,8 +386,12 @@ export class HavenService {
 
   /**
    * Create or update the Podium events for these Haven events and add their
-   * participants to the roster. Active events are enabled and their POC/EM
-   * become the event's POC/RM; events that are no longer Active are disabled.
+   * participants to the roster. Active events get their POC/EM as the event's
+   * POC/RM; events that are no longer Active are hidden.
+   *
+   * Sync never puts an event live: new events start as drafts and admins
+   * choose when each goes live. Hiding only turns `enabled` off, so an event
+   * put on hold keeps its voting progress for when it comes back.
    */
   private async syncHavenEvents(havenEvents: HavenEvent[], owner: User) {
     const active = havenEvents.filter((e) => e.status === 'Active');
@@ -456,7 +460,7 @@ export class HavenService {
           eventId = existing.id;
           await this.dbRw
             .update(events)
-            .set({ owner_id: workspaceId ?? existing.owner_id, poc_id: pocId, rm_id: rmId, enabled: true })
+            .set({ owner_id: workspaceId ?? existing.owner_id, poc_id: pocId, rm_id: rmId })
             .where(eq(events.id, eventId));
         } else {
           const [created] = await this.dbRw
@@ -472,7 +476,7 @@ export class HavenService {
               theme_font: '',
               theme_primary: '',
               theme_selected: '',
-              enabled: true,
+              enabled: false,
               owner_id: workspaceId ?? owner.id,
               poc_id: pocId,
               rm_id: rmId,
