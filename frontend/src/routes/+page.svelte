@@ -87,7 +87,7 @@
 					<a
 						href="/{event.slug}"
 						in:fade|global={{ duration: 100, delay: Math.min(i, 20) * 15 }}
-						class="group flex items-center justify-between gap-3 rounded-2xl border-4 border-(--edge) bg-(--surface) p-4 shadow-md transition-transform duration-200 hover:-translate-y-1 focus-visible:-translate-y-1"
+						class="group flex items-center justify-between gap-3 rounded-2xl border-4 border-(--edge) bg-(--surface) p-4 transition-transform duration-200 hover:-translate-y-0.5 focus-visible:-translate-y-0.5"
 					>
 						<div class="flex min-w-0 flex-col">
 							<span class="font-(family-name:--heading-font) text-2xl leading-tight text-(--ink) wrap-anywhere">
