@@ -141,27 +141,36 @@ export const defaultThemes: Record<string, Omit<EventTheme, 'logo' | 'skin'>> = 
 };
 
 export function getLogo(themeName: string): import('svelte').Component<any> {
+	if (themeName === 'campfire') return CampfireSatLogo;
 	if (themeName === 'flagship') return CampfireFlagship;
 	if (themeName === 'sleepover') return SleepoverLogo;
 	if (themeName === 'sunbeam') return SunbeamLogo;
-	if (themeName === 'haven') return HavenLogo;
-	return CampfireSatLogo;
+	return HavenLogo;
 }
 
-export function eventToTheme(event: ApiEvent): EventTheme {
-	const defaults = defaultThemes[event.theme_name] || defaultThemes.campfire;
-	const font = event.theme_font || defaults.font;
-	const primary = event.theme_primary || defaults.primary;
-	const selected = event.theme_selected || defaults.selected;
+/** The theme for a preset, with an event's own overrides applied. Unknown presets fall back to Haven. */
+export function buildTheme(
+	themeName: string,
+	overrides: Partial<Pick<ApiEvent, 'theme_background' | 'theme_font' | 'theme_primary' | 'theme_selected'>> = {}
+): EventTheme {
+	const preset = themeName in defaultThemes ? themeName : 'haven';
+	const defaults = defaultThemes[preset];
+	const font = overrides.theme_font || defaults.font;
+	const primary = overrides.theme_primary || defaults.primary;
+	const selected = overrides.theme_selected || defaults.selected;
 	return {
-		logo: getLogo(event.theme_name),
-		background: event.theme_background || defaults.background,
+		logo: getLogo(preset),
+		background: overrides.theme_background || defaults.background,
 		font,
 		primary,
 		selected,
 		skin: {
 			...defaultSkin(font, primary, selected),
-			...skins[event.theme_name]?.(font, primary, selected)
+			...skins[preset]?.(font, primary, selected)
 		}
 	};
+}
+
+export function eventToTheme(event: ApiEvent): EventTheme {
+	return buildTheme(event.theme_name, event);
 }

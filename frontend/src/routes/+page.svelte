@@ -1,19 +1,31 @@
 <script lang="ts">
-	import { eventToTheme } from '$lib/theme';
+	import { buildTheme, skinStyle } from '$lib/theme';
 	import { getOfficialEvents, type ApiEvent } from '$lib/api';
-	import { goto } from '$app/navigation';
 	import { fade } from 'svelte/transition';
 	import { onMount } from 'svelte';
+
+	// The event picker wears the Haven theme; each card links to its own event page.
+	const theme = buildTheme('haven');
 
 	let searchQuery = $state('');
 	let events: ApiEvent[] = $state([]);
 	let loading = $state(true);
 	let error = $state('');
 
+	/** "Haven Ankara" → "Ankara"; other events keep their full name. */
+	function shortName(event: ApiEvent) {
+		return event.feature_flags_csv?.includes('haven') ? event.name.replace(/^haven\s*/i, '') : event.name;
+	}
+
+	/** Haven descriptions are "<length> game jam in <city>"; the card already shows the city. */
+	function subtitle(event: ApiEvent) {
+		return event.feature_flags_csv?.includes('haven') ? event.description.replace(/\s+in\s.*$/i, '') : event.description;
+	}
+
 	let filteredEvents = $derived(
-		events.filter((e) =>
-			e.name.toLowerCase().includes(searchQuery.toLowerCase())
-		)
+		events
+			.filter((e) => e.name.toLowerCase().includes(searchQuery.toLowerCase()))
+			.sort((a, b) => shortName(a).localeCompare(shortName(b)))
 	);
 
 	onMount(async () => {
@@ -24,80 +36,77 @@
 		} finally {
 			loading = false;
 		}
-
-		// Preload background images
-		events.forEach((e) => {
-			const t = eventToTheme(e);
-			if (t.background) {
-				const img = new Image();
-				img.src = t.background;
-			}
-		});
 	});
 </script>
 
-<div class="bg-[#111] min-h-screen relative" out:fade={{ duration: 150 }}>
-	<!-- Header -->
-	<div class="flex items-end gap-2 p-6 sticky">
-		<img src="/favicon.svg" alt="Podium" class="h-[32px]" />
-		<span class="text-white text-[32px] font-bold leading-none">Podium Pro Max</span>
-		<span class="text-[#878787] text-[16px] leading-none pb-0.5">Vote @ your event</span>
-	</div>
+<div
+	class="min-h-screen bg-cover bg-fixed bg-center"
+	style="background-image: url({theme.background}); font-family: {theme.font}; --accent: {theme.selected}; {skinStyle(theme.skin)}"
+	out:fade={{ duration: 150 }}
+>
+	<header class="flex flex-col items-center gap-3 px-4 pt-10 text-center">
+		<img src="/haven-logo.webp" alt="Hack Club Haven" class="h-28 w-auto object-contain sm:h-36" />
+		<h1
+			class="font-(family-name:--heading-font) text-4xl leading-none text-white sm:text-6xl"
+			style="text-shadow: 0 0 10px #ffd059, 0 0 4px #ed5615;"
+		>
+			Vote for your favorite games
+		</h1>
+		<p class="text-lg text-white drop-shadow-md">Find your city to submit your game and vote</p>
+	</header>
 
-	<!-- Content -->
-	<div class="mx-auto mt-[52px] flex max-w-[589px] flex-col gap-5 px-4">
-		<!-- Search Bar -->
-		<label class="flex items-center gap-2 rounded-md bg-[#303030] px-4 py-2 transition-all duration-200 focus-within:ring-2 focus-within:ring-white focus-within:ring-offset-2 focus-within:ring-offset-[#111]">
+	<main class="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-10">
+		<label
+			class="mx-auto flex w-full max-w-xl items-center gap-2 rounded-full border-4 border-(--line) bg-(--field) px-5 py-3 drop-shadow-md transition-colors focus-within:border-(--accent)"
+		>
+			<span class="sr-only">Search for your city</span>
 			<input
 				type="text"
-				placeholder="Search for your event"
+				placeholder="Search for your city"
 				bind:value={searchQuery}
-				class="flex-1 bg-transparent text-[16px] text-white placeholder:text-white/40 outline-none"
+				class="min-w-0 flex-1 bg-transparent text-lg text-(--ink) placeholder:text-(--ink)/50 outline-none"
 			/>
-			<img
-				src="https://icons.hackclub.com/api/icons/white/search"
-				alt="Search"
-				class="size-8 opacity-60"
-			/>
+			<svg viewBox="0 0 24 24" class="size-6 shrink-0 text-(--ink)" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+				<circle cx="11" cy="11" r="7" />
+				<path d="m20 20-3.5-3.5" />
+			</svg>
 		</label>
 
 		{#if loading}
-			<p class="text-white/60 text-center py-8">Loading events...</p>
+			<p class="py-8 text-center text-lg text-white drop-shadow-md">Loading events...</p>
 		{:else if error}
-			<p class="text-red-400 text-center py-8">{error}</p>
+			<p class="mx-auto rounded-2xl bg-(--surface) px-5 py-3 text-center text-(--danger)">{error}</p>
 		{:else if filteredEvents.length === 0}
-			<p class="text-white/60 text-center py-8">No events found</p>
+			<p class="py-8 text-center text-lg text-white drop-shadow-md">No events found</p>
 		{:else}
-			{#each filteredEvents as event, i (event.id)}
-				{@const t = eventToTheme(event)}
-				<div
-					in:fade|global={{ duration: 100, delay: i * 15 }}
-					out:fade|global={{ duration: 100 }}
-					class="group flex h-[120px] w-full items-end justify-between overflow-hidden rounded-md bg-cover bg-center p-4 select-none cursor-pointer transition-all duration-200 hover:ring-2 hover:ring-white hover:ring-offset-2 hover:ring-offset-[#303030]"
-					style="background-image: url({t.background});"
-					onclick={() => goto(`/${event.slug}`)}
-					onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goto(`/${event.slug}`); } }}
-					role="button"
-					tabindex="0"
-				>
-					<div class="flex items-center justify-center h-full">
-						<t.logo satellite={event.name.replace(/^campfire\s*/i, '')} />
-					</div>
-
-					<div
-						class="rounded-lg bg-white px-3 py-2 text-[16px] leading-none transition-transform ease-in-out group-hover:scale-110 duration-200"
-						style="color: {t.primary}; font-family: {t.font};"
+			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+				{#each filteredEvents as event, i (event.id)}
+					<a
+						href="/{event.slug}"
+						in:fade|global={{ duration: 100, delay: Math.min(i, 20) * 15 }}
+						class="group flex items-center justify-between gap-3 rounded-2xl border-4 border-(--edge) bg-(--surface) p-4 drop-shadow-md transition-transform duration-200 hover:-translate-y-1 hover:-rotate-1 focus-visible:-translate-y-1"
 					>
-						Vote →
-					</div>
-				</div>
-			{/each}
+						<div class="flex min-w-0 flex-col">
+							<span class="font-(family-name:--heading-font) text-2xl leading-tight text-(--ink) wrap-anywhere">
+								{shortName(event)}
+							</span>
+							{#if event.description}
+								<span class="text-sm text-(--ink)/60 wrap-anywhere">{subtitle(event)}</span>
+							{/if}
+						</div>
+						<span
+							class="shrink-0 rounded-full bg-(--button) px-3 py-1.5 text-sm text-(--button-ink) transition-colors group-hover:bg-(--accent) group-hover:text-(--button-hover-ink)"
+						>
+							Vote →
+						</span>
+					</a>
+				{/each}
+			</div>
 		{/if}
-	</div>
+	</main>
 
-	<!-- Footer -->
-	<div class="fixed bottom-6 left-6 flex items-center gap-4">
-		<a href="https://hack-club-hq.gitbook.io/campfire/campfire" target="_blank" rel="noopener noreferrer" class="text-[16px] font-bold text-[#878787] hover:text-white transition-colors">Podium Guide</a>
-		<a href="/admin/login" class="text-[16px] font-bold text-[#878787] hover:text-white transition-colors">POC Login</a>
-	</div>
+	<footer class="flex items-center justify-center gap-6 pb-8 text-white drop-shadow-md">
+		<a href="https://hack-club-hq.gitbook.io/campfire/campfire" target="_blank" rel="noopener noreferrer" class="underline hover:text-(--accent)">Podium Guide</a>
+		<a href="/admin/login" class="underline hover:text-(--accent)">POC Login</a>
+	</footer>
 </div>

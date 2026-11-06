@@ -15,11 +15,11 @@
 	let slug = $state('');
 	let description = $state('');
 	let featureFlags = $state('');
-	let themeName = $state('campfire');
-	let themeBackground = $state(defaultThemes.campfire.background);
-	let themeFont = $state(defaultThemes.campfire.font);
-	let themePrimary = $state(defaultThemes.campfire.primary);
-	let themeSelected = $state(defaultThemes.campfire.selected);
+	let themeName = $state('haven');
+	let themeBackground = $state(defaultThemes.haven.background);
+	let themeFont = $state(defaultThemes.haven.font);
+	let themePrimary = $state(defaultThemes.haven.primary);
+	let themeSelected = $state(defaultThemes.haven.selected);
 	let submitting = $state(false);
 	let error = $state('');
 
@@ -32,7 +32,7 @@
 
 	// Update theme defaults when theme name changes
 	function onThemeNameChange() {
-		const defaults = defaultThemes[themeName] || defaultThemes.campfire;
+		const defaults = defaultThemes[themeName] || defaultThemes.haven;
 		themeBackground = defaults.background;
 		themeFont = defaults.font;
 		themePrimary = defaults.primary;
@@ -80,7 +80,7 @@
 					id="name"
 					type="text"
 					bind:value={name}
-					placeholder="Campfire Burlington"
+					placeholder="Haven Burlington"
 					class="px-3 py-2 rounded-md bg-white/10 text-white border border-white/20 outline-none focus:border-white/40 text-sm"
 				/>
 			</div>
@@ -91,7 +91,7 @@
 					id="slug"
 					type="text"
 					bind:value={slug}
-					placeholder="campfire-burlington"
+					placeholder="haven-burlington"
 					class="px-3 py-2 rounded-md bg-white/10 text-white border border-white/20 outline-none focus:border-white/40 text-sm"
 				/>
 			</div>
@@ -113,7 +113,7 @@
 					id="flags"
 					type="text"
 					bind:value={featureFlags}
-					placeholder="campfire-2025"
+					placeholder="haven,roster-only"
 					class="px-3 py-2 rounded-md bg-white/10 text-white border border-white/20 outline-none focus:border-white/40 text-sm"
 				/>
 			</div>
@@ -131,11 +131,11 @@
 					onchange={onThemeNameChange}
 					class="px-3 py-2 rounded-md bg-white/10 text-white border border-white/20 outline-none focus:border-white/40 text-sm"
 				>
+					<option value="haven">Haven</option>
 					<option value="campfire">Campfire (Satellite)</option>
 					<option value="flagship">Flagship</option>
 					<option value="sleepover">Sleepover</option>
 					<option value="sunbeam">Sunbeam</option>
-					<option value="haven">Haven</option>
 				</select>
 			</div>
 

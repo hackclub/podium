@@ -13,7 +13,7 @@
 	let error = $state('');
 	let saved = $state(false);
 
-	let themeName = $state('campfire');
+	let themeName = $state('haven');
 	let themeBackground = $state('');
 	let themeFont = $state('');
 	let themePrimary = $state('');
@@ -22,7 +22,7 @@
 	onMount(async () => {
 		try {
 			event = await adminGetEvent(eventId);
-			themeName = event.theme_name || 'campfire';
+			themeName = event.theme_name || 'haven';
 			themeBackground = event.theme_background || '';
 			themeFont = event.theme_font || '';
 			themePrimary = event.theme_primary || '';
@@ -35,7 +35,7 @@
 	});
 
 	function applyPreset() {
-		const defaults = defaultThemes[themeName] || defaultThemes.campfire;
+		const defaults = defaultThemes[themeName] || defaultThemes.haven;
 		themeBackground = defaults.background;
 		themeFont = defaults.font;
 		themePrimary = defaults.primary;
@@ -89,11 +89,11 @@
 						bind:value={themeName}
 						class="flex-1 px-3 py-2 rounded-md bg-white/10 text-white border border-white/20 outline-none focus:border-white/40 text-sm"
 					>
+						<option value="haven">Haven</option>
 						<option value="campfire">Campfire (Satellite)</option>
 						<option value="flagship">Flagship</option>
 						<option value="sleepover">Sleepover</option>
 						<option value="sunbeam">Sunbeam</option>
-						<option value="haven">Haven</option>
 					</select>
 					<button
 						type="button"

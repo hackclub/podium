@@ -9,7 +9,7 @@
 	let error = $state('');
 	let search = $state('');
 	let statusFilter = $state<'all' | 'enabled' | 'disabled'>('all');
-	let typeFilter = $state<'all' | 'campfire' | 'other'>('all');
+	let typeFilter = $state<'all' | 'haven' | 'campfire' | 'other'>('all');
 
 	const isSuperadmin = $derived(getAdminUser()?.is_superadmin ?? false);
 
@@ -25,8 +25,11 @@
 			}
 			if (statusFilter === 'enabled' && !e.enabled) return false;
 			if (statusFilter === 'disabled' && e.enabled) return false;
-			if (typeFilter === 'campfire' && !e.feature_flags_csv.includes('campfire')) return false;
-			if (typeFilter === 'other' && e.feature_flags_csv.includes('campfire')) return false;
+			const isHaven = e.feature_flags_csv.includes('haven');
+			const isCampfire = e.feature_flags_csv.includes('campfire');
+			if (typeFilter === 'haven' && !isHaven) return false;
+			if (typeFilter === 'campfire' && !isCampfire) return false;
+			if (typeFilter === 'other' && (isHaven || isCampfire)) return false;
 			return true;
 		})
 	);
@@ -101,6 +104,15 @@
 					onclick={() => (typeFilter = 'all')}
 				>
 					All
+				</button>
+				<button
+					type="button"
+					class="px-3 py-1.5 rounded text-xs transition-colors {typeFilter === 'haven'
+						? 'bg-white/10 text-white'
+						: 'text-white/40 hover:text-white'}"
+					onclick={() => (typeFilter = 'haven')}
+				>
+					Haven
 				</button>
 				<button
 					type="button"
