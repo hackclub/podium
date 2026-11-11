@@ -38,11 +38,37 @@ async function bootstrap() {
     },
   });
 
-  await app.startAllMicroservices();
+  // If Kafka is missing the votes topic or unreachable, startAllMicroservices
+  // can reject inside kafkajs or never settle, and the HTTP server below never
+  // starts while the process stays up looking healthy. Exit instead, so the
+  // orchestrator restarts the pod until Kafka is ready.
+  const kafkaReady = new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`Kafka consumer did not start within ${KAFKA_START_TIMEOUT_MS}ms`)),
+      KAFKA_START_TIMEOUT_MS,
+    );
+    app.startAllMicroservices().then(
+      () => {
+        clearTimeout(timer);
+        resolve();
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+  await kafkaReady;
 
   const port = process.env.PORT || 8002;
   await app.listen(port);
   console.log(`Events service listening on port ${port}`);
   console.log(`Kafka consumer connected to ${kafkaBroker}`);
 }
-bootstrap();
+
+const KAFKA_START_TIMEOUT_MS = 60_000;
+
+bootstrap().catch((err) => {
+  console.error('Events service failed to start:', err);
+  process.exit(1);
+});
