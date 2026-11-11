@@ -14,7 +14,7 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
-import { Observable } from 'rxjs';
+import { Observable, lastValueFrom } from 'rxjs';
 import { User, JwtAuthGuard, OptionalJwtAuthGuard, AdminGuard, SuperAdminGuard, CurrentUser } from '@podium/shared';
 import { EventsService } from './events.service';
 import { HavenService } from './haven.service';
@@ -136,14 +136,18 @@ export class EventsController {
       this.eventsService.checkNotOwnProject(user.id, body.projects),
     ]);
 
-    this.kafkaClient.emit('votes', {
-      key: body.event,
-      value: JSON.stringify({
-        userId: user.id,
-        eventId: body.event,
-        projectIds: body.projects,
+    // Wait for Kafka to take the vote before saying it was accepted: a 202
+    // for a vote the broker never got would be a vote silently lost.
+    await lastValueFrom(
+      this.kafkaClient.emit('votes', {
+        key: body.event,
+        value: JSON.stringify({
+          userId: user.id,
+          eventId: body.event,
+          projectIds: body.projects,
+        }),
       }),
-    });
+    );
 
     return { message: 'Vote request accepted' };
   }

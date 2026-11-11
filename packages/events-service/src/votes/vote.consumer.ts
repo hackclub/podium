@@ -1,5 +1,5 @@
 import { Controller, Inject, Logger } from '@nestjs/common';
-import { EventPattern, Payload } from '@nestjs/microservices';
+import { EventPattern, KafkaRetriableException, Payload } from '@nestjs/microservices';
 import { eq, and, inArray } from 'drizzle-orm';
 import {
   DRIZZLE_RW,
@@ -19,6 +19,21 @@ interface VoteMessage {
   projectIds: string[];
 }
 
+/**
+ * Postgres errors that say nothing about the vote: connection failures
+ * (class 08), out of connections or memory (class 53), the server shutting
+ * down or starting up (57P01–57P03), plus network errors and pool timeouts.
+ */
+function isTransientDbError(err: unknown): boolean {
+  const code = (err as { code?: string } | null)?.code ?? '';
+  if (code.startsWith('08') || code.startsWith('53') || ['57P01', '57P02', '57P03'].includes(code)) {
+    return true;
+  }
+  if (['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', 'EPIPE'].includes(code)) return true;
+  const message = err instanceof Error ? err.message : '';
+  return /timeout exceeded when trying to connect|Connection terminated/i.test(message);
+}
+
 @Controller()
 export class VoteConsumer {
   private readonly logger = new Logger(VoteConsumer.name);
@@ -34,6 +49,13 @@ export class VoteConsumer {
         `Failed to process vote: ${err instanceof Error ? err.message : err}`,
         err instanceof Error ? err.stack : undefined,
       );
+      // The database being briefly unreachable (out of connections, restarting)
+      // must not cost the voter their vote. Rethrowing leaves the offset
+      // uncommitted, so Kafka redelivers the message. Anything else is about
+      // the message itself and would fail every retry, blocking the partition.
+      if (isTransientDbError(err)) {
+        throw new KafkaRetriableException('Database unavailable, retrying vote');
+      }
     }
   }
 
