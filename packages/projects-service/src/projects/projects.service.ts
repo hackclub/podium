@@ -30,6 +30,8 @@ import { GitHubValidatorService } from './validators/github-validator';
 /** Events with this flag only take itch.io game pages as demo links. */
 const ITCH_REQUIRED_FLAG = 'itch-required';
 
+type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
+
 export type ItchCheck = {
   valid: boolean;
   /** null when the playability check is off or itch.io couldn't answer */
@@ -303,25 +305,46 @@ export class ProjectsService {
     // UNIQUE constraint fires; retry up to 3 times before giving up.
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const [saved] = await this.dbRw
-          .insert(projects)
-          .values({
-            name: data.name,
-            repo: data.repo,
-            image_url: data.image_url,
-            demo: data.demo || '',
-            description: data.description || '',
-            hours_spent: data.hours_spent ?? 0,
-            event_id: data.event_id,
-            owner_id: user.id,
-            join_code: this.generateJoinCode(),
-          })
-          .returning();
+        const saved = await this.dbRw.transaction(async (tx) => {
+          // A double-clicked Submit sends two of these at once, and both pass
+          // the existingProject check above. Serialize them per owner and
+          // event, then check again, so the second one finds the first.
+          await tx.execute(
+            sql`select pg_advisory_xact_lock(hashtext(${`project:${user.id}:${data.event_id}`}))`,
+          );
+          const duplicate = await tx.query.projects.findFirst({
+            where: and(eq(projects.event_id, data.event_id), eq(projects.owner_id, user.id)),
+            columns: { id: true },
+          });
+          if (duplicate) {
+            throw new HttpException(
+              'You have already submitted a project for this event',
+              HttpStatus.CONFLICT,
+            );
+          }
 
-        // Process teammates after project creation
-        if (data.teammates?.length) {
-          await this.addTeammates(saved.id, data.event_id, data.teammates, user);
-        }
+          const [project] = await tx
+            .insert(projects)
+            .values({
+              name: data.name,
+              repo: data.repo,
+              image_url: data.image_url,
+              demo: data.demo || '',
+              description: data.description || '',
+              hours_spent: data.hours_spent ?? 0,
+              event_id: data.event_id,
+              owner_id: user.id,
+              join_code: this.generateJoinCode(),
+            })
+            .returning();
+
+          // Teammates go in the same transaction, so a failure can't leave a
+          // project behind without them.
+          if (data.teammates?.length) {
+            await this.addTeammates(project.id, data.event_id, data.teammates, user, tx);
+          }
+          return project;
+        });
 
         return { id: saved.id, join_code: saved.join_code };
       } catch (err: any) {
@@ -357,18 +380,19 @@ export class ProjectsService {
       dob?: string;
     }[],
     owner: User,
+    db: Database | Transaction = this.dbRw,
   ) {
     for (const mate of teammates) {
       const email = mate.email.trim().toLowerCase();
       if (email === owner.email) continue; // skip self
 
-      let teammate = await this.dbRw.query.users.findFirst({
+      let teammate = await db.query.users.findFirst({
         where: eq(users.email, email),
       });
 
       if (!teammate) {
         // Create user with the provided fields
-        const [created] = await this.dbRw
+        const [created] = await db
           .insert(users)
           .values({
             email,
@@ -401,18 +425,18 @@ export class ProjectsService {
         if (!teammate.dob && mate.dob) updates.dob = mate.dob;
 
         if (Object.keys(updates).length > 0) {
-          await this.dbRw.update(users).set(updates).where(eq(users.id, teammate.id));
+          await db.update(users).set(updates).where(eq(users.id, teammate.id));
         }
       }
 
       // Add as event attendee (ignore if already attending)
-      await this.dbRw
+      await db
         .insert(eventAttendees)
         .values({ event_id: eventId, user_id: teammate.id })
         .onConflictDoNothing();
 
       // Add as project collaborator (ignore if already a collaborator)
-      await this.dbRw
+      await db
         .insert(projectCollaborators)
         .values({ project_id: projectId, user_id: teammate.id })
         .onConflictDoNothing();
